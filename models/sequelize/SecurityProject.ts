@@ -13,6 +13,7 @@ SecurityProject.init({
   guardId: { type: DataTypes.INTEGER, allowNull: true },
   guardName: { type: DataTypes.STRING, allowNull: false },
   contactNumber: { type: DataTypes.STRING, allowNull: true },
+  monthlySalary: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
   status: { type: DataTypes.STRING, allowNull: false, defaultValue: "Ongoing" },
   createdBy: { type: DataTypes.STRING, allowNull: true },
 }, {

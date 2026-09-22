@@ -9,6 +9,7 @@ import {
   ClipboardList, FolderKanban, UserRoundCheck
 } from "lucide-react";
 import OwnerFinanceOverview from "./OwnerFinanceOverview";
+import DailyTracking from "./DailyTracking";
 
 type Props = {
   sessionUser?: any;
@@ -107,6 +108,9 @@ function MetricCard({ label, value, detail, icon: Icon, tone, onClick }: any) {
 }
 
 export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, onNavigateTab, triggerToast, companies = [], selectedCompanyId, onCompanyChange }: Props) {
+  const [dashboardView, setDashboardView] = React.useState<"overview" | "tracking">("overview");
+  const canViewTracking = ["owner", "director", "hr head", "hr executive"].includes(String(sessionUser?.role || "").trim().toLowerCase());
+  const showTracking = canViewTracking && dashboardView === "tracking";
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [verticals, setVerticals] = React.useState<any[]>([]);
   const [departments, setDepartments] = React.useState<any[]>([]);
@@ -315,7 +319,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
     <div className="rounded-2xl border-2 border-[#dfd3ca] bg-gradient-to-r from-white to-[#f7f1ed] px-5 py-5 shadow-[0_5px_20px_rgba(75,47,68,0.08)]">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div><div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#8b5d7e]">RS9 Group Executive Workspace</div><h1 className="text-3xl font-black text-[#351d30] tracking-tight">Owner Command Centre</h1><p className="text-[11px] font-bold text-slate-600 mt-1">{dateLabel} · Welcome, {sessionUser?.name?.split(" ")[0] || "Owner"}</p></div>
-        <div className="flex flex-wrap gap-2">
+        {!showTracking && <div className="flex flex-wrap gap-2">
           <div className="h-9 rounded-xl border-2 border-[#d8cbc3] bg-white p-0.5 flex items-center" title="Choose today's work or complete historical work">
             <button onClick={() => setRange("today")} className={`h-7 rounded-lg px-3 text-[10px] font-black transition-colors ${range === "today" ? "bg-[#714B67] text-white" : "text-slate-700 hover:bg-slate-100"}`}>Today&apos;s Work</button>
             <button onClick={() => setRange("all")} className={`h-7 rounded-lg px-3 text-[10px] font-black transition-colors ${range === "all" ? "bg-[#714B67] text-white" : "text-slate-700 hover:bg-slate-100"}`}>Overall Work</button>
@@ -324,10 +328,15 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
           <select value={vertical} onChange={e => setVertical(e.target.value)} className="h-9 rounded-xl border border-[#ddd2ca] bg-white px-3 text-[10px] font-bold"><option value="">All Verticals</option>{verticals.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}</select>
           <select value={department} onChange={e => setDepartment(e.target.value)} className="h-9 rounded-xl border border-[#ddd2ca] bg-white px-3 text-[10px] font-bold"><option value="">All Departments</option>{departments.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}</select>
           <button onClick={refreshDashboard} disabled={loading} className="h-9 rounded-xl bg-[#714B67] text-white px-3 text-[10px] font-black flex items-center gap-1.5 disabled:opacity-60"><RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh</button>
-        </div>
+        </div>}
       </div>
+      {canViewTracking && <div className="mt-4 flex gap-2" aria-label="Owner dashboard view">
+        <button type="button" aria-pressed={!showTracking} onClick={() => setDashboardView("overview")} className={`rounded-lg px-4 py-2 text-xs font-bold ${!showTracking ? "bg-[#714B67] text-white" : "border border-[#ddd2ca] bg-white text-slate-700"}`}>Overview</button>
+        <button type="button" aria-pressed={showTracking} onClick={() => setDashboardView("tracking")} className={`rounded-lg px-4 py-2 text-xs font-bold ${showTracking ? "bg-[#714B67] text-white" : "border border-[#ddd2ca] bg-white text-slate-700"}`}>Daily Tracking</button>
+      </div>}
     </div>
 
+    {showTracking ? <DailyTracking /> : <>
     <OwnerFinanceOverview onNavigate={onNavigateTab} />
 
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -421,5 +430,6 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
       ].map(item => <button key={item.label} onClick={() => onNavigateTab(item.tab)} className="rounded-xl border border-[#eee7e1] bg-[#fbfaf8] p-3 text-left"><item.icon className="w-4 h-4 text-[#714B67]" /><div className="text-xl font-black mt-2">{item.value}</div><div className="text-[9px] font-bold text-slate-500">{item.label}</div></button>)}</div></section>
       <section className="rounded-2xl border border-[#e7dfd8] bg-white p-4 shadow-sm"><div className="flex items-center justify-between mb-3"><div><h2 className="text-xs font-black text-[#4d3047]">Team Workload Watch</h2><p className="text-[9px] text-slate-500">{range === "today" ? "Today’s" : "Overall"} highest pending workload by employee</p></div><Users className="w-4 h-4 text-[#9a7a91]" /></div><div className="space-y-2">{teamWorkload.length ? teamWorkload.map(member => <button key={member.id} onClick={() => onNavigateTab("tasks", member.name)} className="w-full rounded-lg border border-[#eee7e1] px-3 py-2 text-left hover:bg-[#fbf8f6]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-[9px] font-black text-slate-800 truncate">{member.name}</div><div className="text-[8px] font-bold text-slate-500 truncate mt-0.5">{member.vertical} · {member.done}/{member.total} completed</div></div><span className={`text-[8px] font-black rounded-full px-2 py-1 shrink-0 ${member.pending ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{member.pending ? `${member.pending} pending` : "All complete"}</span></div><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2"><div className="h-full bg-[#714B67] rounded-full" style={{ width: `${member.score}%` }} /></div></button>) : <div className="rounded-xl border border-dashed border-[#ddd2ca] p-6 text-center text-[9px] font-bold text-slate-500">No employee workload found for selected filters.</div>}</div><button onClick={() => onNavigateTab("tasks")} className="mt-3 text-[9px] font-black text-[#714B67]">Open team task board <ArrowUpRight className="inline w-3 h-3" /></button></section>
     </div>
+    </>}
   </div>;
 }

@@ -22,6 +22,7 @@ import DashboardSidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import HiringRequisitionModal from "@/components/dashboard/HiringRequisitionModal";
 import { HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
+import DailyTracking from "@/components/dashboard/DailyTracking";
 import OwnerCommandCentre from "@/components/dashboard/OwnerCommandCentre";
 import {
   HiringApproval,
@@ -1289,6 +1290,11 @@ export default function UnifiedEnterpriseDashboard() {
 
         {/* Tab Panel Body container */}
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
+
+          {["Owner", "Director", "HR Head", "HR Executive"].includes(userRole) &&
+            ["hr-dash", "attendance", "tasks", "vertical-dashboard", "legal-recovery"].includes(activeTab) && (
+              <DailyTracking key={activeTab} initialView={activeTab === "attendance" || activeTab === "hr-dash" ? "attendance" : activeTab === "tasks" ? "tasks" : "payments"} />
+            )}
 
           {activeTab === "dashboard" && (
             <OwnerCommandCentre

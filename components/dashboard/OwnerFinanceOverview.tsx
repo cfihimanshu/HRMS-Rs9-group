@@ -10,17 +10,17 @@ const when = (value: any) => value ? new Date(value).toLocaleDateString("en-IN",
 const isMedia = (lead: Row) => /\b(media|gpde|gdpe)\b/i.test(`${lead.salesReason || ""} ${lead.convertedServicesJson || ""} ${lead.serviceName || ""}`);
 
 export default function OwnerFinanceOverview({ onNavigate }: { onNavigate: (tab: string, filter?: string) => void }) {
-  const [rows, setRows] = React.useState<{ cases: Row[]; payments: Row[]; security: Row[]; leads: Row[] }>({ cases: [], payments: [], security: [], leads: [] });
+  const [rows, setRows] = React.useState<{ cases: Row[]; payments: Row[]; security: Row[]; leads: Row[]; securityPayments: Row[] }>({ cases: [], payments: [], security: [], leads: [], securityPayments: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
   const load = React.useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const responses = await Promise.all(["/api/legal-recovery", "/api/legal-recovery/payment", "/api/legal-recovery/security", "/api/bda-leads?status=All"].map(url => fetch(url, { cache: "no-store" })));
+      const responses = await Promise.all(["/api/legal-recovery", "/api/legal-recovery/payment", "/api/legal-recovery/security", "/api/bda-leads?status=All", "/api/legal-recovery/security/payment"].map(url => fetch(url, { cache: "no-store" })));
       const json = await Promise.all(responses.map(response => response.json().catch(() => ({}))));
-      setRows({ cases: json[0].data || [], payments: json[1].data || [], security: json[2].data || [], leads: json[3].data || [] });
-      if (responses.every(response => !response.ok)) throw new Error("Finance data could not be loaded");
+      setRows({ cases: json[0].data || [], payments: json[1].data || [], security: json[2].data || [], leads: json[3].data || [], securityPayments: json[4].data || [] });
+      if (responses.some(response => !response.ok) || json.some(result => result.success === false)) throw new Error("Finance data could not be loaded");
     } catch (e: any) { setError(e.message || "Finance data could not be loaded"); }
     finally { setLoading(false); }
   }, []);
@@ -50,7 +50,7 @@ export default function OwnerFinanceOverview({ onNavigate }: { onNavigate: (tab:
     { label: "61–90 days", amount: pendingBills.filter(x => age(x.date) >= 61 && age(x.date) <= 90).reduce((s, x) => s + x.amount, 0), style: "bg-orange-50 border-orange-100 text-orange-700" },
     { label: "Old · 90+ days", amount: pendingBills.filter(x => age(x.date) > 90).reduce((s, x) => s + x.amount, 0), style: "bg-rose-50 border-rose-100 text-rose-700" },
   ];
-  const receipts = React.useMemo(() => rows.payments.map(x => ({ id: `l-${x.id}`, vertical: "Legal Recovery", client: `${x.bankName || "Unknown Bank"} · ${x.branchName || "General"}`, amount: num(x.amount), date: x.paymentDate || x.createdAt, by: x.receivedBy || "System" })).concat(rows.security.filter(x => num(x.receivedAmount) > 0).map(x => ({ id: `s-${x.id}`, vertical: "Security Services", client: x.company || "Security Client", amount: num(x.receivedAmount), date: x.receivedDate || x.updatedAt, by: x.createdBy || "System" }))).sort((a, b) => +new Date(b.date || 0) - +new Date(a.date || 0)).slice(0, 8), [rows.payments, rows.security]);
+  const receipts = React.useMemo(() => rows.payments.map(x => ({ id: `l-${x.id}`, vertical: "Legal Recovery", client: `${x.bankName || "Unknown Bank"} · ${x.branchName || "General"}`, amount: num(x.amount), date: x.paymentDate || x.createdAt, by: x.receivedBy || "System" })).concat(rows.securityPayments.map(x => ({ id: `s-${x.id}`, vertical: "Security Services", client: `${x.nbfcName || "Security Client"} · ${x.branchName || "General"}`, amount: num(x.amount), date: x.paymentDate, by: x.receivedBy || "Not recorded" }))).sort((a, b) => +new Date(b.date || 0) - +new Date(a.date || 0)).slice(0, 8), [rows.payments, rows.securityPayments]);
 
   return <section className="rounded-2xl border-2 border-[#d8cbc3] bg-white shadow-sm overflow-hidden text-slate-900 [&_p]:font-extrabold [&_.text-slate-500]:text-slate-700 [&_.text-slate-600]:text-slate-800">
     <div className="px-4 py-3 border-b border-[#e9e1da] flex items-center justify-between"><div><h2 className="text-base font-black text-[#321f2e]">Vertical Finance & Collections</h2><p className="text-[10px] font-extrabold text-slate-700">Vertical-wise received money, remaining amount and bill aging</p></div><button onClick={load} disabled={loading} className="text-[10px] font-black text-[#5e3856] flex items-center gap-1"><RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}/> Refresh</button></div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, Download, IndianRupee, Search, Trash2, X, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, Download, IndianRupee, ReceiptIndianRupee, Search, Trash2, X, XCircle } from "lucide-react";
 
 const localMonth = () => {
   const now = new Date();
@@ -18,11 +18,13 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const [projects, setProjects] = useState<any[]>([]);
   const [guards, setGuards] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
+  const [salaryPayments, setSalaryPayments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [nbfcFilter, setNbfcFilter] = useState("");
   const [siteFilter, setSiteFilter] = useState("");
   const [guardFilter, setGuardFilter] = useState("");
   const [savingCell, setSavingCell] = useState("");
+  const [payingKey, setPayingKey] = useState("");
   const [showPayoutBreakdown, setShowPayoutBreakdown] = useState(false);
   const daysInMonth = useMemo(() => { const [year, monthNumber] = month.split("-").map(Number); return new Date(year, monthNumber, 0).getDate(); }, [month]);
   const dates = useMemo(() => Array.from({ length: daysInMonth }, (_, index) => `${month}-${String(index + 1).padStart(2, "0")}`), [month, daysInMonth]);
@@ -37,8 +39,12 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     if (guardResult.success) setGuards(guardResult.data || []);
   };
   const loadAttendance = async () => {
-    const result = await fetch(`/api/legal-recovery/security/guard-attendance?month=${month}`).then(response => response.json());
+    const [result, paymentsResult] = await Promise.all([
+      fetch(`/api/legal-recovery/security/guard-attendance?month=${month}`).then(response => response.json()),
+      fetch(`/api/legal-recovery/security/guard-salary-payments?month=${month}`).then(response => response.json()),
+    ]);
     if (result.success) setAttendance(result.data || []); else triggerToast(result.error || "Attendance load nahi hui");
+    if (paymentsResult.success) setSalaryPayments(paymentsResult.data || []);
   };
   useEffect(() => { loadMasters().catch(() => triggerToast("Projects aur guards load nahi hue")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadAttendance().catch(() => triggerToast("Attendance load nahi hui")); }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -71,15 +77,15 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     });
     return { byId, byPhone };
   }, [guards]);
-  const monthlyFor = (guardId: unknown, phone: unknown) => {
+  const monthlyFor = (guardId: unknown, phone: unknown, projectSalary?: unknown) => {
+    const projectMonthly = Number(projectSalary || 0);
+    if (projectMonthly > 0) return projectMonthly;
     const byId = guardSalary.byId.get(String(guardId)) || 0;
     if (byId > 0) return byId;
     return guardSalary.byPhone.get(digits(phone)) || byId;
   };
   const payableFor = (record: any) => {
-    const monthly = monthlyFor(record.guardId, record.guardPhone);
-    const units = Number(record.payableUnits || 0);
-    return monthly > 0 ? Number(((monthly / daysInMonth) * units).toFixed(2)) : Number(record.payoutAmount || 0);
+    return Number(record.payoutAmount || 0);
   };
   const visibleAttendance = useMemo(() => {
     const visibleKeys = new Set(rows.map(project => `${project.sourceSecurityId}-${project.guardId}`));
@@ -91,22 +97,29 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     payout: visibleAttendance.reduce((sum, record) => sum + payableFor(record), 0),
   }), [visibleAttendance, guardSalary, daysInMonth]); // eslint-disable-line react-hooks/exhaustive-deps
   const guardPayoutBreakdown = useMemo(() => {
+    const paidMap = new Map<string, number>();
+    salaryPayments.forEach(payment => {
+      const key = `${payment.securityId}-${payment.guardId}`;
+      paidMap.set(key, (paidMap.get(key) || 0) + Number(payment.paidAmount || 0));
+    });
     const mapped = new Map<string, any>();
     rows.forEach(project => {
-      const key = String(project.guardId);
-      const guard = guards.find(item => String(item.id) === key);
+      const key = `${project.sourceSecurityId}-${project.guardId}`;
+      const guard = guards.find(item => String(item.id) === String(project.guardId));
       const current = mapped.get(key) || {
         guardId: project.guardId,
+        securityId: project.sourceSecurityId,
+        projectId: project.id,
         guardName: guard?.name || project.guardName,
-        monthlySalary: monthlyFor(project.guardId, project.contactNumber),
-        nbfcs: new Set<string>(), sites: new Set<string>(), present: 0, absent: 0, payableDays: 0, payableSalary: 0,
+        monthlySalary: monthlyFor(project.guardId, project.contactNumber, project.monthlySalary),
+        nbfcs: new Set<string>(), sites: new Set<string>(), present: 0, absent: 0, payableDays: 0, payableSalary: 0, paidSalary: paidMap.get(key) || 0,
       };
       if (project.nbfcName) current.nbfcs.add(project.nbfcName);
       if (project.siteName) current.sites.add(project.siteName);
       mapped.set(key, current);
     });
     visibleAttendance.forEach(record => {
-      const current = mapped.get(String(record.guardId));
+      const current = mapped.get(`${record.securityId}-${record.guardId}`);
       if (!current) return;
       if (record.status === "Present") current.present += 1;
       if (record.status === "Absent") current.absent += 1;
@@ -115,15 +128,15 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
         ? Number(((current.monthlySalary / daysInMonth) * Number(record.payableUnits || 0)).toFixed(2))
         : Number(record.payoutAmount || 0);
     });
-    return [...mapped.values()].map(item => ({ ...item, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth })).sort((a, b) => String(a.guardName).localeCompare(String(b.guardName)));
-  }, [rows, guards, visibleAttendance, daysInMonth]); // eslint-disable-line react-hooks/exhaustive-deps
+    return [...mapped.values()].map(item => ({ ...item, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth, pendingSalary: Math.max(0, Number(item.payableSalary || 0) - Number(item.paidSalary || 0)) })).sort((a, b) => String(a.guardName).localeCompare(String(b.guardName)));
+  }, [rows, guards, visibleAttendance, daysInMonth, salaryPayments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportAttendance = () => {
     if (!rows.length) return triggerToast("Export ke liye attendance rows available nahi hain");
     const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const headers = ["NBFC", "Site", "Site Started Date", "Guard Name", "Mobile Number", ...dates.map(date => date.slice(-2)), "Present Days", "Absent Days", "Monthly Salary", "Payable Salary"];
     const lines = rows.map(project => {
-      const monthly = monthlyFor(project.guardId, project.contactNumber);
+      const monthly = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary);
       let present = 0;
       let absent = 0;
       let payableSalary = 0;
@@ -148,8 +161,8 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const exportPayoutBreakdown = () => {
     if (!guardPayoutBreakdown.length) return triggerToast("Export ke liye salary data available nahi hai");
     const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-    const headers = ["Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present Days", "Absent Days", "Payable Days", "Payable Salary"];
-    const lines = guardPayoutBreakdown.map(guard => [guard.guardName, guard.nbfcs, guard.sites, Number(guard.monthlySalary).toFixed(2), Number(guard.perDayRate).toFixed(2), guard.present, guard.absent, guard.payableDays, Number(guard.payableSalary).toFixed(2)].map(csvCell).join(","));
+    const headers = ["Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present Days", "Absent Days", "Payable Days", "Payable Salary", "Paid Salary", "Pending Salary"];
+    const lines = guardPayoutBreakdown.map(guard => [guard.guardName, guard.nbfcs, guard.sites, Number(guard.monthlySalary).toFixed(2), Number(guard.perDayRate).toFixed(2), guard.present, guard.absent, guard.payableDays, Number(guard.payableSalary).toFixed(2), Number(guard.paidSalary).toFixed(2), Number(guard.pendingSalary).toFixed(2)].map(csvCell).join(","));
     const total = guardPayoutBreakdown.reduce((sum, guard) => sum + Number(guard.payableSalary || 0), 0);
     lines.push(["Total Payable", "", "", "", "", "", "", "", total.toFixed(2)].map(csvCell).join(","));
     const csv = `\uFEFF${headers.map(csvCell).join(",")}\n${lines.join("\n")}`;
@@ -159,6 +172,42 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     link.download = `guard-payable-salary-${month}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const logSalaryPayment = async (guard: any) => {
+    const defaultAmount = Number(guard.pendingSalary || guard.payableSalary || 0).toFixed(2);
+    const amount = window.prompt(`${guard.guardName} ko ${month} ki kitni payment di?`, defaultAmount);
+    if (amount === null) return;
+    const paidAmount = Number(amount);
+    if (!Number.isFinite(paidAmount) || paidAmount <= 0) return triggerToast("Valid payment amount enter karo");
+    const paymentDate = window.prompt("Payment date", indiaDate()) || indiaDate();
+    setPayingKey(`${guard.securityId}-${guard.guardId}`);
+    try {
+      const response = await fetch("/api/legal-recovery/security/guard-salary-payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          securityId: guard.securityId,
+          projectId: guard.projectId,
+          guardId: guard.guardId,
+          guardName: guard.guardName,
+          nbfcName: guard.nbfcs,
+          siteName: guard.sites,
+          salaryMonth: month,
+          payableAmount: guard.payableSalary,
+          paidAmount,
+          paymentDate,
+          paymentMode: "Cash",
+          remarks: "Guard monthly salary payment",
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) return triggerToast(result.error || "Payment log nahi hui");
+      setSalaryPayments(previous => [result.data, ...previous]);
+      triggerToast("Guard salary payment log ho gayi");
+    } finally {
+      setPayingKey("");
+    }
   };
 
   const removeDeployment = async (project: any) => {
@@ -174,7 +223,7 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const mark = async (project: any, date: string, status: string) => {
     if (!status) return;
     const cellKey = `${project.sourceSecurityId}-${project.guardId}-${date}`;
-    const perDayRate = monthlyFor(project.guardId, project.contactNumber) / daysInMonth;
+    const perDayRate = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary) / daysInMonth;
     setSavingCell(cellKey);
     try {
       const response = await fetch("/api/legal-recovery/security/guard-attendance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ securityId: project.sourceSecurityId, guardId: project.guardId, attendanceDate: date, status, perDayRate, remarks: "Monthly attendance sheet" }) });
@@ -235,7 +284,10 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     {showPayoutBreakdown && <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPayoutBreakdown(false)}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border w-full max-w-6xl max-h-[85vh] overflow-hidden" onClick={event => event.stopPropagation()}>
         <div className="p-4 border-b flex items-center justify-between gap-3"><div><h3 className="font-bold text-base">Guard-wise Payable Salary</h3><p className="text-[10px] text-slate-500">{month} · Monthly salary aur marked attendance ke according</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportPayoutBreakdown} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold"><Download className="w-3.5 h-3.5"/>Export CSV</button><button type="button" aria-label="Close salary breakdown" onClick={() => setShowPayoutBreakdown(false)} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5"/></button></div></div>
-        <div className="overflow-auto max-h-[65vh]"><table className="w-full min-w-max text-xs border-collapse"><thead className="sticky top-0 bg-[#F3F0EC] dark:bg-gray-800"><tr>{["#", "Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present", "Absent", "Payable Days", "Payable Salary"].map(header => <th key={header} className="text-left p-3 border-r border-b uppercase text-[9px]">{header}</th>)}</tr></thead><tbody>{guardPayoutBreakdown.map((guard, index) => <tr key={guard.guardId} className="border-b"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{guard.guardName}</td><td className="p-3 border-r">{guard.nbfcs || "-"}</td><td className="p-3 border-r">{guard.sites || "-"}</td><td className="p-3 border-r text-right font-bold">₹{money(guard.monthlySalary)}</td><td className="p-3 border-r text-right">₹{money(guard.perDayRate)}</td><td className="p-3 border-r text-center font-bold text-emerald-700">{guard.present}</td><td className="p-3 border-r text-center font-bold text-rose-700">{guard.absent}</td><td className="p-3 border-r text-center font-bold">{guard.payableDays}</td><td className="p-3 text-right font-black text-violet-700">₹{money(guard.payableSalary)}</td></tr>)}{!guardPayoutBreakdown.length && <tr><td colSpan={10} className="p-8 text-center text-slate-400">No mapped guards found.</td></tr>}</tbody><tfoot className="sticky bottom-0 bg-violet-50"><tr><td colSpan={9} className="p-3 text-right font-bold">Total Payable</td><td className="p-3 text-right font-black text-violet-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.payableSalary, 0))}</td></tr></tfoot></table></div>
+        <div className="overflow-auto max-h-[65vh]"><table className="w-full min-w-max text-xs border-collapse"><thead className="sticky top-0 bg-[#F3F0EC] dark:bg-gray-800"><tr>{["#", "Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present", "Absent", "Payable Days", "Payable", "Paid", "Pending", "Action"].map(header => <th key={header} className="text-left p-3 border-r border-b uppercase text-[9px]">{header}</th>)}</tr></thead><tbody>{guardPayoutBreakdown.map((guard, index) => {
+          const key = `${guard.securityId}-${guard.guardId}`;
+          return <tr key={key} className="border-b"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{guard.guardName}</td><td className="p-3 border-r">{guard.nbfcs || "-"}</td><td className="p-3 border-r">{guard.sites || "-"}</td><td className="p-3 border-r text-right font-bold">₹{money(guard.monthlySalary)}</td><td className="p-3 border-r text-right">₹{money(guard.perDayRate)}</td><td className="p-3 border-r text-center font-bold text-emerald-700">{guard.present}</td><td className="p-3 border-r text-center font-bold text-rose-700">{guard.absent}</td><td className="p-3 border-r text-center font-bold">{guard.payableDays}</td><td className="p-3 border-r text-right font-black text-violet-700">₹{money(guard.payableSalary)}</td><td className="p-3 border-r text-right font-bold text-emerald-700">₹{money(guard.paidSalary)}</td><td className="p-3 border-r text-right font-bold text-rose-700">₹{money(guard.pendingSalary)}</td><td className="p-3"><button type="button" disabled={payingKey === key || Number(guard.pendingSalary) <= 0} onClick={() => logSalaryPayment(guard)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"><ReceiptIndianRupee className="w-3.5 h-3.5"/>Log Pay</button></td></tr>;
+        })}{!guardPayoutBreakdown.length && <tr><td colSpan={13} className="p-8 text-center text-slate-400">No mapped guards found.</td></tr>}</tbody><tfoot className="sticky bottom-0 bg-violet-50"><tr><td colSpan={9} className="p-3 text-right font-bold">Total</td><td className="p-3 text-right font-black text-violet-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.payableSalary, 0))}</td><td className="p-3 text-right font-black text-emerald-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.paidSalary, 0))}</td><td className="p-3 text-right font-black text-rose-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.pendingSalary, 0))}</td><td /></tr></tfoot></table></div>
       </div>
     </div>}
   </div>;
