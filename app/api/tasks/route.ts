@@ -9,6 +9,7 @@ import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { getRequestIp, logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import { notifyOwners } from "@/lib/ownerNotification";
 import Notification from "@/models/sequelize/Notification";
 import { Op, DataTypes } from "sequelize";
 
@@ -772,6 +773,8 @@ export async function POST(req: Request) {
       elapsedSeconds: 0,
       completedAt: status === "Completed" ? effectiveEntryDate : null,
     });
+    const assignedUserForOwnerEmail = await User.findOne({ where: { id: targetEmployeeId }, raw: true }) as any;
+    const assignedToName = assignedUserForOwnerEmail?.name || assignedUserForOwnerEmail?.email || targetEmployeeId;
 
     // Sales call entries created from My Tasks/Work Report must feed the same
     // lead and call-log data used by BDA Leads and the Sales Dashboard.
@@ -895,10 +898,43 @@ export async function POST(req: Request) {
 
     await logAudit({
       userId,
+      userName,
+      userRole,
       action: "TASK_LOGGED",
       entity: "TaskLog",
       entityId: record.id.toString(),
       details: `${userName} logged a ${requestedEntryDate ? "back-date" : "new"} task: ${taskTitle} (${taskType})${requestedEntryDate ? ` for ${effectiveEntryDate.toISOString().split("T")[0]}` : ""}`,
+      notifyAdmins: false,
+    });
+
+    const taskCreatedLabel = requestedEntryDate ? "back-date task" : "new task";
+    const taskDateLabel = effectiveEntryDate.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const deadlineLabel = finalDeadlineAt
+      ? finalDeadlineAt.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "No deadline";
+    await notifyOwners({
+      title: `Task by ${userName}: ${taskTitle}`,
+      message: [
+        `${userName} created a ${taskCreatedLabel}.`,
+        `Task: ${taskTitle}.`,
+        `Type: ${taskType}.`,
+        `Status: ${status || "Pending"}.`,
+        `Assigned to: ${assignedToName}.`,
+        `Task ID: ${record.id}.`,
+        `Entry date: ${taskDateLabel}.`,
+        `Deadline: ${deadlineLabel}.`,
+        description ? `Details: ${description}.` : "",
+        personName ? `Person: ${personName}.` : "",
+        contactNo ? `Contact: ${contactNo}.` : "",
+        companyName ? `Company: ${companyName}.` : "",
+        emailAddress ? `Email: ${emailAddress}.` : "",
+        visitLocation ? `Location: ${visitLocation}.` : "",
+        callStatus ? `Call status: ${callStatus}.` : "",
+        salesReason ? `Sales reason: ${salesReason}.` : "",
+      ].filter(Boolean).join(" "),
+      moduleName: "TaskLog",
+      actionUrl: "/dashboard/my-tasks",
+      eventId: `task_logged_owner_${record.id}`,
     });
 
     return NextResponse.json({ success: true, data: record });

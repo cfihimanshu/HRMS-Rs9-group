@@ -387,6 +387,7 @@ export default function SecurityMasterView({
     show: false,
     item: null,
   });
+  const [editingReceivedPayment, setEditingReceivedPayment] = useState(false);
   const [receiveInstallments, setReceiveInstallments] = useState<PaymentInstallment[]>([]);
   const [receiveForm, setReceiveForm] = useState({
     receivedAmount: "",
@@ -1612,6 +1613,7 @@ export default function SecurityMasterView({
 
   // Receive Payment Action Modal Handler
   const handleOpenReceiveModal = (item: any) => {
+    setEditingReceivedPayment(false);
     setShowReceiveModal({ show: true, item });
     let existingInsts: PaymentInstallment[] = [];
     if (item.installmentsJson) {
@@ -1639,6 +1641,25 @@ export default function SecurityMasterView({
     setReceiveProofFile(null);
   };
 
+  const handleOpenPaymentCorrectionModal = (item: any) => {
+    setEditingReceivedPayment(true);
+    setShowReceiveModal({ show: true, item });
+    setReceiveInstallments([]);
+    setReceiveForm({
+      receivedAmount: String(Number(item.receivedAmount || 0)),
+      tdsAmount: String(Number(item.tdsAmount || 0)),
+      receivedDate: item.receivedDate || new Date().toISOString().split("T")[0],
+      paymentMethod: item.paymentMethod || "Bank Transfer (NEFT/RTGS)",
+      customPaymentMethod: "",
+      transactionId: "Payment correction",
+      bankName: "",
+      chequeDate: "",
+      payerName: "",
+      remarks: item.remarks || "",
+    });
+    setReceiveProofFile(null);
+  };
+
   const handleReceiveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showReceiveModal.item?.id) return;
@@ -1652,7 +1673,7 @@ export default function SecurityMasterView({
       finalAmount = receivedInsts.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
     } else {
       finalAmount = Number(receiveForm.receivedAmount);
-      if (finalAmount < 0 || Number(receiveForm.tdsAmount || 0) < 0 || finalAmount + Number(receiveForm.tdsAmount || 0) <= 0) {
+      if (finalAmount < 0 || Number(receiveForm.tdsAmount || 0) < 0 || (!editingReceivedPayment && finalAmount + Number(receiveForm.tdsAmount || 0) <= 0)) {
         triggerToast("Please enter a valid received amount or TDS amount");
         return;
       }
@@ -1709,14 +1730,17 @@ export default function SecurityMasterView({
       };
 
       const res = await fetch("/api/legal-recovery/security/payment", {
-        method: "POST",
+        method: editingReceivedPayment ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Payment of ₹${finalAmount.toLocaleString("en-IN")} logged successfully & saved to DB!`);
+        triggerToast(editingReceivedPayment
+          ? `Payment corrected to ₹${finalAmount.toLocaleString("en-IN")} successfully!`
+          : `Payment of ₹${finalAmount.toLocaleString("en-IN")} logged successfully & saved to DB!`);
+        setEditingReceivedPayment(false);
         setShowReceiveModal({ show: false, item: null });
         fetchEntries();
       } else {
@@ -4220,13 +4244,13 @@ export default function SecurityMasterView({
                   <Banknote className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-sm">Log Received Payment</h3>
+                  <h3 className="font-black text-slate-900 text-sm">{editingReceivedPayment ? "Correct Received Payment" : "Log Received Payment"}</h3>
                   <p className="text-[11px] font-bold text-emerald-800">
                     {showReceiveModal.item.nbfcName || showReceiveModal.item.company} | Branch: {showReceiveModal.item.branchName || "General"} | Bill: {showReceiveModal.item.billNo || "No Bill"}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowReceiveModal({ show: false, item: null })} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button onClick={() => { setEditingReceivedPayment(false); setShowReceiveModal({ show: false, item: null }); }} className="text-slate-400 hover:text-slate-700 font-bold">
                 ✕
               </button>
             </div>
@@ -4266,14 +4290,16 @@ export default function SecurityMasterView({
                   {receiveInstallments.length > 0 ? "Installments Schedule Mode" : "Payment Mode"}
                 </span>
 
-                <button
-                  type="button"
-                  onClick={handleAddReceiveInstallment}
-                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add Installment (किस्त जोड़ें)</span>
-                </button>
+                {!editingReceivedPayment && (
+                  <button
+                    type="button"
+                    onClick={handleAddReceiveInstallment}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Installment (किस्त जोड़ें)</span>
+                  </button>
+                )}
               </div>
 
               {/* INSTALLMENTS MODE */}
@@ -4504,7 +4530,7 @@ export default function SecurityMasterView({
                         type="number"
                         min="0"
                         step="any"
-                        required
+                        required={!editingReceivedPayment}
                         className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
                         placeholder="Enter amount e.g. 45000"
                         value={receiveForm.receivedAmount}
@@ -4840,7 +4866,7 @@ export default function SecurityMasterView({
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowReceiveModal({ show: false, item: null })}
+                  onClick={() => { setEditingReceivedPayment(false); setShowReceiveModal({ show: false, item: null }); }}
                   className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
                 >
                   Cancel
@@ -4850,7 +4876,7 @@ export default function SecurityMasterView({
                   disabled={submittingReceive}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow disabled:opacity-50"
                 >
-                  {submittingReceive ? "Saving..." : "Save Received Payment"}
+                  {submittingReceive ? "Saving..." : editingReceivedPayment ? "Save Correction" : "Save Received Payment"}
                 </button>
               </div>
             </form>
@@ -7011,7 +7037,7 @@ export default function SecurityMasterView({
                       {isExpanded && (
                         <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
                           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
-                            <table className="w-full text-left text-xs border-collapse min-w-[800px]">
+                            <table className="w-full text-left text-xs border-collapse min-w-[900px]">
                               <thead>
                                 <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
                                   <th className="py-2.5 px-3">#</th>
@@ -7023,6 +7049,7 @@ export default function SecurityMasterView({
                                   <th className="py-2.5 px-3 text-right">Pending Balance</th>
                                   <th className="py-2.5 px-3">Payment Details</th>
                                   <th className="py-2.5 px-3 text-center">Status</th>
+                                  <th className="py-2.5 px-3 text-center">Action</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -7094,6 +7121,17 @@ export default function SecurityMasterView({
                                           {work.paymentStatus || "Due"}
                                         </span>
                                       </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenPaymentCorrectionModal(work)}
+                                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-black text-emerald-800 hover:bg-emerald-100 transition-colors"
+                                          title="Edit received amount / mark as due"
+                                        >
+                                          <Edit className="w-3.5 h-3.5" />
+                                          Edit
+                                        </button>
+                                      </td>
                                     </tr>
                                   );
                                 })}
@@ -7115,7 +7153,7 @@ export default function SecurityMasterView({
                                   <td className="py-2.5 px-3 text-right font-black text-rose-700">
                                     ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td colSpan={2}></td>
+                                  <td colSpan={3}></td>
                                 </tr>
                               </tfoot>
                             </table>

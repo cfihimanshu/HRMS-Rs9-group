@@ -204,14 +204,17 @@ export const authOptions: NextAuthOptions = {
         loginAttempts.delete(`${forwardedIp}:${String(email || mobile || "unknown").toLowerCase()}`);
 
         const userIdStr = String(user.getDataValue?.("id") || user.id || "");
+        const loginUserName = String(user.name || user.email || user.mobile || userIdStr || "User").trim();
 
         // Write to Audit Log
         await logAudit({
           userId: userIdStr,
+          userName: loginUserName,
+          userRole: user.role || null,
           action: "USER_LOGIN",
           entity: "User",
           entityId: userIdStr,
-          details: `User logged in successfully via ${loginType === "otp" ? "OTP" : "Password"}.`,
+          details: `${loginUserName} logged in successfully via ${loginType === "otp" ? "OTP" : "Password"}.`,
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
 

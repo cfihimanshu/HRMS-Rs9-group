@@ -1292,8 +1292,8 @@ export default function UnifiedEnterpriseDashboard() {
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
 
           {["Owner", "Director", "HR Head", "HR Executive"].includes(userRole) &&
-            ["hr-dash", "attendance", "tasks", "vertical-dashboard", "legal-recovery"].includes(activeTab) && (
-              <DailyTracking key={activeTab} initialView={activeTab === "attendance" || activeTab === "hr-dash" ? "attendance" : activeTab === "tasks" ? "tasks" : "payments"} />
+            ["hr-dash", "attendance", "vertical-dashboard", "legal-recovery"].includes(activeTab) && (
+              <DailyTracking key={activeTab} initialView={activeTab === "attendance" || activeTab === "hr-dash" ? "attendance" : "payments"} />
             )}
 
           {activeTab === "dashboard" && (

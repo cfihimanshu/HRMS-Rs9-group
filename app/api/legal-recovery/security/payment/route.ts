@@ -14,6 +14,12 @@ async function ensureTdsColumns() {
   }
 }
 
+function getPaymentStatus(billAmount: number, receivedAmount: number, tdsAmount: number) {
+  if (billAmount > 0 && receivedAmount + tdsAmount >= billAmount) return "Payment Done";
+  if (receivedAmount + tdsAmount > 0) return "Partially Paid";
+  return "Due";
+}
+
 // POST: Log Received Payment
 export async function POST(req: Request) {
   try {
@@ -117,6 +123,110 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, data: newPayment, updatedRecord: record });
   } catch (error: any) {
     console.error("[/api/legal-recovery/security/payment POST]", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH: Correct a previously logged received payment total for one security bill.
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const receivedBy = (session.user as any).id || session.user.name || "System";
+
+    await sequelize.authenticate();
+    await LegalSecurity.sync();
+    await LegalSecurityPayment.sync();
+    await ensureTdsColumns();
+
+    const body = await req.json();
+    const {
+      securityId,
+      amount,
+      tdsAmount,
+      paymentDate,
+      paymentMode,
+      transactionId,
+      proofUrl,
+      remarks,
+    } = body;
+
+    if (!securityId) {
+      return NextResponse.json({ success: false, error: "Security Record ID is required" }, { status: 400 });
+    }
+
+    const numericAmount = Number(amount || 0);
+    const numericTdsAmount = Number(tdsAmount || 0);
+    if (!Number.isFinite(numericAmount) || numericAmount < 0 || !Number.isFinite(numericTdsAmount) || numericTdsAmount < 0) {
+      return NextResponse.json({ success: false, error: "Enter a valid received amount or TDS amount" }, { status: 400 });
+    }
+
+    const record = await LegalSecurity.findByPk(securityId);
+    if (!record) {
+      return NextResponse.json({ success: false, error: "Security Record not found" }, { status: 404 });
+    }
+
+    const billAmt = Number(record.billAmount || 0);
+    if (billAmt > 0 && numericAmount + numericTdsAmount > billAmt) {
+      return NextResponse.json({ success: false, error: "Received amount plus TDS cannot exceed the bill amount" }, { status: 400 });
+    }
+
+    const effectivePaymentDate = paymentDate || new Date().toISOString().split("T")[0];
+    const effectivePaymentMode = paymentMode || record.paymentMethod || "Bank Transfer (NEFT/RTGS)";
+    const updatedStatus = getPaymentStatus(billAmt, numericAmount, numericTdsAmount);
+
+    const existingPayment = await LegalSecurityPayment.findOne({
+      where: { securityId: record.id },
+      order: [["createdAt", "DESC"]],
+    });
+
+    const paymentValues = {
+      securityId: record.id,
+      nbfcName: record.nbfcName || record.company || "",
+      branchName: record.branchName || "",
+      billNo: record.billNo || "",
+      billAmount: record.billAmount || 0,
+      amount: numericAmount,
+      tdsAmount: numericTdsAmount,
+      paymentDate: effectivePaymentDate,
+      paymentMode: effectivePaymentMode,
+      transactionId: transactionId || "",
+      proofUrl: proofUrl || "",
+      remarks: remarks || "",
+      receivedBy: String(receivedBy),
+    };
+
+    const updatedPayment = existingPayment
+      ? await existingPayment.update(paymentValues)
+      : await LegalSecurityPayment.create(paymentValues);
+
+    await record.update({
+      receivedAmount: numericAmount,
+      tdsAmount: numericTdsAmount,
+      receivedDate: numericAmount + numericTdsAmount > 0 ? effectivePaymentDate : null,
+      paymentStatus: updatedStatus,
+      paymentMethod: effectivePaymentMode,
+      ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
+      remarks: [
+        record.remarks || "",
+        `Payment corrected: received ₹${numericAmount}, TDS ₹${numericTdsAmount}${transactionId ? ` - ${transactionId}` : ""}`,
+      ].filter(Boolean).join("\n"),
+    });
+
+    await notifyOwners({
+      title: `Security Payment Corrected: ₹${numericAmount.toLocaleString("en-IN")}`,
+      message: `${session.user.name || "A user"} corrected payment for ${record.nbfcName || record.company || "Security client"} / ${record.branchName || record.location || "Site"}. Bill: ${record.billNo || "N/A"}. Received: ₹${numericAmount.toLocaleString("en-IN")}. TDS: ₹${numericTdsAmount.toLocaleString("en-IN")}. Pending: ₹${Math.max(0, billAmt - numericAmount - numericTdsAmount).toLocaleString("en-IN")}. Status: ${updatedStatus}.`,
+      moduleName: "Security Payments",
+      actionUrl: "/dashboard/security/payments",
+      eventId: `security_payment_corrected_${record.id}_${Date.now()}`,
+    });
+
+    return NextResponse.json({ success: true, data: updatedPayment, updatedRecord: record });
+  } catch (error: any) {
+    console.error("[/api/legal-recovery/security/payment PATCH]", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

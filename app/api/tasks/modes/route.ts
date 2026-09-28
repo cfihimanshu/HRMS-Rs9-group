@@ -4,6 +4,23 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import TaskMode from "@/models/sequelize/TaskMode";
 
+const DEFAULT_TASK_MODES = [
+  "Call",
+  "Meeting",
+  "Email",
+  "WhatsApp",
+  "SMS",
+  "Field Visit",
+  "Social Media",
+];
+
+const HIDDEN_TASK_MODES = new Set([
+  "social media video",
+  "social media post",
+  "social media content",
+  "social media account",
+]);
+
 // GET: Fetch all modes. Seed default modes if missing.
 export async function GET(req: Request) {
   try {
@@ -25,8 +42,7 @@ export async function GET(req: Request) {
     }
 
     // Seed default modes if missing
-    const defaults = ["Call", "Meeting", "Email", "WhatsApp", "SMS", "Field Visit", "Social Media"];
-    for (const name of defaults) {
+    for (const name of DEFAULT_TASK_MODES) {
       const exists = records.find((r: any) => r.name && r.name.toLowerCase() === name.toLowerCase());
       if (!exists) {
         try {
@@ -38,14 +54,15 @@ export async function GET(req: Request) {
       }
     }
 
-    const result = records.length > 0 
-      ? records.map(r => ({ id: r.id, name: r.name })) 
-      : defaults.map((d, i) => ({ id: i + 1, name: d }));
+    const visibleRecords = records.filter((r: any) => !HIDDEN_TASK_MODES.has(String(r.name || "").toLowerCase()));
+    const result = visibleRecords.length > 0 
+      ? visibleRecords.map(r => ({ id: r.id, name: r.name })) 
+      : DEFAULT_TASK_MODES.map((d, i) => ({ id: i + 1, name: d }));
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("[/api/tasks/modes GET]", error.message);
-    const fallbackDefaults = ["Call", "Meeting", "Email", "WhatsApp", "SMS", "Field Visit", "Social Media"].map((d, i) => ({ id: i + 1, name: d }));
+    const fallbackDefaults = DEFAULT_TASK_MODES.map((d, i) => ({ id: i + 1, name: d }));
     return NextResponse.json({ success: true, data: fallbackDefaults });
   }
 }

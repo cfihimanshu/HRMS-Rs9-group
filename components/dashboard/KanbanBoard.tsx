@@ -35,8 +35,11 @@ import {
   List,
   Paperclip,
   Image as ImageIcon,
+  Filter,
   Search
 } from "lucide-react";
+
+type ListColumnFilterKey = "taskId" | "taskTitle" | "taskMode" | "project" | "remarks" | "assignedBy" | "assignedTo" | "status" | "dateLogged" | "deadline" | "proof" | "progressNotes";
 
 interface Task {
   id: string;
@@ -194,6 +197,77 @@ export default function KanbanBoard({
       .trim();
   };
 
+  const getTaskListDetails = (task: Task) => {
+    const description = cleanDescription(task.description);
+    const projectMatch = description.match(/^\[Project:\s*([^\]]+)\]\s*([\s\S]*)$/i);
+
+    return {
+      project: projectMatch?.[1]?.trim() || "-",
+      remarks: (projectMatch?.[2] || description || "-").trim(),
+      assignedBy: task.assignedByUser?.name || task.assignedBy || "-",
+      assignedTo: task.employee?.name || "Unknown",
+      dateLogged: task.date ? new Date(task.date).toLocaleDateString("en-IN") : task.createdAt ? new Date(task.createdAt).toLocaleDateString("en-IN") : "-",
+      deadline: task.deadlineAt ? new Date(task.deadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "-",
+    };
+  };
+
+  const getProofItems = (proofAttachment?: string | null) => {
+    if (!proofAttachment) return [];
+    const raw = String(proofAttachment).trim();
+    if (!raw || raw === "[]" || raw === "{}") return [];
+
+    let items: any[] = [];
+    if (raw.startsWith("[") && raw.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(raw);
+        items = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (_) {
+        items = [raw];
+      }
+    } else {
+      items = raw.split(",").map((url: string) => url.trim()).filter(Boolean);
+    }
+
+    return items
+      .map((item: any, index: number) => {
+        const url = typeof item === "string" ? item : (item?.url || item?.src || "");
+        const name = typeof item === "object" ? (item?.name || `Proof #${index + 1}`) : `Proof #${index + 1}`;
+        return { url: String(url || ""), name: String(name || `Proof #${index + 1}`) };
+      })
+      .filter(item => item.url);
+  };
+
+  const getProgressNoteText = (progressNotes?: string | null) => {
+    if (!progressNotes) return "";
+    try {
+      const parsed = JSON.parse(progressNotes);
+      if (Array.isArray(parsed)) {
+        return parsed.map((note: any) => [note?.userName, note?.note || note?.text].filter(Boolean).join(" ")).join(" ");
+      }
+    } catch (_) { }
+    return String(progressNotes);
+  };
+
+  const getListFilterValue = (task: Task, key: ListColumnFilterKey) => {
+    const details = getTaskListDetails(task);
+    const proofs = getProofItems(task.proofAttachment);
+    const values: Record<ListColumnFilterKey, string> = {
+      taskId: String(task.id || ""),
+      taskTitle: task.taskTitle || "",
+      taskMode: task.taskType || "",
+      project: details.project,
+      remarks: details.remarks,
+      assignedBy: details.assignedBy,
+      assignedTo: details.assignedTo,
+      status: task.status || "",
+      dateLogged: details.dateLogged,
+      deadline: details.deadline,
+      proof: proofs.length ? proofs.map(p => `${p.name} ${p.url}`).join(" ") : "No proof",
+      progressNotes: getProgressNoteText(task.progressNotes),
+    };
+    return values[key] || "";
+  };
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -268,6 +342,7 @@ export default function KanbanBoard({
     foContact?: string;
   }[]>([]);
   const isBillFollowUp = selectedTaskCategory.trim().toLowerCase() === "bill follow up";
+  const isNbfcTask = selectedTaskCategory.trim().toLowerCase() === "nbfc";
 
   // Progress Notes Modal & Task Details
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -314,6 +389,21 @@ export default function KanbanBoard({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showFiltersDropdown, setShowFiltersDropdown] = useState(false);
+  const [listColumnFilters, setListColumnFilters] = useState<Record<ListColumnFilterKey, string[]>>({
+    taskId: [],
+    taskTitle: [],
+    taskMode: [],
+    project: [],
+    remarks: [],
+    assignedBy: [],
+    assignedTo: [],
+    status: [],
+    dateLogged: [],
+    deadline: [],
+    proof: [],
+    progressNotes: [],
+  });
+  const [openListFilter, setOpenListFilter] = useState<ListColumnFilterKey | null>(null);
 
   // Drag state
   const dragIdRef = useRef<string | null>(null);
@@ -595,14 +685,14 @@ export default function KanbanBoard({
 
     // Build structured description for Bank or Call tasks
     let finalDesc = desc;
-    if (selectedTaskCategory === "Bank" || callCategory === "Bank" || selectedTaskCategory === "Notice" || isBillFollowUp) {
+    if (selectedTaskCategory === "Bank" || isNbfcTask || callCategory === "Bank" || selectedTaskCategory === "Notice" || isBillFollowUp) {
       const customLines = customCallFields
         .filter(f => f.key.trim() && f.value.trim())
         .map(f => `${f.key.trim()}: ${f.value.trim()}`);
 
       finalDesc = [
         `Category: ${selectedTaskCategory}${type === "Call" ? ` (${callDirection})` : ` (${bankSubType})`}`,
-        bankName ? `${isBillFollowUp && billInstitutionType === "NBFC" ? "NBFC" : "Bank"}: ${bankName}` : "",
+        bankName ? `${(isBillFollowUp && billInstitutionType === "NBFC") || isNbfcTask ? "NBFC" : "Bank"}: ${bankName}` : "",
         branchName ? `Branch: ${branchName}` : "",
         aoName ? `AO: ${aoName}` : "",
         rboName ? `RBO: ${rboName}` : "",
@@ -1495,7 +1585,13 @@ export default function KanbanBoard({
       !Number.isNaN(deadline.getTime()) && deadline.getTime() <= Date.now()
     );
 
-    return matchUser && matchDate && matchQuery && matchOverdue;
+    const matchColumnFilters = (Object.entries(listColumnFilters) as [ListColumnFilterKey, string[]][]).every(([key, values]) => {
+      if (!values.length) return true;
+      const cellValue = getListFilterValue(t, key).trim().toLowerCase();
+      return values.some(value => cellValue === value.trim().toLowerCase());
+    });
+
+    return matchUser && matchDate && matchQuery && matchOverdue && matchColumnFilters;
   });
 
   const parseTaskDescription = (rawDesc: string = "", task: Task) => {
@@ -1793,6 +1889,42 @@ export default function KanbanBoard({
       emptyText: "text-emerald-300",
     },
   ];
+
+  const listColumns: { key: ListColumnFilterKey; label: string; className?: string; placeholder?: string }[] = [
+    { key: "taskId", label: "Task ID", className: "whitespace-nowrap", placeholder: "ID" },
+    { key: "taskTitle", label: "Task Title", placeholder: "Title" },
+    { key: "taskMode", label: "Task Mode", className: "whitespace-nowrap", placeholder: "Mode" },
+    { key: "project", label: "Project", placeholder: "Project" },
+    { key: "remarks", label: "Remarks", placeholder: "Remarks" },
+    { key: "assignedBy", label: "Assigned By", className: "whitespace-nowrap", placeholder: "By" },
+    { key: "assignedTo", label: "Assigned To", className: "whitespace-nowrap", placeholder: "To" },
+    { key: "status", label: "Status", className: "whitespace-nowrap", placeholder: "Status" },
+    { key: "dateLogged", label: "Date Logged", className: "whitespace-nowrap", placeholder: "Date" },
+    { key: "deadline", label: "Deadline", className: "whitespace-nowrap", placeholder: "Deadline" },
+    { key: "proof", label: "Proof", placeholder: "Proof" },
+    { key: "progressNotes", label: "Progress Notes", placeholder: "Notes" },
+  ];
+
+  const getListFilterOptions = (key: ListColumnFilterKey) => {
+    const values = tasks
+      .map(task => getListFilterValue(task, key).trim())
+      .filter(Boolean);
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  };
+
+  const toggleListColumnFilter = (key: ListColumnFilterKey, value: string) => {
+    setListColumnFilters(prev => {
+      const current = prev[key];
+      return {
+        ...prev,
+        [key]: current.includes(value) ? current.filter(item => item !== value) : [...current, value],
+      };
+    });
+  };
+
+  const clearListColumnFilter = (key: ListColumnFilterKey) => {
+    setListColumnFilters(prev => ({ ...prev, [key]: [] }));
+  };
 
   const renderCard = (task: Task) => {
     const isUpdating = updatingId === task.id;
@@ -2158,7 +2290,7 @@ export default function KanbanBoard({
                                 setShowAddCategoryInput(false);
                                 setSelectedTaskCategory(val);
                                 setTitle(val);
-                                if (val === "Bank" || val === "Notice" || val.trim().toLowerCase() === "bill follow up") {
+                                if (val === "Bank" || val === "NBFC" || val === "Notice" || val.trim().toLowerCase() === "bill follow up") {
                                   setType("Call");
                                   setCallCategory("Bank");
                                 } else if (val === "Interview") {
@@ -2173,7 +2305,7 @@ export default function KanbanBoard({
                             required
                           >
                             <option value="">-- Select Task Title --</option>
-                            {sortCategoriesList(bankCategories).map(cat => (
+                            {sortCategoriesList(Array.from(new Set([...bankCategories, "NBFC"]))).map(cat => (
                               <option key={cat} value={cat}>{cat}</option>
                             ))}
                             <option value="ADD_NEW" className="font-bold text-[#714B67] bg-purple-50">
@@ -2232,6 +2364,46 @@ export default function KanbanBoard({
                           )}
                         </div>
 
+
+                        {isNbfcTask && (
+                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] relative z-40">
+                            <SearchableCombobox
+                              label="Select NBFC Bank *"
+                              value={bankName}
+                              placeholder="Type to search NBFC bank..."
+                              options={nbfcsList.map(item => item.nbfcName)}
+                              required
+                              onChange={(val) => {
+                                setBankName(val);
+                                const nbfcObj = nbfcsList.find(item => item.nbfcName.toLowerCase() === val.toLowerCase() || String(item.id) === val);
+                                if (nbfcObj) {
+                                  setSelectedBankId(String(nbfcObj.id));
+                                } else {
+                                  setSelectedBankId("");
+                                }
+                                setBranchName("");
+                                setAoName("");
+                                setRboName("");
+                                setOfficerName("");
+                                setOfficerPhone("");
+                                setBranchesList([]);
+                              }}
+                              onSelectOption={(val) => {
+                                const nbfcObj = nbfcsList.find(item => item.nbfcName.toLowerCase() === val.toLowerCase() || String(item.id) === val);
+                                if (nbfcObj) {
+                                  setSelectedBankId(String(nbfcObj.id));
+                                  setBankName(nbfcObj.nbfcName);
+                                }
+                                setBranchName("");
+                                setAoName("");
+                                setRboName("");
+                                setOfficerName("");
+                                setOfficerPhone("");
+                                setBranchesList([]);
+                              }}
+                            />
+                          </div>
+                        )}
                         {/* Dynamic Task Mode Selector (Call, Meeting, Email, WhatsApp, SMS, Field Visit, Social Media, etc.) */}
                         <div>
                           <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">
@@ -2989,20 +3161,55 @@ export default function KanbanBoard({
         </div>
       ) : (
         <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-auto shadow-sm">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead className="bg-slate-50 sticky top-0 z-10">
+          <table className="w-full text-left border-collapse min-w-[1780px] text-xs">
+            <thead className="bg-slate-50 sticky top-0 z-20">
               <tr>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Task Title & Info</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Assigned To</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Status</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Date Logged</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Progress Notes</th>
+                {listColumns.map(column => {
+                  const options = getListFilterOptions(column.key);
+                  const selectedValues = listColumnFilters[column.key];
+                  const hasFilter = selectedValues.length > 0;
+                  return (
+                    <th key={column.key} className={`relative p-3 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200 ${column.className || ""}`}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenListFilter(prev => prev === column.key ? null : column.key)}
+                        className={`flex w-full items-center justify-between gap-2 text-left uppercase tracking-widest ${hasFilter ? "text-[#714B67]" : "text-slate-500"}`}
+                      >
+                        <span>{column.label}{hasFilter ? ` (${selectedValues.length})` : ""}</span>
+                        <Filter className={`h-3.5 w-3.5 shrink-0 ${hasFilter ? "fill-[#714B67] text-[#714B67]" : "text-slate-400"}`} />
+                      </button>
+                      {openListFilter === column.key && (
+                        <div className="absolute left-2 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white p-2 shadow-xl normal-case tracking-normal">
+                          <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{column.label}</span>
+                            <button type="button" onClick={() => clearListColumnFilter(column.key)} className="text-[10px] font-black uppercase text-[#714B67] hover:underline">Clear</button>
+                          </div>
+                          <div className="max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                            {options.length > 0 ? options.map(option => (
+                              <label key={option} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedValues.includes(option)}
+                                  onChange={() => toggleListColumnFilter(column.key, option)}
+                                  className="mt-0.5 h-3.5 w-3.5 accent-[#714B67]"
+                                />
+                                <span className="line-clamp-2 break-words">{option}</span>
+                              </label>
+                            )) : (
+                              <div className="px-2 py-3 text-center text-[11px] font-semibold text-slate-400">No values</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400 text-xs font-bold">No tasks found.</td>
+                  <td colSpan={12} className="p-8 text-center text-slate-400 text-xs font-bold">No tasks found.</td>
                 </tr>
               ) : (
                 filteredTasks.map(t => {
@@ -3013,89 +3220,65 @@ export default function KanbanBoard({
                     } catch (e) { }
                   }
 
+                  const taskDetails = getTaskListDetails(t);
+                  const proofItems = getProofItems(t.proofAttachment);
+
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 align-top">
-                        <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
-                          {t.deadlineAt && !t.scheduledAt && (() => {
-                            const deadline = new Date(t.deadlineAt);
-                            const now = new Date();
-                            const diffMs = deadline.getTime() - now.getTime();
-                            const diffHours = diffMs / (1000 * 60 * 60);
-                            let text = "";
-                            let className = "";
+                      <td className="p-3 align-top border border-slate-200 font-mono text-[11px] text-slate-600 whitespace-nowrap">{t.id}</td>
+                      <td className="p-3 align-top border border-slate-200 min-w-[220px]">
+                        <div className="font-bold text-slate-800 text-sm">{t.taskTitle}</div>
+                      </td>
+                      <td className="p-3 align-top border border-slate-200 whitespace-nowrap">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
+                      </td>
+                      <td className="p-3 align-top border border-slate-200 min-w-[160px] text-slate-700 font-semibold">{taskDetails.project}</td>
+                      <td className="p-3 align-top border border-slate-200 min-w-[280px] text-slate-650 whitespace-pre-line">{taskDetails.remarks}</td>
+                      <td className="p-3 align-top border border-slate-200 text-slate-700 font-bold whitespace-nowrap">{taskDetails.assignedBy}</td>
+                      <td className="p-3 align-top border border-slate-200 text-slate-700 font-bold whitespace-nowrap">{taskDetails.assignedTo}</td>
+                      <td className="p-3 align-top border border-slate-200 whitespace-nowrap">
 
-                            let overdueText = "";
-                            if (t.status === "Completed") {
-                              text = `Deadline: ${new Date(t.deadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`;
-                              className = "bg-slate-50 text-slate-400 border-slate-200";
-                              if (t.updatedAt) {
-                                const completedAt = new Date(t.updatedAt);
-                                const overdueMs = completedAt.getTime() - deadline.getTime();
-                                if (overdueMs > 0) {
-                                  const overdueHrs = Math.floor(overdueMs / (1000 * 60 * 60));
-                                  const overdueMins = Math.floor((overdueMs % (1000 * 60 * 60)) / (1000 * 60));
-                                  overdueText = `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m when completed`;
-                                }
-                              }
-                            } else if (diffHours < 0) {
-                              const overdueMs = Math.abs(diffMs);
-                              const overdueHrs = Math.floor(overdueMs / (1000 * 60 * 60));
-                              const overdueMins = Math.floor((overdueMs % (1000 * 60 * 60)) / (1000 * 60));
-                              const overdueSecs = Math.floor((overdueMs % (1000 * 60)) / 1000);
-                              text = `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m ${overdueSecs}s`;
-                              className = "bg-rose-50 text-rose-700 border-rose-200 animate-pulse font-extrabold";
-                            } else {
-                              const remainingHours = Math.floor(diffHours);
-                              text = remainingHours === 0
-                                ? `⏰ Due in ${Math.floor(diffMs / (1000 * 60))}m`
-                                : `⏰ Remaining: ${remainingHours}h`;
-                              className = remainingHours === 0
-                                ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse font-extrabold"
-                                : "bg-indigo-50 text-indigo-700 border-indigo-200 font-extrabold";
-                            }
-                            return (
-                              <div className="flex flex-col gap-1">
-                                <div className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${className}`}>
-                                  {text}
-                                </div>
-                                {overdueText && (
-                                  <div className="text-[9px] font-extrabold text-rose-600 bg-rose-50 border border-rose-100 rounded-md px-2 py-0.5 inline-block">
-                                    {overdueText}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          {(t as any).assignedByUser && (
-                            <div className="text-[9px] font-extrabold text-rose-500 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
-                              Assigned by: {(t as any).assignedByUser.name}
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-650 line-clamp-2 whitespace-pre-line">{cleanDescription(t.description)}</p>
-                      </td>
-                      <td className="p-4 align-top text-xs font-bold text-slate-700">
-                        {(t.employee as any)?.name || "Unknown"}
-                      </td>
-                      <td className="p-4 align-top">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
                           ${t.status === "Pending" ? "bg-amber-100 text-amber-700" : t.status === "In Progress" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}
                         `}>
                           {t.status}
                         </span>
                       </td>
-                      <td className="p-4 align-top text-xs text-slate-600 font-mono">
-                        {t.date ? new Date(t.date).toLocaleDateString() : t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}
+                      <td className="p-3 align-top border border-slate-200 text-slate-600 font-mono whitespace-nowrap">
+                        {taskDetails.dateLogged}
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-3 align-top border border-slate-200 text-slate-600 font-mono whitespace-nowrap">
+                        {taskDetails.deadline}
+                      </td>
+                      <td className="p-3 align-top border border-slate-200 min-w-[220px]">
+                        {proofItems.length > 0 ? (
+                          <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                            {proofItems.map((proof, index) => {
+                              const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(proof.url) || proof.url.toLowerCase().includes("image/");
+                              return (
+                                <a
+                                  key={`proof-${index}`}
+                                  href={proof.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100"
+                                >
+                                  {isImage ? <ImageIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600" /> : <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-500" />}
+                                  <span className="truncate">{proof.name}</span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">No proof</span>
+                        )}
+                      </td>
+                      <td className="p-3 align-top border border-slate-200 min-w-[320px]">
                         {parsedNotes.length > 0 ? (
                           <div className="space-y-3 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
                             {parsedNotes.map((note: any, i: number) => (
                               <div key={i} className="text-xs bg-slate-50 p-2 rounded border border-slate-100">
-                                <div className="font-bold text-slate-700 text-[10px] uppercase mb-1">{note.userName || "User"} &bull; {new Date(note.createdAt).toLocaleString()}</div>
+                                <div className="font-bold text-slate-700 text-[10px] uppercase mb-1">{note.userName || "User"} &bull; {new Date(note.createdAt).toLocaleString("en-IN")}</div>
                                 <div className="text-slate-600">{note.note}</div>
                               </div>
                             ))}

@@ -132,7 +132,7 @@ export async function logAudit(params: AuditParams) {
       .replace(/\b\w/g, (character) => character.toUpperCase());
     await notifyOwners({
       title: `🔔 ${cleanTitle}`,
-      message: `${details} Entity: ${entity}${entityId ? ` (${entityId})` : ""}.`,
+      message: `${details}${userName ? ` User: ${userName}${userRole ? ` (${userRole})` : ""}.` : ""} Entity: ${entity}${entityId ? ` (${entityId})` : ""}.`,
       moduleName: entity,
       actionUrl: "/dashboard",
       eventId: `audit_${audit.id}`,
