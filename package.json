@@ -6,7 +6,7 @@
     "predev": "node scripts/clean-next-cache.mjs .next-dev",
     "dev": "next dev -H 0.0.0.0",
     "prebuild": "node scripts/clean-next-cache.mjs .next",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
