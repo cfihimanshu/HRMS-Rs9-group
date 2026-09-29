@@ -28,7 +28,6 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const [showPayoutBreakdown, setShowPayoutBreakdown] = useState(false);
   const daysInMonth = useMemo(() => { const [year, monthNumber] = month.split("-").map(Number); return new Date(year, monthNumber, 0).getDate(); }, [month]);
   const dates = useMemo(() => Array.from({ length: daysInMonth }, (_, index) => `${month}-${String(index + 1).padStart(2, "0")}`), [month, daysInMonth]);
-  const presentLockActive = indiaDate() < `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
   const loadMasters = async () => {
     const [projectResult, guardResult] = await Promise.all([
@@ -84,18 +83,14 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     if (byId > 0) return byId;
     return guardSalary.byPhone.get(digits(phone)) || byId;
   };
-  const payableFor = (record: any) => {
-    return Number(record.payoutAmount || 0);
-  };
   const visibleAttendance = useMemo(() => {
     const visibleKeys = new Set(rows.map(project => `${project.sourceSecurityId}-${project.guardId}`));
     return attendance.filter(record => visibleKeys.has(`${record.securityId}-${record.guardId}`));
   }, [attendance, rows]);
-  const summary = useMemo(() => ({
+  const attendanceSummary = useMemo(() => ({
     present: visibleAttendance.filter(record => record.status === "Present").length,
     absent: visibleAttendance.filter(record => record.status === "Absent").length,
-    payout: visibleAttendance.reduce((sum, record) => sum + payableFor(record), 0),
-  }), [visibleAttendance, guardSalary, daysInMonth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [visibleAttendance]);
   const guardPayoutBreakdown = useMemo(() => {
     const paidMap = new Map<string, number>();
     salaryPayments.forEach(payment => {
@@ -128,8 +123,15 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
         ? Number(((current.monthlySalary / daysInMonth) * Number(record.payableUnits || 0)).toFixed(2))
         : Number(record.payoutAmount || 0);
     });
-    return [...mapped.values()].map(item => ({ ...item, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth, pendingSalary: Math.max(0, Number(item.payableSalary || 0) - Number(item.paidSalary || 0)) })).sort((a, b) => String(a.guardName).localeCompare(String(b.guardName)));
+    return [...mapped.values()]
+      .filter(item => Number(item.present || 0) + Number(item.absent || 0) + Number(item.payableDays || 0) > 0)
+      .map(item => ({ ...item, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth, pendingSalary: Math.max(0, Number(item.payableSalary || 0) - Number(item.paidSalary || 0)) }))
+      .sort((a, b) => String(a.guardName).localeCompare(String(b.guardName)));
   }, [rows, guards, visibleAttendance, daysInMonth, salaryPayments]); // eslint-disable-line react-hooks/exhaustive-deps
+  const summary = useMemo(() => ({
+    ...attendanceSummary,
+    payout: guardPayoutBreakdown.reduce((sum, guard) => sum + Number(guard.payableSalary || 0), 0),
+  }), [attendanceSummary, guardPayoutBreakdown]);
 
   const exportAttendance = () => {
     if (!rows.length) return triggerToast("Export ke liye attendance rows available nahi hain");
@@ -221,11 +223,19 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   };
 
   const mark = async (project: any, date: string, status: string) => {
-    if (!status) return;
     const cellKey = `${project.sourceSecurityId}-${project.guardId}-${date}`;
-    const perDayRate = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary) / daysInMonth;
+    const existing: any = recordMap.get(cellKey);
     setSavingCell(cellKey);
     try {
+      if (!status) {
+        if (!existing?.id) return;
+        const response = await fetch(`/api/legal-recovery/security/guard-attendance?id=${existing.id}`, { method: "DELETE" });
+        const result = await response.json();
+        if (!result.success) return triggerToast(result.error || "Attendance delete nahi hui");
+        setAttendance(previous => previous.filter(record => record.id !== existing.id));
+        return triggerToast("Attendance hata di gayi");
+      }
+      const perDayRate = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary) / daysInMonth;
       const response = await fetch("/api/legal-recovery/security/guard-attendance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ securityId: project.sourceSecurityId, guardId: project.guardId, attendanceDate: date, status, perDayRate, remarks: "Monthly attendance sheet" }) });
       const result = await response.json();
       if (!result.success) return triggerToast(result.error || "Attendance save nahi hui");
@@ -272,22 +282,21 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
             const key = `${project.sourceSecurityId}-${project.guardId}-${date}`;
             const record: any = recordMap.get(key);
             const beforeStart = Boolean(project.siteStartedDate && date < project.siteStartedDate);
-            const presentLocked = record?.status === "Present" && presentLockActive;
             return <td key={date} className={`border-r p-1 text-center ${beforeStart ? "bg-slate-100" : record?.status === "Present" ? "bg-emerald-50" : record?.status === "Absent" ? "bg-rose-50" : ""}`}>
-              {beforeStart ? <span className="text-slate-300">—</span> : <select aria-label={`${project.guardName} ${date} attendance`} title={presentLocked ? "Present attendance month-end tak locked hai" : undefined} disabled={savingCell === key || presentLocked} value={record?.status || ""} onChange={event => mark(project, date, event.target.value)} className={`w-12 min-h-10 sm:min-h-0 rounded border px-1 py-1 text-[11px] sm:text-[9px] font-bold disabled:opacity-60 disabled:cursor-not-allowed ${record?.status === "Present" ? "text-emerald-700 border-emerald-300" : record?.status === "Absent" ? "text-rose-700 border-rose-300" : "text-slate-500"}`}><option value="">-</option><option value="Present">P</option><option value="Absent">A</option></select>}
+              {beforeStart ? <span className="text-slate-300">—</span> : <select aria-label={`${project.guardName} ${date} attendance`} title="P/A edit karein, - se attendance delete hogi" disabled={savingCell === key} value={record?.status || ""} onChange={event => mark(project, date, event.target.value)} className={`w-12 min-h-10 sm:min-h-0 rounded border px-1 py-1 text-[11px] sm:text-[9px] font-bold disabled:opacity-60 disabled:cursor-not-allowed ${record?.status === "Present" ? "text-emerald-700 border-emerald-300" : record?.status === "Absent" ? "text-rose-700 border-rose-300" : "text-slate-500"}`}><option value="">-</option><option value="Present">P</option><option value="Absent">A</option></select>}
             </td>;
           })}
         </tr>)}{!rows.length && <tr><td colSpan={daysInMonth + 3} className="p-10 text-center text-slate-400">Guard Deployment se mapped projects abhi available nahi hain.</td></tr>}</tbody>
       </table></div>
     </div>
-    <div className="flex flex-wrap gap-4 text-[10px] text-slate-500"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600"/>Present = 1 payable day</span><span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-rose-600"/>Absent = 0 payable day</span><span>Saved Present month-end tak locked rahegi.</span></div>
+    <div className="flex flex-wrap gap-4 text-[10px] text-slate-500"><span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600"/>Present = 1 payable day</span><span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-rose-600"/>Absent = 0 payable day</span><span>Galat entry ko P/A se edit karein, '-' select karne par attendance delete hogi.</span></div>
     {showPayoutBreakdown && <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPayoutBreakdown(false)}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border w-full max-w-6xl max-h-[85vh] overflow-hidden" onClick={event => event.stopPropagation()}>
         <div className="p-4 border-b flex items-center justify-between gap-3"><div><h3 className="font-bold text-base">Guard-wise Payable Salary</h3><p className="text-[10px] text-slate-500">{month} · Monthly salary aur marked attendance ke according</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportPayoutBreakdown} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold"><Download className="w-3.5 h-3.5"/>Export CSV</button><button type="button" aria-label="Close salary breakdown" onClick={() => setShowPayoutBreakdown(false)} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5"/></button></div></div>
         <div className="overflow-auto max-h-[65vh]"><table className="w-full min-w-max text-xs border-collapse"><thead className="sticky top-0 bg-[#F3F0EC] dark:bg-gray-800"><tr>{["#", "Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present", "Absent", "Payable Days", "Payable", "Paid", "Pending", "Action"].map(header => <th key={header} className="text-left p-3 border-r border-b uppercase text-[9px]">{header}</th>)}</tr></thead><tbody>{guardPayoutBreakdown.map((guard, index) => {
           const key = `${guard.securityId}-${guard.guardId}`;
           return <tr key={key} className="border-b"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{guard.guardName}</td><td className="p-3 border-r">{guard.nbfcs || "-"}</td><td className="p-3 border-r">{guard.sites || "-"}</td><td className="p-3 border-r text-right font-bold">₹{money(guard.monthlySalary)}</td><td className="p-3 border-r text-right">₹{money(guard.perDayRate)}</td><td className="p-3 border-r text-center font-bold text-emerald-700">{guard.present}</td><td className="p-3 border-r text-center font-bold text-rose-700">{guard.absent}</td><td className="p-3 border-r text-center font-bold">{guard.payableDays}</td><td className="p-3 border-r text-right font-black text-violet-700">₹{money(guard.payableSalary)}</td><td className="p-3 border-r text-right font-bold text-emerald-700">₹{money(guard.paidSalary)}</td><td className="p-3 border-r text-right font-bold text-rose-700">₹{money(guard.pendingSalary)}</td><td className="p-3"><button type="button" disabled={payingKey === key || Number(guard.pendingSalary) <= 0} onClick={() => logSalaryPayment(guard)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"><ReceiptIndianRupee className="w-3.5 h-3.5"/>Log Pay</button></td></tr>;
-        })}{!guardPayoutBreakdown.length && <tr><td colSpan={13} className="p-8 text-center text-slate-400">No mapped guards found.</td></tr>}</tbody><tfoot className="sticky bottom-0 bg-violet-50"><tr><td colSpan={9} className="p-3 text-right font-bold">Total</td><td className="p-3 text-right font-black text-violet-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.payableSalary, 0))}</td><td className="p-3 text-right font-black text-emerald-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.paidSalary, 0))}</td><td className="p-3 text-right font-black text-rose-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.pendingSalary, 0))}</td><td /></tr></tfoot></table></div>
+        })}{!guardPayoutBreakdown.length && <tr><td colSpan={13} className="p-8 text-center text-slate-400">Selected month me marked guard attendance nahi mili.</td></tr>}</tbody><tfoot className="sticky bottom-0 bg-violet-50"><tr><td colSpan={9} className="p-3 text-right font-bold">Total</td><td className="p-3 text-right font-black text-violet-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.payableSalary, 0))}</td><td className="p-3 text-right font-black text-emerald-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.paidSalary, 0))}</td><td className="p-3 text-right font-black text-rose-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.pendingSalary, 0))}</td><td /></tr></tfoot></table></div>
       </div>
     </div>}
   </div>;
