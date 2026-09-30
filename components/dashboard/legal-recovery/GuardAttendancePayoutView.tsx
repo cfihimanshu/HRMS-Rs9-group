@@ -19,6 +19,7 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const [guards, setGuards] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [salaryPayments, setSalaryPayments] = useState<any[]>([]);
+  const [monthlySalaries, setMonthlySalaries] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [nbfcFilter, setNbfcFilter] = useState("");
   const [siteFilter, setSiteFilter] = useState("");
@@ -38,19 +39,21 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     if (guardResult.success) setGuards(guardResult.data || []);
   };
   const loadAttendance = async () => {
-    const [result, paymentsResult] = await Promise.all([
+    const [result, paymentsResult, monthlySalaryResult] = await Promise.all([
       fetch(`/api/legal-recovery/security/guard-attendance?month=${month}`).then(response => response.json()),
       fetch(`/api/legal-recovery/security/guard-salary-payments?month=${month}`).then(response => response.json()),
+      fetch(`/api/legal-recovery/security/guard-monthly-salaries?month=${month}`).then(response => response.json()),
     ]);
     if (result.success) setAttendance(result.data || []); else triggerToast(result.error || "Attendance load nahi hui");
     if (paymentsResult.success) setSalaryPayments(paymentsResult.data || []);
+    if (monthlySalaryResult.success) setMonthlySalaries(monthlySalaryResult.data || []);
   };
   useEffect(() => { loadMasters().catch(() => triggerToast("Projects aur guards load nahi hue")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadAttendance().catch(() => triggerToast("Attendance load nahi hui")); }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mappedRows = useMemo(() => {
     const unique = new Map<string, any>();
-    projects.forEach(project => unique.set(`${project.sourceSecurityId}-${project.guardId}`, project));
+    projects.forEach(project => unique.set(`${project.sourceSecurityId}-${project.guardId}-${project.id || ""}`, project));
     return [...unique.values()];
   }, [projects]);
   const nbfcOptions = useMemo(() => [...new Set(mappedRows.map(project => String(project.nbfcName || "")).filter(Boolean))].sort(), [mappedRows]);
@@ -76,12 +79,33 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     });
     return { byId, byPhone };
   }, [guards]);
+  const monthlySalaryMap = useMemo(() => {
+    const byProject = new Map<string, number>();
+    const byAssignment = new Map<string, number>();
+    monthlySalaries.forEach(record => {
+      const salary = Number(record.monthlySalary || 0);
+      if (record.projectId) byProject.set(String(record.projectId), salary);
+      byAssignment.set(`${record.securityId}-${record.guardId}`, salary);
+    });
+    return { byProject, byAssignment };
+  }, [monthlySalaries]);
   const monthlyFor = (guardId: unknown, phone: unknown, projectSalary?: unknown) => {
     const projectMonthly = Number(projectSalary || 0);
     if (projectMonthly > 0) return projectMonthly;
     const byId = guardSalary.byId.get(String(guardId)) || 0;
     if (byId > 0) return byId;
     return guardSalary.byPhone.get(digits(phone)) || byId;
+  };
+  const monthlyForProject = (project: any) => {
+    if (project?.id && monthlySalaryMap.byProject.has(String(project.id))) return Number(monthlySalaryMap.byProject.get(String(project.id)) || 0);
+    const assignmentKey = `${project.sourceSecurityId}-${project.guardId}`;
+    if (monthlySalaryMap.byAssignment.has(assignmentKey)) return Number(monthlySalaryMap.byAssignment.get(assignmentKey) || 0);
+    return monthlyFor(project.guardId, project.contactNumber, project.monthlySalary);
+  };
+  const recordPayableAmount = (record: any, fallbackMonthly: number) => {
+    const payableUnits = Number(record?.payableUnits || 0);
+    if (fallbackMonthly > 0) return Number(((fallbackMonthly / daysInMonth) * payableUnits).toFixed(2));
+    return Number(record?.payoutAmount || 0);
   };
   const visibleAttendance = useMemo(() => {
     const visibleKeys = new Set(rows.map(project => `${project.sourceSecurityId}-${project.guardId}`));
@@ -94,19 +118,19 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
   const guardPayoutBreakdown = useMemo(() => {
     const paidMap = new Map<string, number>();
     salaryPayments.forEach(payment => {
-      const key = `${payment.securityId}-${payment.guardId}`;
+      const key = `${payment.securityId}-${payment.guardId}-${payment.projectId || ""}`;
       paidMap.set(key, (paidMap.get(key) || 0) + Number(payment.paidAmount || 0));
     });
     const mapped = new Map<string, any>();
     rows.forEach(project => {
-      const key = `${project.sourceSecurityId}-${project.guardId}`;
+      const key = `${project.sourceSecurityId}-${project.guardId}-${project.id || ""}`;
       const guard = guards.find(item => String(item.id) === String(project.guardId));
       const current = mapped.get(key) || {
         guardId: project.guardId,
         securityId: project.sourceSecurityId,
         projectId: project.id,
         guardName: guard?.name || project.guardName,
-        monthlySalary: monthlyFor(project.guardId, project.contactNumber, project.monthlySalary),
+        monthlySalary: monthlyForProject(project),
         nbfcs: new Set<string>(), sites: new Set<string>(), present: 0, absent: 0, payableDays: 0, payableSalary: 0, paidSalary: paidMap.get(key) || 0,
       };
       if (project.nbfcName) current.nbfcs.add(project.nbfcName);
@@ -114,18 +138,21 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
       mapped.set(key, current);
     });
     visibleAttendance.forEach(record => {
-      const current = mapped.get(`${record.securityId}-${record.guardId}`);
+      const current = mapped.get(`${record.securityId}-${record.guardId}-${record.projectId || ""}`) || [...mapped.entries()].find(([key]) => key.startsWith(`${record.securityId}-${record.guardId}-`))?.[1];
       if (!current) return;
       if (record.status === "Present") current.present += 1;
       if (record.status === "Absent") current.absent += 1;
       current.payableDays += Number(record.payableUnits || 0);
-      current.payableSalary += current.monthlySalary > 0
-        ? Number(((current.monthlySalary / daysInMonth) * Number(record.payableUnits || 0)).toFixed(2))
-        : Number(record.payoutAmount || 0);
+      current.payableSalary += current.monthlySalary > 0 ? 0 : recordPayableAmount(record, current.monthlySalary);
     });
     return [...mapped.values()]
       .filter(item => Number(item.present || 0) + Number(item.absent || 0) + Number(item.payableDays || 0) > 0)
-      .map(item => ({ ...item, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth, pendingSalary: Math.max(0, Number(item.payableSalary || 0) - Number(item.paidSalary || 0)) }))
+      .map(item => {
+        const payableSalary = item.monthlySalary > 0
+          ? Number(((Number(item.monthlySalary || 0) * Number(item.payableDays || 0)) / daysInMonth).toFixed(2))
+          : Number(item.payableSalary || 0);
+        return { ...item, payableSalary, nbfcs: [...item.nbfcs].join(", "), sites: [...item.sites].join(", "), perDayRate: item.monthlySalary / daysInMonth, pendingSalary: Math.max(0, payableSalary - Number(item.paidSalary || 0)) };
+      })
       .sort((a, b) => String(a.guardName).localeCompare(String(b.guardName)));
   }, [rows, guards, visibleAttendance, daysInMonth, salaryPayments]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = useMemo(() => ({
@@ -138,17 +165,19 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
     const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     const headers = ["NBFC", "Site", "Site Started Date", "Guard Name", "Mobile Number", ...dates.map(date => date.slice(-2)), "Present Days", "Absent Days", "Monthly Salary", "Payable Salary"];
     const lines = rows.map(project => {
-      const monthly = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary);
+      const monthly = monthlyForProject(project);
       let present = 0;
       let absent = 0;
-      let payableSalary = 0;
+      let payableUnits = 0;
+      let fallbackPayableSalary = 0;
       const dailyStatuses = dates.map(date => {
         const record: any = recordMap.get(`${project.sourceSecurityId}-${project.guardId}-${date}`);
         if (record?.status === "Present") present += 1;
         if (record?.status === "Absent") absent += 1;
-        if (record) payableSalary += monthly > 0 ? (monthly / daysInMonth) * Number(record.payableUnits || 0) : Number(record.payoutAmount || 0);
+        if (record) { payableUnits += Number(record.payableUnits || 0); fallbackPayableSalary += recordPayableAmount(record, 0); }
         return record?.status === "Present" ? "P" : record?.status === "Absent" ? "A" : "-";
       });
+      const payableSalary = monthly > 0 ? Number(((monthly * payableUnits) / daysInMonth).toFixed(2)) : fallbackPayableSalary;
       return [project.nbfcName, project.siteName, project.siteStartedDate, project.guardName, project.contactNumber, ...dailyStatuses, present, absent, monthly.toFixed(2), payableSalary.toFixed(2)].map(csvCell).join(",");
     });
     const csv = `\uFEFF${headers.map(csvCell).join(",")}\n${lines.join("\n")}`;
@@ -235,7 +264,7 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
         setAttendance(previous => previous.filter(record => record.id !== existing.id));
         return triggerToast("Attendance hata di gayi");
       }
-      const perDayRate = monthlyFor(project.guardId, project.contactNumber, project.monthlySalary) / daysInMonth;
+      const perDayRate = monthlyForProject(project) / daysInMonth;
       const response = await fetch("/api/legal-recovery/security/guard-attendance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ securityId: project.sourceSecurityId, guardId: project.guardId, attendanceDate: date, status, perDayRate, remarks: "Monthly attendance sheet" }) });
       const result = await response.json();
       if (!result.success) return triggerToast(result.error || "Attendance save nahi hui");
@@ -273,11 +302,11 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
           <th className="hidden sm:table-cell sticky left-[24rem] z-30 bg-[#F3F0EC] dark:bg-gray-800 border-r border-b p-2 text-left min-w-40">Guard</th>
           {dates.map(date => <th key={date} className="border-r border-b p-1.5 text-center min-w-14 sm:min-w-16"><span className="block font-black">{Number(date.slice(-2))}</span><span className="text-[8px] text-slate-400">{new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short" })}</span></th>)}
         </tr></thead>
-        <tbody>{rows.map(project => <tr key={`${project.sourceSecurityId}-${project.guardId}`} className="border-b">
-          <td className="sm:hidden sticky left-0 z-10 bg-white dark:bg-gray-900 border-r p-2 w-32 min-w-32 max-w-32"><div className="flex items-start justify-between gap-1"><span className="min-w-0"><b className="block truncate">{project.guardName}</b><span className="block truncate text-[8px] text-slate-500">{project.siteName}</span><span className="block truncate text-[8px] text-slate-400">{project.nbfcName}</span></span>{isOwner && <button type="button" aria-label={`${project.siteName} ${project.guardName} deployment delete karein`} onClick={() => removeDeployment(project)} className="shrink-0 p-1 text-rose-500"><Trash2 className="w-3 h-3"/></button>}</div></td>
+        <tbody>{rows.map(project => <tr key={`${project.sourceSecurityId}-${project.guardId}-${project.id || ""}`} className="border-b">
+          <td className="sm:hidden sticky left-0 z-10 bg-white dark:bg-gray-900 border-r p-2 w-32 min-w-32 max-w-32"><div className="flex items-start justify-between gap-1"><span className="min-w-0"><b className="block truncate">{project.guardName}</b><span className="block truncate text-[8px] text-slate-500">{project.siteName}</span><span className="block truncate text-[8px] text-slate-400">{project.nbfcName}</span><span className="block truncate text-[8px] font-bold text-violet-700">Salary: ₹{money(monthlyForProject(project))}</span></span>{isOwner && <button type="button" aria-label={`${project.siteName} ${project.guardName} deployment delete karein`} onClick={() => removeDeployment(project)} className="shrink-0 p-1 text-rose-500"><Trash2 className="w-3 h-3"/></button>}</div></td>
           <td className="hidden sm:table-cell sticky left-0 z-10 bg-white dark:bg-gray-900 border-r p-2 font-bold min-w-44">{project.nbfcName}</td>
           <td className="hidden sm:table-cell sticky left-44 z-10 bg-white dark:bg-gray-900 border-r p-2 min-w-52"><b>{project.siteName}</b><span className="block text-[8px] text-slate-400">Started: {project.siteStartedDate}</span></td>
-          <td className="hidden sm:table-cell sticky left-[24rem] z-10 bg-white dark:bg-gray-900 border-r p-2 min-w-40"><div className="flex items-start justify-between gap-2"><span><b>{project.guardName}</b><span className="block text-[8px] text-slate-400">{project.contactNumber || ""}</span></span>{isOwner && <button type="button" aria-label={`${project.siteName} ${project.guardName} deployment delete karein`} title="Is deployment row ko delete karein (sirf Owner)" onClick={() => removeDeployment(project)} className="shrink-0 p-1 rounded text-rose-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="w-3.5 h-3.5"/></button>}</div></td>
+          <td className="hidden sm:table-cell sticky left-[24rem] z-10 bg-white dark:bg-gray-900 border-r p-2 min-w-40"><div className="flex items-start justify-between gap-2"><span><b>{project.guardName}</b><span className="block text-[8px] text-slate-400">{project.contactNumber || ""}</span><span className="mt-1 block text-[8px] font-bold text-violet-700">{month} Salary: ₹{money(monthlyForProject(project))}</span></span>{isOwner && <button type="button" aria-label={`${project.siteName} ${project.guardName} deployment delete karein`} title="Is deployment row ko delete karein (sirf Owner)" onClick={() => removeDeployment(project)} className="shrink-0 p-1 rounded text-rose-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="w-3.5 h-3.5"/></button>}</div></td>
           {dates.map(date => {
             const key = `${project.sourceSecurityId}-${project.guardId}-${date}`;
             const record: any = recordMap.get(key);
@@ -294,7 +323,7 @@ export default function GuardAttendancePayoutView({ triggerToast, userRole }: { 
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border w-full max-w-6xl max-h-[85vh] overflow-hidden" onClick={event => event.stopPropagation()}>
         <div className="p-4 border-b flex items-center justify-between gap-3"><div><h3 className="font-bold text-base">Guard-wise Payable Salary</h3><p className="text-[10px] text-slate-500">{month} · Monthly salary aur marked attendance ke according</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportPayoutBreakdown} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold"><Download className="w-3.5 h-3.5"/>Export CSV</button><button type="button" aria-label="Close salary breakdown" onClick={() => setShowPayoutBreakdown(false)} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5"/></button></div></div>
         <div className="overflow-auto max-h-[65vh]"><table className="w-full min-w-max text-xs border-collapse"><thead className="sticky top-0 bg-[#F3F0EC] dark:bg-gray-800"><tr>{["#", "Guard Name", "NBFC", "Site", "Monthly Salary", "Per-day Rate", "Present", "Absent", "Payable Days", "Payable", "Paid", "Pending", "Action"].map(header => <th key={header} className="text-left p-3 border-r border-b uppercase text-[9px]">{header}</th>)}</tr></thead><tbody>{guardPayoutBreakdown.map((guard, index) => {
-          const key = `${guard.securityId}-${guard.guardId}`;
+          const key = `${guard.securityId}-${guard.guardId}-${guard.projectId || ""}`;
           return <tr key={key} className="border-b"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{guard.guardName}</td><td className="p-3 border-r">{guard.nbfcs || "-"}</td><td className="p-3 border-r">{guard.sites || "-"}</td><td className="p-3 border-r text-right font-bold">₹{money(guard.monthlySalary)}</td><td className="p-3 border-r text-right">₹{money(guard.perDayRate)}</td><td className="p-3 border-r text-center font-bold text-emerald-700">{guard.present}</td><td className="p-3 border-r text-center font-bold text-rose-700">{guard.absent}</td><td className="p-3 border-r text-center font-bold">{guard.payableDays}</td><td className="p-3 border-r text-right font-black text-violet-700">₹{money(guard.payableSalary)}</td><td className="p-3 border-r text-right font-bold text-emerald-700">₹{money(guard.paidSalary)}</td><td className="p-3 border-r text-right font-bold text-rose-700">₹{money(guard.pendingSalary)}</td><td className="p-3"><button type="button" disabled={payingKey === key || Number(guard.pendingSalary) <= 0} onClick={() => logSalaryPayment(guard)} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"><ReceiptIndianRupee className="w-3.5 h-3.5"/>Log Pay</button></td></tr>;
         })}{!guardPayoutBreakdown.length && <tr><td colSpan={13} className="p-8 text-center text-slate-400">Selected month me marked guard attendance nahi mili.</td></tr>}</tbody><tfoot className="sticky bottom-0 bg-violet-50"><tr><td colSpan={9} className="p-3 text-right font-bold">Total</td><td className="p-3 text-right font-black text-violet-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.payableSalary, 0))}</td><td className="p-3 text-right font-black text-emerald-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.paidSalary, 0))}</td><td className="p-3 text-right font-black text-rose-700">₹{money(guardPayoutBreakdown.reduce((sum, guard) => sum + guard.pendingSalary, 0))}</td><td /></tr></tfoot></table></div>
       </div>

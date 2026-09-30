@@ -7,6 +7,7 @@ import sequelize from "@/lib/sequelize";
 import LegalSecurity from "@/models/sequelize/LegalSecurity";
 import LegalGuard from "@/models/sequelize/LegalGuard";
 import SecurityProject from "@/models/sequelize/SecurityProject";
+import SecurityGuardMonthlySalary from "@/models/sequelize/SecurityGuardMonthlySalary";
 import TaskLog from "@/models/sequelize/TaskLog";
 import { notifyOwners } from "@/lib/ownerNotification";
 
@@ -103,16 +104,19 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
   try {
     const columns = await queryInterface.describeTable("security_projects");
     if (!columns.sourceSecurityId) await queryInterface.addColumn("security_projects", "sourceSecurityId", { type: DataTypes.INTEGER, allowNull: true });
+    if (!columns.monthlySalary) await queryInterface.addColumn("security_projects", "monthlySalary", { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 });
   } catch {
     await SecurityProject.sync();
   }
   await SecurityProject.sync();
+  await SecurityGuardMonthlySalary.sync();
   await LegalGuard.sync();
   const fallbackDate = deployment.date || new Date().toISOString().slice(0, 10);
   for (const deployed of deployedGuards) {
     const name = String(deployed.name || "").trim();
     if (!name) continue;
     const guard = await LegalGuard.findOne({ where: { name } });
+    const monthlySalary = Math.max(0, Number(deployed.monthlySalary || guard?.monthlySalary || 0));
     const values = {
       sourceSecurityId: record.id,
       nbfcId: record.nbfcId || null,
@@ -122,6 +126,7 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
       guardId: guard?.id || null,
       guardName: guard?.name || name,
       contactNumber: guard?.phone || deployed.phone || "",
+      monthlySalary,
       createdBy: actorId,
     };
     const existing = await SecurityProject.findOne({ where: guard?.id
@@ -129,8 +134,24 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
       : { sourceSecurityId: record.id, guardName: name } });
     // Guard deployment creates an active project. Project completion is a separate,
     // manual decision made later from the Projects register.
-    if (existing) await existing.update(values);
-    else await SecurityProject.create({ ...values, status: "Ongoing" });
+    const project = existing ? await existing.update(values) : await SecurityProject.create({ ...values, status: "Ongoing" });
+    const salaryMonth = String(values.siteStartedDate || fallbackDate).slice(0, 7);
+    if (guard?.id && salaryMonth && monthlySalary >= 0) {
+      const salaryValues = {
+        securityId: record.id,
+        projectId: project.id || null,
+        guardId: guard.id,
+        guardName: guard.name || name,
+        nbfcName: record.nbfcName || "NBFC",
+        siteName: record.location || record.branchName || "Security Site",
+        salaryMonth,
+        monthlySalary,
+        savedBy: actorId,
+      };
+      const existingSalary = await SecurityGuardMonthlySalary.findOne({ where: { securityId: record.id, projectId: project.id || null, guardId: guard.id, salaryMonth } });
+      if (existingSalary) await existingSalary.update(salaryValues);
+      else await SecurityGuardMonthlySalary.create(salaryValues);
+    }
   }
 }
 

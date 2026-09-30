@@ -101,6 +101,7 @@ export default function DashboardSidebar({
     { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Employee"] },
     { id: "ess-expenses", label: "Expense Claims", icon: Coins, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
     { id: "asset-request", label: "Asset Request", icon: Cpu, category: "Employee Self Service", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+    { id: "tickets", label: "Tickets / Help Desk", icon: HelpCircle, category: "Employee Self Service", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
 
     // Daily Operations
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
@@ -152,6 +153,7 @@ export default function DashboardSidebar({
     "ess-payroll",
     "ess-expenses",
     "asset-request",
+    "tickets",
     "tasks",
     "bank-work-report",
     "performance",

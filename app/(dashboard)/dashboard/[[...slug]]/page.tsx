@@ -79,6 +79,7 @@ import AuditTrail from "@/components/dashboard/AuditTrail";
 import DocumentMovement from "@/components/dashboard/DocumentMovement";
 import VehicleRegistry from "@/components/dashboard/VehicleRegistry";
 import DomainRecordPanels from "@/components/dashboard/DomainRecordPanels";
+import TicketDesk from "@/components/dashboard/TicketDesk";
 
 const parseMenuAccess = (value: unknown): string[] | null => {
   if (Array.isArray(value)) return value.map(String);
@@ -1343,6 +1344,10 @@ export default function UnifiedEnterpriseDashboard() {
           )}
           {activeTab === "asset-request" && (
             <AssetRequestLogs sessionUser={{ ...session?.user, role: userRole }} triggerToast={triggerToast} setActiveTab={handleNavigateTab} />
+          )}
+
+          {activeTab === "tickets" && (
+            <TicketDesk sessionUser={{ ...session?.user, role: userRole }} triggerToast={triggerToast} />
           )}
 
           {activeTab === "dept-dash" && (
