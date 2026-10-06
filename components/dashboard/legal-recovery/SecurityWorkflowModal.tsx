@@ -165,7 +165,41 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
     fetch(`/api/legal-recovery/security/guard-attendance?securityId=${item.id}&month=${billingMonth}`)
       .then((response) => response.json())
       .then((result) => {
-        if (!cancelled && !cycle && !guardPayableManuallyEdited.current) setGuardPayable((result.data || []).reduce((sum: number, row: any) => sum + Number(row.payoutAmount || 0), 0));
+        if (!cancelled && !cycle && !guardPayableManuallyEdited.current) {
+          const parsed = typeof item?.workflowJson === "string" ? JSON.parse(item.workflowJson) : (item?.workflowJson || {});
+          const deployedGuards = parsed.guard_deployment?.guards || [];
+          
+          const attendanceData = result.data || [];
+          const [year, month] = billingMonth.split("-").map(Number);
+          const daysInMonth = new Date(year, month, 0).getDate();
+          
+          const grouped: Record<string, any> = {};
+          attendanceData.forEach((row: any) => {
+            const gid = String(row.guardId);
+            if (!grouped[gid]) grouped[gid] = { guardId: gid, guardName: row.guardName, payableUnits: 0, dbPayout: 0 };
+            grouped[gid].payableUnits += Number(row.payableUnits || 0);
+            grouped[gid].dbPayout += Number(row.payoutAmount || 0);
+          });
+          
+          let totalPayable = 0;
+          const finalGuardPayments = Object.values(grouped).map((g: any) => {
+            const siteGuard = deployedGuards.find((sg: any) => String(sg.name).trim().toLowerCase() === String(g.guardName).trim().toLowerCase());
+            const guardMaster = dbGuards.find((dbG: any) => String(dbG.id) === g.guardId);
+            const monthlySalary = Number(siteGuard?.monthlySalary || guardMaster?.monthlySalary || 0);
+            
+            const amount = monthlySalary > 0 
+               ? Number(((monthlySalary * g.payableUnits) / daysInMonth).toFixed(2))
+               : g.dbPayout;
+               
+            totalPayable += amount;
+            return { guardId: g.guardId, guardName: g.guardName, amount };
+          });
+          
+          setGuardPayable(totalPayable);
+          if (finalGuardPayments.length > 0) {
+            setMonthlyGuardPayments(finalGuardPayments);
+          }
+        }
       })
       .catch(() => { if (!cancelled && !cycle && !guardPayableManuallyEdited.current) setGuardPayable(0); });
     if (cycle) {
@@ -174,15 +208,22 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
       setMonthlyGuardPayments(cycle.guardPayments || []);
       setClientPaymentLogs(cycle.clientPaymentLogs || []);
       setGuardPaymentLogs(cycle.guardPaymentLogs || []);
-    } else if (monthlyCycles.length > 0 || !item?.billNo) {
-      setBillDetails({ billNo: "", billDate: "", billAmount: "", billInvoiceUrl: "" });
+    } else {
+      let defaultBillAmount = "";
+      if (monthlyCycles.length > 0) {
+        const sortedCycles = [...monthlyCycles].sort((a, b) => b.month.localeCompare(a.month));
+        defaultBillAmount = String(sortedCycles[0].billAmount || "");
+      } else if (item?.billAmount) {
+        defaultBillAmount = String(item.billAmount || "");
+      }
+      setBillDetails({ billNo: "", billDate: "", billAmount: defaultBillAmount, billInvoiceUrl: "" });
       setMonthlyReceived("");
       setMonthlyGuardPayments([]);
       setClientPaymentLogs([]);
       setGuardPaymentLogs([]);
     }
     return () => { cancelled = true; };
-  }, [billingMonth, item?.id]);
+  }, [billingMonth, item?.id, dbGuards]);
 
   const addManualGuardPayment = () => {
     const guard = dbGuards.find((entry) => String(entry.id) === manualGuardId);
@@ -302,6 +343,20 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
     });
     setSavingMonth(true);
     try {
+      if (clientAmount > 0) {
+        fetch("/api/legal-recovery/security/payment", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ securityId: item!.id, amount: clientAmount, tdsAmount, paymentDate: popupPaymentDate, paymentMode: "Bank Transfer (NEFT/RTGS)", transactionId: `Inv ${cycle.billNo}`, remarks: "Logged from workflow" })
+        }).catch(console.error);
+      }
+      if (guardAmount > 0 && hasGuardBreakdown) {
+        guardAmounts.filter((guard) => guard.paidNow > 0).forEach((guard) => {
+          fetch("/api/legal-recovery/security/guard-salary-payments", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ securityId: item!.id, guardId: guard.guardId, guardName: guard.guardName, salaryMonth: paymentModalMonth, payableAmount: guard.amount, paidAmount: guard.paidNow, paymentDate: popupPaymentDate, paymentMode: "Cash", remarks: "Logged from workflow" })
+          }).catch(console.error);
+        });
+      }
       const savedToDatabase = await persistMonthlyCycles(nextCycles);
       setMonthlyCycles(nextCycles);
       if (billingMonth === paymentModalMonth) {
@@ -629,7 +684,7 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
                   <label className="text-[11px] font-bold text-slate-600">Guard Payable (Attendance / Manual)<div className="relative mt-1"><span className="absolute left-3 top-2.5 text-sm font-black text-amber-700">₹</span><input type="number" min="0" step="0.01" value={guardPayable} onChange={(e) => { guardPayableManuallyEdited.current = true; setGuardPayable(Math.max(0, Number(e.target.value || 0))); }} className="w-full rounded-lg border bg-white py-2.5 pl-7 pr-2 text-sm font-black text-amber-700 focus:border-amber-500 focus:outline-none"/></div></label>
                 </div>
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-                  <div><h5 className="text-xs font-black text-slate-800">Manual Guard Payment for Old Month</h5><p className="mt-0.5 text-[10px] text-slate-500">If attendance is unavailable, select a guard and enter the payable amount.</p></div>
+                  <div><h5 className="text-xs font-black text-slate-800">Guard Payable Breakdown</h5><p className="mt-0.5 text-[10px] text-slate-500">Attendance ke hisaab se ya manual add/edit karein.</p></div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px_auto]">
                     <select value={manualGuardId} onChange={(e) => setManualGuardId(e.target.value)} className="border rounded-lg p-2.5 bg-white text-xs"><option value="">-- Select Guard --</option>{dbGuards.map((guard) => <option key={guard.id} value={guard.id}>{guard.name}{guard.phone ? ` (${guard.phone})` : ""}</option>)}</select>
                     <input type="number" min="0" step="0.01" value={manualGuardAmount} onChange={(e) => setManualGuardAmount(e.target.value)} placeholder="Payable amount ₹" className="border rounded-lg p-2.5 bg-white text-xs"/>

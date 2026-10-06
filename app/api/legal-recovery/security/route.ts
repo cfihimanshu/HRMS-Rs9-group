@@ -354,9 +354,9 @@ export async function GET(req: Request) {
     const data = entries.map((entry: any) => {
       const monthly = getMonthlyBillingSummary(entry.workflowJson);
       if (!monthly) return entry;
-      const billAmount = Math.max(Number(entry.billAmount || 0), monthly.billAmount);
-      const receivedAmount = Math.max(Number(entry.receivedAmount || 0), monthly.receivedAmount);
-      const tdsAmount = Math.max(Number(entry.tdsAmount || 0), monthly.tdsAmount);
+      const billAmount = monthly.billAmount;
+      const receivedAmount = monthly.receivedAmount;
+      const tdsAmount = monthly.tdsAmount;
       return {
         ...entry,
         billAmount,
@@ -486,7 +486,7 @@ export async function POST(req: Request) {
     await syncGuardDeploymentProjects(newEntry, String(createdBy));
     await syncSiteClosureStatus(newEntry);
     await syncSecurityFollowUpTask(newEntry, String(createdBy));
-    await notifyWorkflowChanges(newEntry, "", session.user.name || "System User", `security_workflow_${newEntry.id}_${Date.now()}`);
+    notifyWorkflowChanges(newEntry, "", session.user.name || "System User", `security_workflow_${newEntry.id}_${Date.now()}`).catch(console.error);
 
     return NextResponse.json({ success: true, data: newEntry });
   } catch (error: any) {
@@ -587,7 +587,7 @@ export async function PUT(req: Request) {
       billNo: billNo ?? record.billNo,
       billDate: billDate !== undefined ? (billDate || null) : record.billDate,
       billAmount: monthlySummary
-        ? Math.max(Number(record.billAmount || 0), monthlySummary.billAmount)
+        ? monthlySummary.billAmount
         : (billAmount !== undefined ? Number(billAmount) : record.billAmount),
       nbfcId: nbfcId !== undefined ? (nbfcId ? String(nbfcId) : null) : record.nbfcId,
       nbfcName: nbfcName ?? record.nbfcName,
@@ -615,18 +615,18 @@ export async function PUT(req: Request) {
       paymentMethod: paymentMethod !== undefined ? paymentMethod : record.paymentMethod,
       paymentDays: paymentDays !== undefined ? String(paymentDays) : record.paymentDays,
       paymentStatus: monthlySummary
-        ? (Math.max(Number(record.billAmount || 0), monthlySummary.billAmount) > 0 && Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount) + Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount) >= Math.max(Number(record.billAmount || 0), monthlySummary.billAmount)
-          ? "Payment Done" : Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount) + Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount) > 0 ? "Partially Paid" : "Due")
+        ? (monthlySummary.billAmount > 0 && monthlySummary.receivedAmount + monthlySummary.tdsAmount >= monthlySummary.billAmount
+          ? "Payment Done" : monthlySummary.receivedAmount + monthlySummary.tdsAmount > 0 ? "Partially Paid" : "Due")
         : (paymentStatus ?? record.paymentStatus),
       source: source ?? record.source,
       installmentsJson: installmentsJson !== undefined ? installmentsJson : record.installmentsJson,
       receivedAmount: monthlySummary
-        ? Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount)
+        ? monthlySummary.receivedAmount
         : (receivedAmount !== undefined ? Number(receivedAmount) : record.receivedAmount),
       tdsAmount: monthlySummary
-        ? Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount)
+        ? monthlySummary.tdsAmount
         : record.tdsAmount,
-      receivedDate: monthlySummary && monthlySummary.receivedAmount >= Number(record.receivedAmount || 0)
+      receivedDate: monthlySummary
         ? (monthlySummary.receivedDate || record.receivedDate)
         : (receivedDate !== undefined ? (receivedDate || null) : record.receivedDate),
       remarks: remarks ?? record.remarks,
@@ -639,7 +639,7 @@ export async function PUT(req: Request) {
     await syncGuardDeploymentProjects(record, actorId);
     await syncSiteClosureStatus(record);
     await syncSecurityFollowUpTask(record, actorId, previousFollowUpAt);
-    await notifyWorkflowChanges(record, previousWorkflowJson, session.user.name || "System User", `security_workflow_${record.id}_${Date.now()}`);
+    notifyWorkflowChanges(record, previousWorkflowJson, session.user.name || "System User", `security_workflow_${record.id}_${Date.now()}`).catch(console.error);
 
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {

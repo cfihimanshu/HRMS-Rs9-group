@@ -46,6 +46,7 @@ export async function POST(req: Request) {
       proofUrl,
       remarks,
       installmentsJson,
+      cycleId,
     } = body;
 
     if (!securityId) {
@@ -101,12 +102,36 @@ export async function POST(req: Request) {
       updatedStatus = "Due";
     }
 
+    let updatedWorkflowJson = record.workflowJson;
+    if (cycleId) {
+      try {
+        const wf = typeof updatedWorkflowJson === 'string' ? JSON.parse(updatedWorkflowJson) : (updatedWorkflowJson || {});
+        if (Array.isArray(wf.monthlyCycles)) {
+          const cycle = wf.monthlyCycles.find((c: any) => c.month === cycleId);
+          if (cycle) {
+            cycle.receivedAmount = (Number(cycle.receivedAmount) || 0) + numericAmount;
+            cycle.tdsAmount = (Number(cycle.tdsAmount) || 0) + numericTdsAmount;
+            const cbAmt = Number(cycle.billAmount) || 0;
+            if (cbAmt > 0 && cycle.receivedAmount + cycle.tdsAmount >= cbAmt) {
+              cycle.paymentStatus = "Payment Done";
+            } else if (cycle.receivedAmount + cycle.tdsAmount > 0) {
+              cycle.paymentStatus = "Partially Paid";
+            } else {
+              cycle.paymentStatus = "Due";
+            }
+          }
+          updatedWorkflowJson = JSON.stringify(wf);
+        }
+      } catch(e) {}
+    }
+
     await record.update({
       receivedAmount: newTotalReceived,
       tdsAmount: newTotalTds,
       receivedDate: paymentDate || new Date().toISOString().split("T")[0],
       paymentStatus: updatedStatus,
       paymentMethod: paymentMode || record.paymentMethod,
+      ...(updatedWorkflowJson ? { workflowJson: updatedWorkflowJson } : {}),
       ...(installmentsJson !== undefined ? { installmentsJson } : {}),
       ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
       ...(remarks ? { remarks: (record.remarks ? `${record.remarks}\n[Payment Logged: ₹${numericAmount}, TDS: ₹${numericTdsAmount} - ${transactionId || ""}]` : `Payment Logged: ₹${numericAmount}, TDS: ₹${numericTdsAmount} - ${transactionId || ""}`) } : {}),
@@ -152,6 +177,7 @@ export async function PATCH(req: Request) {
       transactionId,
       proofUrl,
       remarks,
+      cycleId,
     } = body;
 
     if (!securityId) {
@@ -203,12 +229,36 @@ export async function PATCH(req: Request) {
       ? await existingPayment.update(paymentValues)
       : await LegalSecurityPayment.create(paymentValues);
 
+    let updatedWorkflowJson = record.workflowJson;
+    if (cycleId) {
+      try {
+        const wf = typeof updatedWorkflowJson === 'string' ? JSON.parse(updatedWorkflowJson) : (updatedWorkflowJson || {});
+        if (Array.isArray(wf.monthlyCycles)) {
+          const cycle = wf.monthlyCycles.find((c: any) => c.month === cycleId);
+          if (cycle) {
+            cycle.receivedAmount = numericAmount;
+            cycle.tdsAmount = numericTdsAmount;
+            const cbAmt = Number(cycle.billAmount) || 0;
+            if (cbAmt > 0 && cycle.receivedAmount + cycle.tdsAmount >= cbAmt) {
+              cycle.paymentStatus = "Payment Done";
+            } else if (cycle.receivedAmount + cycle.tdsAmount > 0) {
+              cycle.paymentStatus = "Partially Paid";
+            } else {
+              cycle.paymentStatus = "Due";
+            }
+          }
+          updatedWorkflowJson = JSON.stringify(wf);
+        }
+      } catch(e) {}
+    }
+
     await record.update({
       receivedAmount: numericAmount,
       tdsAmount: numericTdsAmount,
       receivedDate: numericAmount + numericTdsAmount > 0 ? effectivePaymentDate : null,
       paymentStatus: updatedStatus,
       paymentMethod: effectivePaymentMode,
+      ...(updatedWorkflowJson ? { workflowJson: updatedWorkflowJson } : {}),
       ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
       remarks: [
         record.remarks || "",

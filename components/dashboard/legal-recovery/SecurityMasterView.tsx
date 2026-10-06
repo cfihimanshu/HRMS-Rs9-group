@@ -1727,6 +1727,7 @@ export default function SecurityMasterView({
         proofUrl: proofUrl,
         remarks: receiveForm.remarks,
         installmentsJson: finalInstallmentsJson,
+        cycleId: showReceiveModal.item._cycleId || null,
       };
 
       const res = await fetch("/api/legal-recovery/security/payment", {
@@ -1996,18 +1997,51 @@ export default function SecurityMasterView({
         });
       }
       const group = map.get(bankName)!;
-      group.works.push(item);
-      const bAmt = Number(item.billAmount || 0);
-      const rAmt = Number(item.receivedAmount || 0);
-      const tdsAmt = Number(item.tdsAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt - Number(item.tdsAmount || 0));
-      group.totalBillAmount += bAmt;
-      group.totalReceivedAmount += rAmt;
-      group.totalTdsAmount += tdsAmt;
-      group.totalPendingAmount += pAmt;
-      if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
-      else if (item.paymentStatus === "Partially Paid") group.partialCount++;
-      else group.dueCount++;
+
+      let parsedWorkflow: any = {};
+      try { parsedWorkflow = typeof item.workflowJson === 'string' ? JSON.parse(item.workflowJson) : (item.workflowJson || {}); } catch(e){}
+      const cycles = Array.isArray(parsedWorkflow?.monthlyCycles) ? parsedWorkflow.monthlyCycles : [];
+
+      if (cycles.length > 0) {
+        cycles.forEach((cycle: any) => {
+          const bAmt = Number(cycle.billAmount || 0);
+          const rAmt = Number(cycle.receivedAmount || 0);
+          const tdsAmt = Number(cycle.tdsAmount || 0);
+          const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+          
+          group.works.push({
+            ...item,
+            billNo: cycle.billNo,
+            billDate: cycle.billDate || cycle.month,
+            billAmount: bAmt,
+            receivedAmount: rAmt,
+            tdsAmount: tdsAmt,
+            paymentStatus: cycle.paymentStatus || "Due",
+            _cycleId: cycle.month
+          });
+          
+          group.totalBillAmount += bAmt;
+          group.totalReceivedAmount += rAmt;
+          group.totalTdsAmount += tdsAmt;
+          group.totalPendingAmount += pAmt;
+          if (cycle.paymentStatus === "Payment Done" || cycle.paymentStatus === "Paid") group.paidCount++;
+          else if (cycle.paymentStatus === "Partially Paid") group.partialCount++;
+          else group.dueCount++;
+        });
+      } else {
+        group.works.push(item);
+        const bAmt = Number(item.billAmount || 0);
+        const rAmt = Number(item.receivedAmount || 0);
+        const tdsAmt = Number(item.tdsAmount || 0);
+        const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+        group.totalBillAmount += bAmt;
+        group.totalReceivedAmount += rAmt;
+        group.totalTdsAmount += tdsAmt;
+        group.totalPendingAmount += pAmt;
+        if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
+        else if (item.paymentStatus === "Partially Paid") group.partialCount++;
+        else group.dueCount++;
+      }
     });
 
     return Array.from(map.values()).sort((a, b) => b.totalBillAmount - a.totalBillAmount);
@@ -2043,12 +2077,8 @@ export default function SecurityMasterView({
     }>();
 
     entries.forEach((item) => {
-      const rAmt = Number(item.receivedAmount || 0);
-      const tdsAmt = Number(item.tdsAmount || 0);
-      const bAmt = Number(item.billAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
-      if (rAmt > 0 || tdsAmt > 0 || item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid") {
-        const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+      const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+      const getGroup = () => {
         if (!map.has(bankName)) {
           map.set(bankName, {
             nbfcName: bankName,
@@ -2061,14 +2091,55 @@ export default function SecurityMasterView({
             partialCount: 0,
           });
         }
-        const group = map.get(bankName)!;
-        group.works.push(item);
-        group.totalBillAmount += bAmt;
-        group.totalReceivedAmount += rAmt;
-        group.totalTdsAmount += tdsAmt;
-        group.totalPendingAmount += pAmt;
-        if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
-        else group.partialCount++;
+        return map.get(bankName)!;
+      };
+
+      let parsedWorkflow: any = {};
+      try { parsedWorkflow = typeof item.workflowJson === 'string' ? JSON.parse(item.workflowJson) : (item.workflowJson || {}); } catch(e){}
+      const cycles = Array.isArray(parsedWorkflow?.monthlyCycles) ? parsedWorkflow.monthlyCycles : [];
+
+      if (cycles.length > 0) {
+        cycles.forEach((cycle: any) => {
+          const bAmt = Number(cycle.billAmount || 0);
+          const rAmt = Number(cycle.receivedAmount || 0);
+          const tdsAmt = Number(cycle.tdsAmount || 0);
+          const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+          
+          if (rAmt > 0 || tdsAmt > 0 || ((cycle.paymentStatus === "Payment Done" || cycle.paymentStatus === "Partially Paid" || cycle.paymentStatus === "Paid") && bAmt > 0)) {
+            const group = getGroup();
+            group.works.push({
+              ...item,
+              billNo: cycle.billNo,
+              billDate: cycle.billDate || cycle.month,
+              billAmount: bAmt,
+              receivedAmount: rAmt,
+              tdsAmount: tdsAmt,
+              paymentStatus: cycle.paymentStatus || "Due",
+              _cycleId: cycle.month
+            });
+            group.totalBillAmount += bAmt;
+            group.totalReceivedAmount += rAmt;
+            group.totalTdsAmount += tdsAmt;
+            group.totalPendingAmount += pAmt;
+            if (cycle.paymentStatus === "Payment Done" || cycle.paymentStatus === "Paid") group.paidCount++;
+            else group.partialCount++;
+          }
+        });
+      } else {
+        const rAmt = Number(item.receivedAmount || 0);
+        const tdsAmt = Number(item.tdsAmount || 0);
+        const bAmt = Number(item.billAmount || 0);
+        const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+        if (rAmt > 0 || tdsAmt > 0 || ((item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid") && bAmt > 0)) {
+          const group = getGroup();
+          group.works.push(item);
+          group.totalBillAmount += bAmt;
+          group.totalReceivedAmount += rAmt;
+          group.totalTdsAmount += tdsAmt;
+          group.totalPendingAmount += pAmt;
+          if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
+          else group.partialCount++;
+        }
       }
     });
 
@@ -2104,11 +2175,8 @@ export default function SecurityMasterView({
     }>();
 
     entries.forEach((item) => {
-      const bAmt = Number(item.billAmount || 0);
-      const rAmt = Number(item.receivedAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt - Number(item.tdsAmount || 0));
-      if (pAmt > 0 || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid") {
-        const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+      const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+      const getGroup = () => {
         if (!map.has(bankName)) {
           map.set(bankName, {
             nbfcName: bankName,
@@ -2120,13 +2188,53 @@ export default function SecurityMasterView({
             partialCount: 0,
           });
         }
-        const group = map.get(bankName)!;
-        group.works.push(item);
-        group.totalBillAmount += bAmt;
-        group.totalReceivedAmount += rAmt;
-        group.totalPendingAmount += pAmt;
-        if (item.paymentStatus === "Partially Paid") group.partialCount++;
-        else group.dueCount++;
+        return map.get(bankName)!;
+      };
+
+      let parsedWorkflow: any = {};
+      try { parsedWorkflow = typeof item.workflowJson === 'string' ? JSON.parse(item.workflowJson) : (item.workflowJson || {}); } catch(e){}
+      const cycles = Array.isArray(parsedWorkflow?.monthlyCycles) ? parsedWorkflow.monthlyCycles : [];
+
+      if (cycles.length > 0) {
+        cycles.forEach((cycle: any) => {
+          const bAmt = Number(cycle.billAmount || 0);
+          const rAmt = Number(cycle.receivedAmount || 0);
+          const tdsAmt = Number(cycle.tdsAmount || 0);
+          const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+          
+          if ((pAmt > 0 || cycle.paymentStatus === "Due" || cycle.paymentStatus === "Partially Paid") && bAmt > 0) {
+            const group = getGroup();
+            group.works.push({
+              ...item,
+              billNo: cycle.billNo,
+              billDate: cycle.billDate || cycle.month,
+              billAmount: bAmt,
+              receivedAmount: rAmt,
+              tdsAmount: tdsAmt,
+              paymentStatus: cycle.paymentStatus || "Due",
+              _cycleId: cycle.month
+            });
+            group.totalBillAmount += bAmt;
+            group.totalReceivedAmount += rAmt;
+            group.totalPendingAmount += pAmt;
+            if (cycle.paymentStatus === "Partially Paid") group.partialCount++;
+            else group.dueCount++;
+          }
+        });
+      } else {
+        const bAmt = Number(item.billAmount || 0);
+        const rAmt = Number(item.receivedAmount || 0);
+        const tdsAmt = Number(item.tdsAmount || 0);
+        const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+        if ((pAmt > 0 || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid") && bAmt > 0) {
+          const group = getGroup();
+          group.works.push(item);
+          group.totalBillAmount += bAmt;
+          group.totalReceivedAmount += rAmt;
+          group.totalPendingAmount += pAmt;
+          if (item.paymentStatus === "Partially Paid") group.partialCount++;
+          else group.dueCount++;
+        }
       }
     });
 
@@ -6750,7 +6858,7 @@ export default function SecurityMasterView({
                                   const rAmt = Number(work.receivedAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
@@ -7059,7 +7167,7 @@ export default function SecurityMasterView({
                                   const tdsAmt = Number(work.tdsAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
@@ -7353,7 +7461,7 @@ export default function SecurityMasterView({
                                   const rAmt = Number(work.receivedAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">

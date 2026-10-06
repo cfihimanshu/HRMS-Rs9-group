@@ -102,9 +102,9 @@ export default function LiveTrackingMap() {
           scrollWheelZoom: true,
           doubleClickZoom: true
         }).setView([20.5937, 78.9629], 5);
-        const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors',
-          maxNativeZoom: 20,
+          maxNativeZoom: 19,
           maxZoom: 22
         });
         
