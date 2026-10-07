@@ -71,14 +71,14 @@ interface Task {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  Call: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Meeting: "bg-blue-100 text-blue-700 border-blue-200",
-  Development: "bg-purple-100 text-purple-700 border-purple-200",
-  Marketing: "bg-pink-100 text-pink-700 border-pink-200",
-  "Field Visit": "bg-orange-100 text-orange-700 border-orange-200",
-  Operations: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  Support: "bg-rose-100 text-rose-700 border-rose-200",
-  Other: "bg-slate-100 text-slate-600 border-slate-200",
+  Call: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200",
+  Meeting: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200",
+  Development: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200",
+  Marketing: "bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 border-pink-200",
+  "Field Visit": "bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200",
+  Operations: "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-200",
+  Support: "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200",
+  Other: "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700",
 };
 
 const SearchableCombobox = ({
@@ -119,7 +119,7 @@ const SearchableCombobox = ({
 
   return (
     <div className={`relative font-sans ${isOpen ? "z-[99999]" : "z-1"}`} ref={containerRef}>
-      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">{label}</label>
+      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">{label}</label>
       <div className="relative">
         <input
           type="text"
@@ -132,17 +132,17 @@ const SearchableCombobox = ({
             if (!disabled) setIsOpen(true);
           }}
           placeholder={placeholder}
-          className="w-full border border-emerald-200 rounded-lg px-2.5 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white shadow-2xs pr-7 disabled:opacity-50 disabled:bg-slate-100"
+          className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg px-2.5 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 shadow-2xs pr-7 disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-gray-800 dark:[color-scheme:dark]"
         />
         <div
           onClick={() => { if (!disabled) setIsOpen(prev => !prev); }}
-          className="absolute right-2 top-2.5 cursor-pointer text-emerald-600 hover:text-emerald-800 text-[10px]"
+          className="absolute right-2 top-2.5 cursor-pointer text-emerald-600 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-300 text-[10px]"
         >
           ▼
         </div>
       </div>
       {isOpen && !disabled && (
-        <div className="absolute z-[999999] left-0 right-0 mt-1 bg-white border border-emerald-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
+        <div className="absolute z-[999999] left-0 right-0 mt-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-gray-700 font-sans animate-fade-in">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt, i) => (
               <div
@@ -153,13 +153,13 @@ const SearchableCombobox = ({
                   if (onSelectOption) onSelectOption(opt);
                   setIsOpen(false);
                 }}
-                className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer transition-colors"
+                className="px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-100 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-900 dark:hover:text-emerald-300 cursor-pointer transition-colors"
               >
                 {opt}
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
+            <div className="px-3 py-2 text-xs text-slate-400 dark:text-gray-400 italic">No matching options found (keep typing for custom)</div>
           )}
         </div>
       )}
@@ -1845,13 +1845,13 @@ export default function KanbanBoard({
       page: pagePending,
       setPage: setPagePending,
       totalPages: Math.ceil(pending.length / ITEMS_PER_PAGE),
-      icon: <Calendar className="w-4 h-4 text-slate-400" />,
-      accent: "border-slate-200",
-      headerBg: "bg-white",
-      headerText: "text-slate-700",
-      dropBg: "bg-slate-50",
-      dropBorder: "border-slate-200",
-      dropHighlight: "bg-blue-50 border-blue-300",
+      icon: <Calendar className="w-4 h-4 text-slate-400 dark:text-gray-400" />,
+      accent: "border-slate-200 dark:border-gray-700",
+      headerBg: "bg-white dark:bg-gray-900",
+      headerText: "text-slate-700 dark:text-gray-100",
+      dropBg: "bg-slate-50 dark:bg-gray-800",
+      dropBorder: "border-slate-200 dark:border-gray-700",
+      dropHighlight: "bg-blue-50 dark:bg-blue-950/50 border-blue-300",
       emptyText: "text-slate-300",
     },
     {
@@ -1864,11 +1864,11 @@ export default function KanbanBoard({
       totalPages: Math.ceil(inProgress.length / ITEMS_PER_PAGE),
       icon: <Activity className="w-4 h-4 text-amber-500" />,
       accent: "border-amber-200",
-      headerBg: "bg-amber-50",
-      headerText: "text-amber-700",
-      dropBg: "bg-amber-50/40",
+      headerBg: "bg-amber-50 dark:bg-amber-950/50",
+      headerText: "text-amber-700 dark:text-amber-300",
+      dropBg: "bg-amber-50/40 dark:bg-amber-950/50",
       dropBorder: "border-amber-200",
-      dropHighlight: "bg-amber-100 border-amber-400",
+      dropHighlight: "bg-amber-100 dark:bg-amber-950/50 border-amber-400",
       emptyText: "text-amber-300",
     },
     {
@@ -1881,11 +1881,11 @@ export default function KanbanBoard({
       totalPages: Math.ceil(completed.length / ITEMS_PER_PAGE),
       icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
       accent: "border-emerald-200",
-      headerBg: "bg-emerald-50",
-      headerText: "text-emerald-700",
-      dropBg: "bg-emerald-50/40",
+      headerBg: "bg-emerald-50 dark:bg-emerald-950/50",
+      headerText: "text-emerald-700 dark:text-emerald-300",
+      dropBg: "bg-emerald-50/40 dark:bg-emerald-950/50",
       dropBorder: "border-emerald-200",
-      dropHighlight: "bg-emerald-100 border-emerald-400",
+      dropHighlight: "bg-emerald-100 dark:bg-emerald-950/50 border-emerald-400",
       emptyText: "text-emerald-300",
     },
   ];
@@ -1952,7 +1952,7 @@ export default function KanbanBoard({
         }
         deadlineBadge = {
           text: `Deadline: ${new Date(task.deadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`,
-          className: "bg-slate-50 text-slate-400 border-slate-200",
+          className: "bg-slate-50 dark:bg-gray-800 text-slate-400 dark:text-gray-400 border-slate-200 dark:border-gray-700",
           overdueText
         };
       } else if (diffHours < 0) {
@@ -1962,7 +1962,7 @@ export default function KanbanBoard({
         const overdueSecs = Math.floor((overdueMs % (1000 * 60)) / 1000);
         deadlineBadge = {
           text: `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m ${overdueSecs}s`,
-          className: "bg-rose-50 text-rose-700 border-rose-200 font-extrabold animate-pulse"
+          className: "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 font-extrabold animate-pulse"
         };
       } else {
         const remainingHours = Math.floor(diffHours);
@@ -1970,12 +1970,12 @@ export default function KanbanBoard({
           const remainingMinutes = Math.floor(diffMs / (1000 * 60));
           deadlineBadge = {
             text: `⏰ Due in ${remainingMinutes}m`,
-            className: "bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse"
+            className: "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 font-extrabold animate-pulse"
           };
         } else {
           deadlineBadge = {
             text: `⏰ Remaining: ${remainingHours}h`,
-            className: "bg-indigo-50 text-indigo-700 border-indigo-200 font-extrabold"
+            className: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 font-extrabold"
           };
         }
       }
@@ -1988,18 +1988,18 @@ export default function KanbanBoard({
         onDragStart={e => handleDragStart(e, task.id)}
         onDragEnd={handleDragEnd}
         onClick={() => openTask(task)}
-        className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-[#714B67]/40 hover:shadow-md transition-all group select-none ${isUpdating ? "opacity-50 scale-95" : "opacity-100"}`}
+        className={`bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm cursor-grab active:cursor-grabbing hover:border-[#714B67]/40 hover:shadow-md transition-all group select-none ${isUpdating ? "opacity-50 scale-95" : "opacity-100"}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h4 className="text-xs font-black text-slate-800 leading-tight flex-1 line-clamp-2">{task.taskTitle}</h4>
-          <GripVertical className="w-4 h-4 text-slate-300 shrink-0 mt-0.5 group-hover:text-slate-400 transition-colors" />
+          <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 leading-tight flex-1 line-clamp-2">{task.taskTitle}</h4>
+          <GripVertical className="w-4 h-4 text-slate-300 shrink-0 mt-0.5 group-hover:text-slate-400 dark:group-hover:text-gray-400 transition-colors" />
         </div>
 
         {/* Creator Name */}
-        <div className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wide flex flex-col gap-0.5">
+        <div className="text-[9px] font-bold text-slate-400 dark:text-gray-400 mb-2 uppercase tracking-wide flex flex-col gap-0.5">
           <div>
-            Employee: <span className="text-slate-600 font-extrabold">{creatorName}</span>
+            Employee: <span className="text-slate-600 dark:text-gray-300 font-extrabold">{creatorName}</span>
           </div>
           {(task as any).assignedByUser && (
             <div className="text-rose-500 font-extrabold">
@@ -2009,13 +2009,13 @@ export default function KanbanBoard({
         </div>
 
         {/* Type badge */}
-        <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${typeColor}`}>
+        <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border dark:border-gray-700 ${typeColor}`}>
           {task.taskType}
         </span>
 
         {/* Description */}
         {task.description && cleanDescription(task.description) && (
-          <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed whitespace-pre-line">{cleanDescription(task.description)}</p>
+          <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-2 font-medium line-clamp-2 leading-relaxed whitespace-pre-line">{cleanDescription(task.description)}</p>
         )}
 
         {/* Progress notes indicator */}
@@ -2030,7 +2030,7 @@ export default function KanbanBoard({
 
         {/* Forwarded badge */}
         {task.forwardedTo && (
-          <div className="mt-1.5 flex items-center gap-1 text-[9px] text-teal-600 font-bold bg-teal-50 rounded-lg px-2 py-1 border border-teal-200">
+          <div className="mt-1.5 flex items-center gap-1 text-[9px] text-teal-600 dark:text-teal-300 font-bold bg-teal-50 dark:bg-teal-950/50 rounded-lg px-2 py-1 border dark:border-gray-700 border-teal-200">
             <Send className="w-3 h-3" />
             <span>Forwarded to: {task.forwardedUser?.name || "Team Member"}</span>
           </div>
@@ -2039,11 +2039,11 @@ export default function KanbanBoard({
         {/* Deadline Badge */}
         {deadlineBadge && (
           <div>
-            <div className={`mt-1.5 flex items-center gap-1 text-[9px] font-bold rounded-lg px-2 py-1 border ${deadlineBadge.className}`}>
+            <div className={`mt-1.5 flex items-center gap-1 text-[9px] font-bold rounded-lg px-2 py-1 border dark:border-gray-700 ${deadlineBadge.className}`}>
               <span>{deadlineBadge.text}</span>
             </div>
             {(deadlineBadge as any).overdueText && (
-              <div className="mt-1 text-[9px] font-extrabold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2 py-0.5 inline-block">
+              <div className="mt-1 text-[9px] font-extrabold text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-100 rounded-lg px-2 py-0.5 inline-block">
                 {(deadlineBadge as any).overdueText}
               </div>
             )}
@@ -2051,10 +2051,10 @@ export default function KanbanBoard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-gray-700">
           <div className="flex items-center gap-4">
             <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 font-mono">
+              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 dark:text-gray-400 font-mono">
                 <Calendar className="w-3 h-3" />
                 {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })}
               </div>
@@ -2066,7 +2066,7 @@ export default function KanbanBoard({
 
             {/* Timer Badge (Always Visible on every task card) */}
             <span className={cn(
-              "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border transition-all shadow-2xs",
+              "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border dark:border-gray-700 transition-all shadow-2xs",
               task.status === "Completed"
                 ? "bg-slate-100 text-slate-500 border-slate-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
                 : task.status === "In Progress"
@@ -2076,7 +2076,7 @@ export default function KanbanBoard({
               {task.status !== "Completed" ? (
                 <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block ${task.status === "In Progress" ? "bg-emerald-600" : "bg-indigo-600"}`} />
               ) : (
-                <Timer className="w-3 h-3 text-slate-400" />
+                <Timer className="w-3 h-3 text-slate-400 dark:text-gray-400" />
               )}
               {formatTimer(getLiveElapsed(task))}
             </span>
@@ -2094,8 +2094,8 @@ export default function KanbanBoard({
   if (loading) {
     return (
       <div className="flex-1 flex flex-col justify-center items-center h-[50vh]">
-        <Loader2 className="w-8 h-8 text-[#714B67] animate-spin" />
-        <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 mt-3 font-mono">Loading Kanban...</span>
+        <Loader2 className="w-8 h-8 text-[#714B67] dark:text-purple-300 animate-spin" />
+        <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 dark:text-gray-400 mt-3 font-mono">Loading Kanban...</span>
       </div>
     );
   }
@@ -2105,26 +2105,26 @@ export default function KanbanBoard({
       {/* Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
-            <LayoutGrid className="w-5 h-5 text-[#714B67]" />
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100 flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5 text-[#714B67] dark:text-purple-300" />
             My Tasks
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex items-center">
             <input
               type="text"
               placeholder="Search tasks..."
-              className="bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:border-[#714B67] shadow-sm w-44"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 text-[10px] font-bold rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 shadow-sm w-44 dark:[color-scheme:dark]"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400 absolute left-2.5 pointer-events-none" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-slate-400 hover:text-slate-600 absolute right-2.5 focus:outline-none text-[11px]"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 absolute right-2.5 focus:outline-none text-[11px]"
                 title="Clear Search"
               >
                 ✕
@@ -2134,7 +2134,7 @@ export default function KanbanBoard({
 
           {(isTopAdmin || uniqueUsers.length > 1) && uniqueUsers.length > 1 && (
             <select
-              className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 shadow-sm cursor-pointer dark:[color-scheme:dark]"
               value={filterUser}
               onChange={e => setFilterUser(e.target.value)}
             >
@@ -2145,10 +2145,10 @@ export default function KanbanBoard({
             </select>
           )}
           {/* Date Range Preset Selector */}
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
-            <Calendar className="w-3.5 h-3.5 text-[#714B67] ml-1.5 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg p-1 shadow-sm">
+            <Calendar className="w-3.5 h-3.5 text-[#714B67] dark:text-purple-300 ml-1.5 shrink-0" />
             <select
-              className="bg-transparent text-slate-700 text-[10px] font-black uppercase tracking-wider focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-slate-700 dark:text-gray-100 text-[10px] font-black uppercase tracking-wider focus:outline-none cursor-pointer pr-1 dark:bg-gray-800 dark:[color-scheme:dark]"
               value={datePreset}
               onChange={e => handleDatePresetChange(e.target.value)}
               title="Filter tasks by date range"
@@ -2161,18 +2161,18 @@ export default function KanbanBoard({
 
             {/* Custom Range Inputs if custom selected */}
             {datePreset === "custom" && (
-              <div className="flex items-center gap-1 border-l border-slate-200 pl-1.5 ml-0.5">
+              <div className="flex items-center gap-1 border-l border-slate-200 dark:border-gray-700 pl-1.5 ml-0.5">
                 <input
                   type="date"
-                  className="text-[10px] font-bold text-slate-700 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67]"
+                  className="text-[10px] font-bold text-slate-700 dark:text-gray-100 border border-slate-200 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:bg-gray-800 dark:[color-scheme:dark]"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                   title="From Date"
                 />
-                <span className="text-[9px] font-bold text-slate-400">to</span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-gray-400">to</span>
                 <input
                   type="date"
-                  className="text-[10px] font-bold text-slate-700 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67]"
+                  className="text-[10px] font-bold text-slate-700 dark:text-gray-100 border border-slate-200 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:bg-gray-800 dark:[color-scheme:dark]"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
                   title="To Date"
@@ -2184,24 +2184,24 @@ export default function KanbanBoard({
               <button
                 type="button"
                 onClick={() => handleDatePresetChange("recent")}
-                className="text-[10px] text-slate-400 hover:text-rose-600 font-bold uppercase tracking-wider px-1 cursor-pointer"
+                className="text-[10px] text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 font-bold uppercase tracking-wider px-1 cursor-pointer"
                 title="Reset Date Filter"
               >
                 ✕
               </button>
             )}
           </div>
-          <div className="flex bg-slate-100 rounded-lg p-1 shadow-sm border border-slate-200">
+          <div className="flex bg-slate-100 dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-slate-200 dark:border-gray-700">
             <button
               onClick={() => setViewMode("kanban")}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "kanban" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "kanban" ? "bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-100 shadow" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               Kanban
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "list" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "list" ? "bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-100 shadow" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"}`}
             >
               <List className="w-3.5 h-3.5" />
               List
@@ -2209,7 +2209,7 @@ export default function KanbanBoard({
           </div>
           <button
             onClick={() => setShowDailyBackdate(true)}
-            className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm"
+            className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-200 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm"
           >
             <CalendarClock className="w-3.5 h-3.5" /> Daily Back-Date
           </button>
@@ -2220,7 +2220,7 @@ export default function KanbanBoard({
             <Download className="w-3.5 h-3.5" />
             Export Excel
           </button>
-          <div className="bg-slate-100 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 font-mono shadow-sm">
+          <div className="bg-slate-100 dark:bg-gray-800 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 dark:text-gray-300 font-mono shadow-sm">
             {filteredTasks.length} tasks shown
           </div>
         </div>
@@ -2236,13 +2236,13 @@ export default function KanbanBoard({
             return (
               <div
                 key={col.id}
-                className={`rounded-2xl border flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
+                className={`rounded-2xl border dark:border-gray-700 flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
                 onDragOver={e => handleDragOver(e, col.id)}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={e => handleDrop(e, col.id)}
               >
                 {/* Column header */}
-                <div className={`p-4 border-b ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
+                <div className={`p-4 border-b dark:border-gray-700 ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
                   <h3 className={`text-[11px] uppercase font-black tracking-wider font-mono flex items-center gap-2 ${col.headerText}`}>
                     {col.icon}
                     {col.label} ({col.count})
@@ -2259,28 +2259,28 @@ export default function KanbanBoard({
                     !showAdd ? (
                       <button
                         onClick={() => setShowAdd(true)}
-                        className="w-full border-2 border-dashed border-slate-300 hover:border-[#714B67] bg-white hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 hover:text-[#714B67] transition-all"
+                        className="w-full border-2 border-dashed border-slate-300 dark:border-gray-700 hover:border-[#714B67] dark:hover:border-gray-700 bg-white dark:bg-gray-900 hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 dark:text-gray-400 hover:text-[#714B67] dark:hover:text-purple-300 transition-all"
                       >
                         <Plus className="w-4 h-4" /> Add Task
                       </button>
                     ) : (
                       <form
                         onSubmit={handleAddTask}
-                        className="bg-white border border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
+                        className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-[10px] uppercase font-black text-[#714B67] tracking-wider">New Task</h4>
-                          <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
+                          <h4 className="text-[10px] uppercase font-black text-[#714B67] dark:text-purple-300 tracking-wider">New Task</h4>
+                          <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         {/* Task Title Master Category Dropdown */}
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#714B67] font-black mb-1">
+                          <label className="block text-[9px] uppercase tracking-wider text-[#714B67] dark:text-purple-300 font-black mb-1">
                             Task Title *
                           </label>
                           <select
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                            className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                             value={selectedTaskCategory}
                             onChange={e => {
                               const val = e.target.value;
@@ -2308,7 +2308,7 @@ export default function KanbanBoard({
                             {sortCategoriesList(Array.from(new Set([...bankCategories, "NBFC"]))).map(cat => (
                               <option key={cat} value={cat}>{cat}</option>
                             ))}
-                            <option value="ADD_NEW" className="font-bold text-[#714B67] bg-purple-50">
+                            <option value="ADD_NEW" className="font-bold text-[#714B67] dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50">
                               ➕ Add New Master Option...
                             </option>
                           </select>
@@ -2316,13 +2316,13 @@ export default function KanbanBoard({
                           {/* Render Describe Category ONLY when 'Others' is selected in Task Title */}
                           {selectedTaskCategory === "Others" && (
                             <div className="mt-2 animate-fade-in">
-                              <label className="block text-[9px] uppercase tracking-wider text-[#714B67] font-black mb-1">
+                              <label className="block text-[9px] uppercase tracking-wider text-[#714B67] dark:text-purple-300 font-black mb-1">
                                 Describe Category *
                               </label>
                               <input
                                 type="text"
                                 required
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800 bg-white"
+                                className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                 placeholder="Describe the category details..."
                                 value={otherCategoryDesc}
                                 onChange={e => setOtherCategoryDesc(e.target.value)}
@@ -2332,8 +2332,8 @@ export default function KanbanBoard({
 
                           {/* Inline Add New Category input */}
                           {showAddCategoryInput && (
-                            <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                            <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 dark:text-purple-300 font-black">
                                 Add New Category / Title (Stored in DB) *
                               </label>
                               <div className="flex gap-1.5">
@@ -2342,7 +2342,7 @@ export default function KanbanBoard({
                                   placeholder="e.g. Legal, General, IT, Bank..."
                                   value={newCategoryText}
                                   onChange={e => setNewCategoryText(e.target.value)}
-                                  className="flex-1 border border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                  className="flex-1 border dark:border-gray-700 border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                   autoFocus
                                 />
                                 <button
@@ -2355,7 +2355,7 @@ export default function KanbanBoard({
                                 <button
                                   type="button"
                                   onClick={() => { setShowAddCategoryInput(false); setNewCategoryText(""); }}
-                                  className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                  className="bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1.5 rounded-md text-xs font-bold"
                                 >
                                   Cancel
                                 </button>
@@ -2366,7 +2366,7 @@ export default function KanbanBoard({
 
 
                         {isNbfcTask && (
-                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] relative z-40">
+                          <div className="space-y-2 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] dark:text-gray-100 relative z-40">
                             <SearchableCombobox
                               label="Select NBFC Bank *"
                               value={bankName}
@@ -2406,11 +2406,11 @@ export default function KanbanBoard({
                         )}
                         {/* Dynamic Task Mode Selector (Call, Meeting, Email, WhatsApp, SMS, Field Visit, Social Media, etc.) */}
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">
+                          <label className="block text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-black mb-1">
                             Task Mode *
                           </label>
                           <select
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                            className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                             value={type}
                             onChange={e => {
                               const val = e.target.value;
@@ -2439,15 +2439,15 @@ export default function KanbanBoard({
                                 <option key={modeObj.id} value={modeObj.name}>{modeObj.name}</option>
                               ))}
                             </optgroup>
-                            <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
+                            <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50">
                               ➕ Add New Task Mode...
                             </option>
                           </select>
 
                           {/* Inline Add New Mode input */}
                           {showAddModeInput && (
-                            <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                            <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 dark:text-purple-300 font-black">
                                 Add New Task Mode (Stored in DB) *
                               </label>
                               <div className="flex gap-1.5">
@@ -2456,7 +2456,7 @@ export default function KanbanBoard({
                                   placeholder="e.g. Video Call, Postal Letter..."
                                   value={newModeText}
                                   onChange={e => setNewModeText(e.target.value)}
-                                  className="flex-1 border border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                  className="flex-1 border dark:border-gray-700 border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                   autoFocus
                                 />
                                 <button
@@ -2469,7 +2469,7 @@ export default function KanbanBoard({
                                 <button
                                   type="button"
                                   onClick={() => { setShowAddModeInput(false); setNewModeText(""); }}
-                                  className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                  className="bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1.5 rounded-md text-xs font-bold"
                                 >
                                   Cancel
                                 </button>
@@ -2479,14 +2479,14 @@ export default function KanbanBoard({
 
                           {/* Standard Call Direction Panel (for non-Sales task titles when Task Mode is Call) */}
                           {selectedTaskCategory !== "Sales" && type === "Call" && (
-                            <div className="mt-2 p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-1 animate-fade-in">
-                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800">
+                            <div className="mt-2 p-2.5 bg-purple-50/70 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl space-y-1 animate-fade-in">
+                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300">
                                 Call Direction / Mode *
                               </label>
                               <select
                                 value={callDirection}
                                 onChange={e => setCallDirection(e.target.value)}
-                                className="w-full border border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 bg-white focus:outline-none focus:border-purple-600"
+                                className="w-full border dark:border-gray-700 border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 dark:text-purple-300 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                               >
                                 <option value="Incoming Call">Incoming Call 📥</option>
                                 <option value="Outgoing Call">Outgoing Call 📤</option>
@@ -2496,16 +2496,16 @@ export default function KanbanBoard({
 
                           {/* Sales Details Panel (ONLY when Task Category is Sales) */}
                           {selectedTaskCategory === "Sales" && (
-                            <div className="mt-2 p-3 bg-purple-50/80 border border-purple-200 rounded-xl space-y-2.5 animate-fade-in text-slate-800">
+                            <div className="mt-2 p-3 bg-purple-50/80 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl space-y-2.5 animate-fade-in text-slate-800 dark:text-gray-100">
                               {type === "Call" && (
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Call Direction / Mode *
                                   </label>
                                   <select
                                     value={callDirection}
                                     onChange={e => setCallDirection(e.target.value)}
-                                    className="w-full border border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 bg-white focus:outline-none focus:border-purple-600"
+                                    className="w-full border dark:border-gray-700 border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 dark:text-purple-300 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                                   >
                                     <option value="Incoming Call">Incoming Call</option>
                                     <option value="Outgoing Call">Outgoing Call</option>
@@ -2515,7 +2515,7 @@ export default function KanbanBoard({
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Person Name
                                   </label>
                                   <input
@@ -2523,11 +2523,11 @@ export default function KanbanBoard({
                                     placeholder="e.g. Rahul Sharma"
                                     value={personName}
                                     onChange={e => setPersonName(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Contact No
                                   </label>
                                   <input
@@ -2535,14 +2535,14 @@ export default function KanbanBoard({
                                     placeholder="e.g. +91 9876543210"
                                     value={contactNo}
                                     onChange={e => setContactNo(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   />
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Company Name
                                   </label>
                                   <input
@@ -2550,12 +2550,12 @@ export default function KanbanBoard({
                                     placeholder="e.g. ABC Technologies"
                                     value={companyName}
                                     onChange={e => setCompanyName(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   />
                                 </div>
                                 {type === "Email" && (
                                   <div>
-                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                       Email Address *
                                     </label>
                                     <input
@@ -2563,13 +2563,13 @@ export default function KanbanBoard({
                                       placeholder="e.g. client@example.com"
                                       value={emailAddress}
                                       onChange={e => setEmailAddress(e.target.value)}
-                                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                      className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                     />
                                   </div>
                                 )}
                                 {(type === "Field Visit" || type === "Visit") && (
                                   <div>
-                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                       Visit Location / Address *
                                     </label>
                                     <input
@@ -2577,7 +2577,7 @@ export default function KanbanBoard({
                                       placeholder="e.g. Malviya Nagar, Jaipur / Office Premises"
                                       value={visitLocation}
                                       onChange={e => setVisitLocation(e.target.value)}
-                                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                      className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                     />
                                   </div>
                                 )}
@@ -2585,13 +2585,13 @@ export default function KanbanBoard({
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Reason / Purpose
                                   </label>
                                   <select
                                     value={salesReason}
                                     onChange={e => setSalesReason(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   >
                                     <option value="">-- Select Reason --</option>
                                     <option value="Pitching">Pitching</option>
@@ -2602,13 +2602,13 @@ export default function KanbanBoard({
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Status
                                   </label>
                                   <select
                                     value={callStatus}
                                     onChange={e => setCallStatus(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   >
                                     <option value="">-- Select Status --</option>
                                     <option value="Interested">Interested</option>
@@ -2621,7 +2621,7 @@ export default function KanbanBoard({
 
                               {salesReason === "Other" && (
                                 <div>
-                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">
                                     Specify Other Reason *
                                   </label>
                                   <input
@@ -2629,7 +2629,7 @@ export default function KanbanBoard({
                                     placeholder="Please enter custom sales reason..."
                                     value={otherSalesReason}
                                     onChange={e => setOtherSalesReason(e.target.value)}
-                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    className="w-full border dark:border-gray-700 border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-500 dark:[color-scheme:dark]"
                                   />
                                 </div>
                               )}
@@ -2639,14 +2639,14 @@ export default function KanbanBoard({
 
                         {/* Dynamic Project Name Selector (when Task Title is IT or Task Mode is Development) */}
                         {(selectedTaskCategory === "IT" || type === "Development") && (
-                          <div className="space-y-2 bg-indigo-50/60 border border-indigo-200 rounded-xl p-3 animate-fade-in text-slate-800">
+                          <div className="space-y-2 bg-indigo-50/60 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-xl p-3 animate-fade-in text-slate-800 dark:text-gray-100">
                             <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black mb-1">
+                              <label className="block text-[9px] uppercase tracking-wider text-indigo-700 dark:text-indigo-300 font-black mb-1">
                                 Project Name *
                               </label>
                               <select
                                 required
-                                className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500 text-slate-800 bg-white"
+                                className="w-full border dark:border-gray-700 border-indigo-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                 value={selectedProjectName}
                                 onChange={e => {
                                   const val = e.target.value;
@@ -2662,15 +2662,15 @@ export default function KanbanBoard({
                                 {projectList.map(proj => (
                                   <option key={proj.id} value={proj.name}>{proj.name}</option>
                                 ))}
-                                <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
+                                <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50">
                                   ➕ Add New Project...
                                 </option>
                               </select>
 
                               {/* Inline Add New Project input */}
                               {showAddProjectInput && (
-                                <div className="mt-2 p-2.5 bg-indigo-100/70 border border-indigo-300 rounded-lg space-y-2 animate-fade-in">
-                                  <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-black">
+                                <div className="mt-2 p-2.5 bg-indigo-100/70 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-300 rounded-lg space-y-2 animate-fade-in">
+                                  <label className="block text-[9px] uppercase tracking-wider text-indigo-800 dark:text-indigo-300 font-black">
                                     Add New Project (Stored in DB) *
                                   </label>
                                   <div className="flex gap-1.5">
@@ -2679,7 +2679,7 @@ export default function KanbanBoard({
                                       placeholder="e.g. HRMS, RRR, ERP..."
                                       value={newProjectText}
                                       onChange={e => setNewProjectText(e.target.value)}
-                                      className="flex-1 border border-indigo-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                      className="flex-1 border dark:border-gray-700 border-indigo-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                       autoFocus
                                     />
                                     <button
@@ -2692,7 +2692,7 @@ export default function KanbanBoard({
                                     <button
                                       type="button"
                                       onClick={() => { setShowAddProjectInput(false); setNewProjectText(""); }}
-                                      className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                      className="bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300 px-2 py-1.5 rounded-md text-xs font-bold"
                                     >
                                       Cancel
                                     </button>
@@ -2705,7 +2705,7 @@ export default function KanbanBoard({
 
                         {/* ── Sub-Fields (For Bank, Notice or Interview) ── */}
                         {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || selectedTaskCategory === "Interview" || isBillFollowUp) && (
-                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] relative z-30">
+                          <div className="space-y-2 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] dark:text-gray-100 relative z-30">
 
                             {/* Bank & Notice — Bank & Branch selection */}
                             {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank" || isBillFollowUp) && (
@@ -2715,7 +2715,7 @@ export default function KanbanBoard({
                                 {selectedTaskCategory === "Bank" && ["AO related", "RBO related", "branch related", "case related"].includes(type) ? (
                                   <>
                                     <div>
-                                      <label className="block text-[9px] font-black uppercase tracking-wider text-emerald-800 mb-1">Select Bank Sub-Type *</label>
+                                      <label className="block text-[9px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-1">Select Bank Sub-Type *</label>
                                       <select
                                         value={bankSubType}
                                         onChange={e => {
@@ -2723,7 +2723,7 @@ export default function KanbanBoard({
                                           setBankSubType(val);
                                           setType(val);
                                         }}
-                                        className="w-full border border-emerald-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-emerald-900 bg-white focus:outline-none focus:border-emerald-600"
+                                        className="w-full border dark:border-gray-700 border-emerald-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-emerald-900 dark:text-emerald-300 bg-white dark:bg-gray-900 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                       >
                                         <option value="AO related">AO related</option>
                                         <option value="RBO related">RBO related</option>
@@ -2859,14 +2859,14 @@ export default function KanbanBoard({
                                           {/* Case Details Input */}
                                           {bankSubType === "case related" && (
                                             <div className="sm:col-span-2">
-                                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Case Details / No. *</label>
+                                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">Case Details / No. *</label>
                                               <input
                                                 type="text"
                                                 required
                                                 placeholder="Enter case details or case number..."
                                                 value={caseDetails}
                                                 onChange={e => setCaseDetails(e.target.value)}
-                                                className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                                className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                               />
                                             </div>
                                           )}
@@ -2879,8 +2879,8 @@ export default function KanbanBoard({
                                   <div className="space-y-2 animate-fade-in">
                                     {isBillFollowUp && (
                                       <div>
-                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Follow Up With *</label>
-                                        <div className="grid grid-cols-2 gap-2 rounded-lg bg-white border border-emerald-200 p-1">
+                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">Follow Up With *</label>
+                                        <div className="grid grid-cols-2 gap-2 rounded-lg bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-200 p-1">
                                           {(["Bank", "NBFC"] as const).map(institutionType => (
                                             <button
                                               key={institutionType}
@@ -2895,7 +2895,7 @@ export default function KanbanBoard({
                                                 setOfficerPhone("");
                                                 setBranchesList([]);
                                               }}
-                                              className={`rounded-md px-3 py-2 text-xs font-black transition ${billInstitutionType === institutionType ? "bg-emerald-600 text-white shadow-sm" : "text-emerald-800 hover:bg-emerald-50"}`}
+                                              className={`rounded-md px-3 py-2 text-xs font-black transition ${billInstitutionType === institutionType ? "bg-emerald-600 text-white shadow-sm" : "text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"}`}
                                             >
                                               Select {institutionType}
                                             </button>
@@ -2998,25 +2998,25 @@ export default function KanbanBoard({
                                     {selectedTaskCategory === "Bank" && (
                                       <div className="grid grid-cols-2 gap-2 animate-fade-in">
                                         <div>
-                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
+                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">Officer Name *</label>
                                           <input
                                             type="text"
                                             required
                                             placeholder="e.g. Ramesh Sharma"
                                             value={officerName}
                                             onChange={e => setOfficerName(e.target.value)}
-                                            className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                            className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
+                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">Officer Phone *</label>
                                           <input
                                             type="tel"
                                             required
                                             placeholder="e.g. 9876543210"
                                             value={officerPhone}
                                             onChange={e => setOfficerPhone(e.target.value)}
-                                            className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                            className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                           />
                                         </div>
                                       </div>
@@ -3028,9 +3028,9 @@ export default function KanbanBoard({
 
                             {/* Remark / Task Details */}
                             <div className="animate-fade-in relative z-0">
-                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark / Task Details</label>
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-black mb-1">Remark / Task Details</label>
                               <textarea
-                                className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                 placeholder="Enter task instructions or details..."
                                 rows={2}
                                 value={desc}
@@ -3043,11 +3043,11 @@ export default function KanbanBoard({
                         {/* Remark / Task Details for all other task titles (General, IT, Legal, Others etc.) */}
                         {selectedTaskCategory !== "Bank" && selectedTaskCategory !== "Notice" && selectedTaskCategory !== "Interview" && (
                           <div className="animate-fade-in">
-                            <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">
+                            <label className="block text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-black mb-1">
                               Remark / Task Details
                             </label>
                             <textarea
-                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800 bg-white"
+                              className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                               placeholder="Enter task instructions or details..."
                               rows={2}
                               value={desc}
@@ -3057,13 +3057,13 @@ export default function KanbanBoard({
                         )}
                         {/* Owner task assignment and deadline fields */}
                         {(sessionUser as any)?.role === "Owner" && (
-                          <div className="space-y-3 border-t border-slate-100 pt-3">
+                          <div className="space-y-3 border-t border-slate-100 dark:border-gray-700 pt-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Assign To *</label>
+                                <label className="block text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-black mb-1">Assign To *</label>
                                 <select
                                   required
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                                  className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                   value={assigneeId}
                                   onChange={e => setAssigneeId(e.target.value)}
                                 >
@@ -3076,19 +3076,19 @@ export default function KanbanBoard({
                               <div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date</label>
+                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-black mb-1">Deadline Date</label>
                                     <input
                                       type="date"
-                                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                      className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                       value={deadlineDate}
                                       onChange={e => setDeadlineDate(e.target.value)}
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time</label>
+                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-black mb-1">Deadline Time</label>
                                     <input
                                       type="time"
-                                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                      className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                       value={deadlineTime}
                                       onChange={e => setDeadlineTime(e.target.value)}
                                     />
@@ -3103,7 +3103,7 @@ export default function KanbanBoard({
                           <button
                             type="button"
                             onClick={() => setShowAdd(false)}
-                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                            className="flex-1 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
                           >
                             Cancel
                           </button>
@@ -3134,21 +3134,21 @@ export default function KanbanBoard({
 
                   {/* Pagination Controls */}
                   {col.totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/60 pb-2">
+                    <div className="flex items-center justify-between pt-4 mt-2 border-t dark:border-gray-700 border-slate-200/60 pb-2">
                       <button
                         onClick={() => col.setPage((p: number) => Math.max(1, p - 1))}
                         disabled={col.page === 1}
-                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                        className="px-2 py-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded text-[10px] font-bold text-slate-500 dark:text-gray-400 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                       >
                         Prev
                       </button>
-                      <span className="text-[10px] font-black tracking-widest text-slate-400">
+                      <span className="text-[10px] font-black tracking-widest text-slate-400 dark:text-gray-400">
                         {col.page} / {col.totalPages}
                       </span>
                       <button
                         onClick={() => col.setPage((p: number) => Math.min(col.totalPages, p + 1))}
                         disabled={col.page === col.totalPages}
-                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                        className="px-2 py-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded text-[10px] font-bold text-slate-500 dark:text-gray-400 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                       >
                         Next
                       </button>
@@ -3160,43 +3160,43 @@ export default function KanbanBoard({
           })}
         </div>
       ) : (
-        <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-auto shadow-sm">
+        <div className="flex-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl overflow-auto shadow-sm">
           <table className="w-full text-left border-collapse min-w-[1780px] text-xs">
-            <thead className="bg-slate-50 sticky top-0 z-20">
+            <thead className="bg-slate-50 dark:bg-gray-800 sticky top-0 z-20">
               <tr>
                 {listColumns.map(column => {
                   const options = getListFilterOptions(column.key);
                   const selectedValues = listColumnFilters[column.key];
                   const hasFilter = selectedValues.length > 0;
                   return (
-                    <th key={column.key} className={`relative p-3 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200 ${column.className || ""}`}>
+                    <th key={column.key} className={`relative p-3 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700 ${column.className || ""}`}>
                       <button
                         type="button"
                         onClick={() => setOpenListFilter(prev => prev === column.key ? null : column.key)}
-                        className={`flex w-full items-center justify-between gap-2 text-left uppercase tracking-widest ${hasFilter ? "text-[#714B67]" : "text-slate-500"}`}
+                        className={`flex w-full items-center justify-between gap-2 text-left uppercase tracking-widest ${hasFilter ? "text-[#714B67] dark:text-purple-300" : "text-slate-500 dark:text-gray-400"}`}
                       >
                         <span>{column.label}{hasFilter ? ` (${selectedValues.length})` : ""}</span>
-                        <Filter className={`h-3.5 w-3.5 shrink-0 ${hasFilter ? "fill-[#714B67] text-[#714B67]" : "text-slate-400"}`} />
+                        <Filter className={`h-3.5 w-3.5 shrink-0 ${hasFilter ? "fill-[#714B67] text-[#714B67] dark:text-purple-300" : "text-slate-400 dark:text-gray-400"}`} />
                       </button>
                       {openListFilter === column.key && (
-                        <div className="absolute left-2 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white p-2 shadow-xl normal-case tracking-normal">
-                          <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{column.label}</span>
-                            <button type="button" onClick={() => clearListColumnFilter(column.key)} className="text-[10px] font-black uppercase text-[#714B67] hover:underline">Clear</button>
+                        <div className="absolute left-2 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 shadow-xl normal-case tracking-normal">
+                          <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 dark:border-gray-700 pb-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">{column.label}</span>
+                            <button type="button" onClick={() => clearListColumnFilter(column.key)} className="text-[10px] font-black uppercase text-[#714B67] dark:text-purple-300 hover:underline">Clear</button>
                           </div>
                           <div className="max-h-56 overflow-y-auto custom-scrollbar pr-1">
                             {options.length > 0 ? options.map(option => (
-                              <label key={option} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                              <label key={option} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-800">
                                 <input
                                   type="checkbox"
                                   checked={selectedValues.includes(option)}
                                   onChange={() => toggleListColumnFilter(column.key, option)}
-                                  className="mt-0.5 h-3.5 w-3.5 accent-[#714B67]"
+                                  className="mt-0.5 h-3.5 w-3.5 accent-[#714B67] dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                                 />
                                 <span className="line-clamp-2 break-words">{option}</span>
                               </label>
                             )) : (
-                              <div className="px-2 py-3 text-center text-[11px] font-semibold text-slate-400">No values</div>
+                              <div className="px-2 py-3 text-center text-[11px] font-semibold text-slate-400 dark:text-gray-400">No values</div>
                             )}
                           </div>
                         </div>
@@ -3206,10 +3206,10 @@ export default function KanbanBoard({
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-8 text-center text-slate-400 text-xs font-bold">No tasks found.</td>
+                  <td colSpan={12} className="p-8 text-center text-slate-400 dark:text-gray-400 text-xs font-bold">No tasks found.</td>
                 </tr>
               ) : (
                 filteredTasks.map(t => {
@@ -3224,33 +3224,33 @@ export default function KanbanBoard({
                   const proofItems = getProofItems(t.proofAttachment);
 
                   return (
-                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-3 align-top border border-slate-200 font-mono text-[11px] text-slate-600 whitespace-nowrap">{t.id}</td>
-                      <td className="p-3 align-top border border-slate-200 min-w-[220px]">
-                        <div className="font-bold text-slate-800 text-sm">{t.taskTitle}</div>
+                    <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-colors">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 font-mono text-[11px] text-slate-600 dark:text-gray-300 whitespace-nowrap">{t.id}</td>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 min-w-[220px]">
+                        <div className="font-bold text-slate-800 dark:text-gray-100 text-sm">{t.taskTitle}</div>
                       </td>
-                      <td className="p-3 align-top border border-slate-200 whitespace-nowrap">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 whitespace-nowrap">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
                       </td>
-                      <td className="p-3 align-top border border-slate-200 min-w-[160px] text-slate-700 font-semibold">{taskDetails.project}</td>
-                      <td className="p-3 align-top border border-slate-200 min-w-[280px] text-slate-650 whitespace-pre-line">{taskDetails.remarks}</td>
-                      <td className="p-3 align-top border border-slate-200 text-slate-700 font-bold whitespace-nowrap">{taskDetails.assignedBy}</td>
-                      <td className="p-3 align-top border border-slate-200 text-slate-700 font-bold whitespace-nowrap">{taskDetails.assignedTo}</td>
-                      <td className="p-3 align-top border border-slate-200 whitespace-nowrap">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 min-w-[160px] text-slate-700 dark:text-gray-100 font-semibold">{taskDetails.project}</td>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 min-w-[280px] text-slate-650 whitespace-pre-line">{taskDetails.remarks}</td>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 font-bold whitespace-nowrap">{taskDetails.assignedBy}</td>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 font-bold whitespace-nowrap">{taskDetails.assignedTo}</td>
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 whitespace-nowrap">
 
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                          ${t.status === "Pending" ? "bg-amber-100 text-amber-700" : t.status === "In Progress" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}
+                          ${t.status === "Pending" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" : t.status === "In Progress" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"}
                         `}>
                           {t.status}
                         </span>
                       </td>
-                      <td className="p-3 align-top border border-slate-200 text-slate-600 font-mono whitespace-nowrap">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-mono whitespace-nowrap">
                         {taskDetails.dateLogged}
                       </td>
-                      <td className="p-3 align-top border border-slate-200 text-slate-600 font-mono whitespace-nowrap">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-mono whitespace-nowrap">
                         {taskDetails.deadline}
                       </td>
-                      <td className="p-3 align-top border border-slate-200 min-w-[220px]">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 min-w-[220px]">
                         {proofItems.length > 0 ? (
                           <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
                             {proofItems.map((proof, index) => {
@@ -3261,30 +3261,30 @@ export default function KanbanBoard({
                                   href={proof.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100"
+                                  className="flex items-center gap-2 rounded-md border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 px-2 py-1.5 text-[11px] font-bold text-slate-700 dark:text-gray-100 hover:bg-slate-100 dark:hover:bg-gray-800"
                                 >
-                                  {isImage ? <ImageIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600" /> : <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-500" />}
+                                  {isImage ? <ImageIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-300" /> : <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-gray-400" />}
                                   <span className="truncate">{proof.name}</span>
                                 </a>
                               );
                             })}
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">No proof</span>
+                          <span className="text-xs text-slate-400 dark:text-gray-400 italic">No proof</span>
                         )}
                       </td>
-                      <td className="p-3 align-top border border-slate-200 min-w-[320px]">
+                      <td className="p-3 align-top border border-slate-200 dark:border-gray-700 min-w-[320px]">
                         {parsedNotes.length > 0 ? (
                           <div className="space-y-3 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
                             {parsedNotes.map((note: any, i: number) => (
-                              <div key={i} className="text-xs bg-slate-50 p-2 rounded border border-slate-100">
-                                <div className="font-bold text-slate-700 text-[10px] uppercase mb-1">{note.userName || "User"} &bull; {new Date(note.createdAt).toLocaleString("en-IN")}</div>
-                                <div className="text-slate-600">{note.note}</div>
+                              <div key={i} className="text-xs bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-100 dark:border-gray-700">
+                                <div className="font-bold text-slate-700 dark:text-gray-100 text-[10px] uppercase mb-1">{note.userName || "User"} &bull; {new Date(note.createdAt).toLocaleString("en-IN")}</div>
+                                <div className="text-slate-600 dark:text-gray-300">{note.note}</div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">No notes</span>
+                          <span className="text-xs text-slate-400 dark:text-gray-400 italic">No notes</span>
                         )}
                       </td>
                     </tr>
@@ -3306,18 +3306,18 @@ export default function KanbanBoard({
           }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden my-auto"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden my-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
               {isEditingTask ? (
                 <div className="p-4 sm:p-6 space-y-4">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-[#714B67]">Edit Task Details</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300">Edit Task Details</h3>
                     <button
                       type="button"
                       onClick={() => setIsEditingTask(false)}
-                      className="text-slate-400 hover:text-slate-600 p-1"
+                      className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -3325,9 +3325,9 @@ export default function KanbanBoard({
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[9px] uppercase font-black text-slate-800 font-mono tracking-wider">Task Title *</label>
+                      <label className="text-[9px] uppercase font-black text-slate-800 dark:text-gray-100 font-mono tracking-wider">Task Title *</label>
                       <input
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 dark:bg-gray-800 dark:[color-scheme:dark]"
                         placeholder="Task Title *"
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
@@ -3338,7 +3338,7 @@ export default function KanbanBoard({
                     <div>
                       <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Task Type</label>
                       <select
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 dark:bg-gray-800 dark:[color-scheme:dark]"
                         value={editType}
                         onChange={e => setEditType(e.target.value)}
                       >
@@ -3355,7 +3355,7 @@ export default function KanbanBoard({
                     <div>
                       <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Description</label>
                       <textarea
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] text-slate-800 resize-none"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 resize-none dark:bg-gray-800 dark:[color-scheme:dark]"
                         rows={3}
                         placeholder="Description (optional)..."
                         value={editDesc}
@@ -3364,11 +3364,11 @@ export default function KanbanBoard({
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-gray-700">
                     <button
                       type="button"
                       onClick={() => setIsEditingTask(false)}
-                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                      className="flex-1 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-650 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
                     >
                       Cancel
                     </button>
@@ -3384,14 +3384,14 @@ export default function KanbanBoard({
               ) : (
                 <>
                   {/* Modal header */}
-                  <div className="flex items-start justify-between p-4 sm:p-6 border-b border-slate-100 min-w-0 gap-3">
+                  <div className="flex items-start justify-between p-4 sm:p-6 border-b border-slate-100 dark:border-gray-700 min-w-0 gap-3">
                     <div className="flex-1 min-w-0">
-                      <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
+                      <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border dark:border-gray-700 mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
                         {selectedTask.taskType}
                       </span>
-                      <h2 className="text-sm sm:text-base font-black text-slate-800 leading-tight break-words">{selectedTask.taskTitle}</h2>
+                      <h2 className="text-sm sm:text-base font-black text-slate-800 dark:text-gray-100 leading-tight break-words">{selectedTask.taskTitle}</h2>
                       {selectedTask.description && cleanDescription(selectedTask.description) && (
-                        <p className="text-xs text-slate-500 mt-1.5 font-medium whitespace-pre-line break-words leading-relaxed">{cleanDescription(selectedTask.description)}</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1.5 font-medium whitespace-pre-line break-words leading-relaxed">{cleanDescription(selectedTask.description)}</p>
                       )}
 
                       {/* Dynamic Real-Time Lead Status Badge */}
@@ -3400,16 +3400,16 @@ export default function KanbanBoard({
                         if (!leadStatusVal) return null;
 
                         const statusBadgeStyle =
-                          leadStatusVal === "Converted" ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-400/30" :
-                            leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
-                              leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
-                                leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
-                                  "bg-amber-50 text-amber-700 border-amber-300";
+                          leadStatusVal === "Converted" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 ring-1 ring-emerald-400/30" :
+                            leadStatusVal === "Lost" ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300 ring-1 ring-rose-400/30" :
+                              leadStatusVal === "In Progress" ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 ring-1 ring-blue-400/30" :
+                                leadStatusVal === "Qualified" ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 ring-1 ring-indigo-400/30" :
+                                  "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300";
 
                         return (
                           <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                            <span className="text-[9px] uppercase font-black tracking-wider text-slate-400">Lead Status:</span>
-                            <span className={`px-2.5 py-0.5 rounded-xl text-xs font-black border ${statusBadgeStyle}`}>
+                            <span className="text-[9px] uppercase font-black tracking-wider text-slate-400 dark:text-gray-400">Lead Status:</span>
+                            <span className={`px-2.5 py-0.5 rounded-xl text-xs font-black border dark:border-gray-700 ${statusBadgeStyle}`}>
                               {leadStatusVal}
                             </span>
                           </div>
@@ -3427,14 +3427,14 @@ export default function KanbanBoard({
                           setEditDesc(cleanDescription(selectedTask.description || ""));
                           setIsEditingTask(true);
                         }}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 flex items-center justify-center transition-all"
                         title="Edit Task"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteTask(selectedTask.id)}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-300 flex items-center justify-center transition-all"
                         title="Delete Task"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -3444,17 +3444,17 @@ export default function KanbanBoard({
                           setSelectedTask(null);
                           setIsEditingTask(false);
                         }}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 flex items-center justify-center transition-all"
                         title="Close"
                       >
-                        <X className="w-4 h-4 text-slate-500" />
+                        <X className="w-4 h-4 text-slate-500 dark:text-gray-400" />
                       </button>
                     </div>
                   </div>
 
                   {/* Status change buttons */}
-                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
-                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-2.5">Move To</p>
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-gray-700">
+                    <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 tracking-wider mb-2.5">Move To</p>
                     <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                       {["Pending", "In Progress", "Completed"].map(s => (
                         <button
@@ -3463,11 +3463,11 @@ export default function KanbanBoard({
                           disabled={selectedTask.status === s || updatingId === selectedTask.id}
                           className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border text-center ${selectedTask.status === s
                             ? s === "Pending"
-                              ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"
+                              ? "bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 border-slate-300 dark:border-gray-700 cursor-default"
                               : s === "In Progress"
-                                ? "bg-amber-100 text-amber-700 border-amber-300 cursor-default"
-                                : "bg-emerald-100 text-emerald-700 border-emerald-300 cursor-default"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-[#714B67] hover:text-[#714B67]"
+                                ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 cursor-default"
+                                : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 cursor-default"
+                            : "bg-white dark:bg-gray-900 text-slate-500 dark:text-gray-400 border-slate-200 dark:border-gray-700 hover:border-[#714B67] dark:hover:border-gray-700 hover:text-[#714B67] dark:hover:text-purple-300"
                             }`}
                         >
                           {selectedTask.status === s && <CheckCircle2 className="w-3 h-3 shrink-0" />}
@@ -3479,18 +3479,18 @@ export default function KanbanBoard({
                   </div>
 
                   {/* Call Follow-up Date & Time Section */}
-                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-violet-50/30">
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-gray-700 bg-violet-50/30 dark:bg-violet-950/50">
                     <div
                       className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 cursor-pointer select-none mb-2.5"
                       onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
                     >
                       <div className="flex items-center gap-1.5 min-w-0">
                         <CalendarClock className="w-4 h-4 text-violet-500 shrink-0" />
-                        <p className="text-[10px] uppercase font-black text-violet-700 tracking-wider truncate">Call Follow-up Date &amp; Time</p>
+                        <p className="text-[10px] uppercase font-black text-violet-700 dark:text-violet-300 tracking-wider truncate">Call Follow-up Date &amp; Time</p>
                         {expandFollowUpHistory ? <ChevronUp className="w-3.5 h-3.5 text-violet-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-violet-500 shrink-0" />}
                       </div>
                       {selectedTask.scheduledAt && (
-                        <span className="text-[9px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200 whitespace-nowrap">
+                        <span className="text-[9px] font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-950/50 px-2 py-0.5 rounded-full border dark:border-gray-700 border-violet-200 whitespace-nowrap">
                           Latest: {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                           {" "}
                           {new Date(selectedTask.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
@@ -3502,19 +3502,19 @@ export default function KanbanBoard({
                       <div className="space-y-3 animate-fadeIn mt-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                           <div>
-                            <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
+                            <label className="text-[8px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Date</label>
                             <input
                               type="date"
-                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                              className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                               value={editScheduleDate}
                               onChange={e => setEditScheduleDate(e.target.value)}
                             />
                           </div>
                           <div>
-                            <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
+                            <label className="text-[8px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Time</label>
                             <input
                               type="time"
-                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                              className="w-full border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                               value={editScheduleTime}
                               onChange={e => setEditScheduleTime(e.target.value)}
                             />
@@ -3549,7 +3549,7 @@ export default function KanbanBoard({
                                 } catch (err) { console.error(err); }
                                 finally { setSavingSchedule(false); }
                               }}
-                              className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors px-2 py-1"
+                              className="text-[10px] font-black text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 uppercase tracking-wider transition-colors px-2 py-1"
                             >
                               Clear Latest
                             </button>
@@ -3569,17 +3569,17 @@ export default function KanbanBoard({
                           }
 
                           return historyList.length > 0 && (
-                            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 max-h-40 overflow-y-auto pr-1">
-                              <p className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Scheduled History</p>
+                            <div className="mt-3 space-y-2 border-t border-slate-100 dark:border-gray-700 pt-3 max-h-40 overflow-y-auto pr-1">
+                              <p className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-400 tracking-wider">Scheduled History</p>
                               {historyList.map((h, idx) => (
-                                <div key={h.id || idx} className="p-2 rounded-lg border border-slate-100 bg-slate-50/40 flex items-center justify-between gap-2 text-xs font-semibold text-slate-700 flex-wrap">
+                                <div key={h.id || idx} className="p-2 rounded-lg border border-slate-100 dark:border-gray-700 bg-slate-50/40 dark:bg-slate-950/50 flex items-center justify-between gap-2 text-xs font-semibold text-slate-700 dark:text-gray-100 flex-wrap">
                                   <span className="flex items-center gap-1.5">
                                     <CalendarClock className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                                     {new Date(h.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                                     {" "}
                                     {new Date(h.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                                   </span>
-                                  <span className="text-[8px] text-slate-400 font-bold uppercase">
+                                  <span className="text-[8px] text-slate-400 dark:text-gray-400 font-bold uppercase">
                                     By {h.userName || "System"}
                                   </span>
                                 </div>
@@ -3592,16 +3592,16 @@ export default function KanbanBoard({
                   </div>
 
                   {/* Forward To Section */}
-                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-teal-50/20">
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-gray-700 bg-teal-50/20 dark:bg-teal-950/50">
                     <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2.5">
                       <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-teal-600 shrink-0" />
-                        <p className="text-[10px] uppercase font-black text-teal-700 tracking-wider">Forward To</p>
+                        <Users className="w-4 h-4 text-teal-600 dark:text-teal-300 shrink-0" />
+                        <p className="text-[10px] uppercase font-black text-teal-700 dark:text-teal-300 tracking-wider">Forward To</p>
                       </div>
                       {selectedTask.forwardedTo && (() => {
                         const fwd = companyUsers.find(u => u.id === selectedTask.forwardedTo);
                         return fwd ? (
-                          <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1">
+                          <span className="text-[9px] font-bold text-teal-600 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/50 px-2 py-0.5 rounded-full border dark:border-gray-700 border-teal-200 flex items-center gap-1">
                             <Send className="w-2.5 h-2.5" />
                             {fwd.name}
                           </span>
@@ -3610,7 +3610,7 @@ export default function KanbanBoard({
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <select
-                        className="w-full sm:flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 text-slate-700 bg-white"
+                        className="w-full sm:flex-1 min-w-0 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                         value={selectedForwardTo}
                         onChange={e => setSelectedForwardTo(e.target.value)}
                       >
@@ -3631,22 +3631,22 @@ export default function KanbanBoard({
                       </button>
                     </div>
                     {companyUsers.length === 0 && (
-                      <p className="text-[9px] text-slate-400 mt-2 font-medium">No other users in your company found.</p>
+                      <p className="text-[9px] text-slate-400 dark:text-gray-400 mt-2 font-medium">No other users in your company found.</p>
                     )}
                   </div>
 
 
                   {/* Automatic Live Task Timer Display */}
-                  <div className="px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/50">
+                  <div className="px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-slate-950/50">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Timer className="w-4 h-4 text-slate-500 shrink-0" />
-                        <span className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Time Elapsed</span>
+                        <Timer className="w-4 h-4 text-slate-500 dark:text-gray-400 shrink-0" />
+                        <span className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Time Elapsed</span>
                         <span className={`text-[12px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.status === "Completed"
-                          ? "bg-slate-100 text-slate-700 border-slate-300"
+                          ? "bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 border-slate-300 dark:border-gray-700"
                           : selectedTask.status === "In Progress"
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-300"
-                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300"
+                            : "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200"
                           }`}>
                           {selectedTask.status === "In Progress" && (
                             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
@@ -3661,10 +3661,10 @@ export default function KanbanBoard({
                   {/* Proof of Work & Progress Notes */}
                   <div className="px-4 sm:px-6 py-4 space-y-4 sm:space-y-5">
                     {/* Proof of Work Section */}
-                    <div className="border border-slate-200 rounded-xl p-3 sm:p-4 bg-slate-50/50">
+                    <div className="border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-950/50">
                       <div className="flex items-center gap-2 mb-3">
                         <ImageIcon className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Proof of Work (Mandatory for Completion)</p>
+                        <p className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 tracking-wider">Proof of Work (Mandatory for Completion)</p>
                       </div>
                       {(() => {
                         let proofUrls: any[] = [];
@@ -3689,15 +3689,15 @@ export default function KanbanBoard({
                                   const displayName = typeof proofObj === "object" ? (proofObj?.name || `Proof #${idx + 1}`) : `Proof #${idx + 1}`;
                                   const url = (actualUrl || "").toLowerCase();
                                   return (
-                                    <div key={idx} className="border border-slate-200 rounded-xl p-2.5 sm:p-3 bg-white space-y-2 relative shadow-sm">
-                                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider pr-8 truncate">{displayName}</div>
+                                    <div key={idx} className="border border-slate-200 dark:border-gray-700 rounded-xl p-2.5 sm:p-3 bg-white dark:bg-gray-900 space-y-2 relative shadow-sm">
+                                      <div className="text-[9px] font-black text-slate-400 dark:text-gray-400 uppercase tracking-wider pr-8 truncate">{displayName}</div>
                                       <div className="pr-0 sm:pr-8">
                                         {(() => {
                                           if (url.includes('application/pdf') || url.includes('.pdf')) {
-                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.pdf`} className="p-2.5 bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold text-slate-700 dark:text-gray-100 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 dark:text-gray-400 shrink-0" /></a>;
                                           }
                                           if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
-                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.xlsx`} className="p-2.5 bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold text-slate-700 dark:text-gray-100 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 dark:text-gray-400 shrink-0" /></a>;
                                           }
 
                                           const isAudio = /\.(mp3|wav|wave|m4a|ogg|oga|aac|wma|amr|opus|flac|aiff|aif|caf|ac3|mp2|weba|mka|ra)(?:$|[?#])/i.test(url) || url.includes('audio/');
@@ -3705,19 +3705,19 @@ export default function KanbanBoard({
                                           const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(url) || url.includes('image/');
 
                                           if (isAudio) {
-                                            return <div className="space-y-2"><audio controls src={actualUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
+                                            return <div className="space-y-2"><audio controls src={actualUrl} className="w-full mt-1 border border-slate-100 dark:border-gray-700 rounded-lg p-1 bg-slate-50 dark:bg-gray-800 shadow-sm" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline">Open / download audio</a></div>;
                                           }
                                           if (isVideo) {
-                                            return <div className="space-y-2"><video controls src={actualUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
+                                            return <div className="space-y-2"><video controls src={actualUrl} className="max-h-48 w-full rounded-lg border border-slate-200 dark:border-gray-700 object-contain shadow-sm bg-slate-50 dark:bg-gray-800 mt-1" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline">Open / download video</a></div>;
                                           }
                                           if (!isImage) {
-                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div><Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold text-slate-700 dark:text-gray-100 flex items-center justify-between gap-2"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div><Download className="w-4 h-4 text-slate-400 dark:text-gray-400 shrink-0" /></a>;
                                           }
                                           return (
                                             <img
                                               src={actualUrl}
                                               alt={displayName}
-                                              className="max-h-36 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 max-w-full"
+                                              className="max-h-36 rounded-lg border border-slate-200 dark:border-gray-700 object-contain shadow-sm bg-slate-50 dark:bg-gray-800 max-w-full"
                                             />
                                           );
                                         })()}
@@ -3726,7 +3726,7 @@ export default function KanbanBoard({
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveProofAt(idx)}
-                                        className="absolute top-2 right-2 p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-100 transition-colors"
+                                        className="absolute top-2 right-2 p-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-300 rounded-lg border dark:border-gray-700 border-rose-100 transition-colors"
                                         title="Remove this proof"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -3739,18 +3739,18 @@ export default function KanbanBoard({
 
                             {/* Upload Area Dropzone */}
                             <div className="flex flex-col gap-2">
-                              <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white/70">
+                              <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors bg-white/70 dark:bg-gray-900">
                                 <div className="flex items-center justify-center gap-2 py-1 px-2">
                                   {uploadingProof ? (
-                                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                                    <Loader2 className="w-4 h-4 text-slate-400 dark:text-gray-400 animate-spin" />
                                   ) : (
-                                    <Paperclip className="w-4 h-4 text-slate-400" />
+                                    <Paperclip className="w-4 h-4 text-slate-400 dark:text-gray-400" />
                                   )}
-                                  <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider truncate">
+                                  <p className="text-[9px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider truncate">
                                     {uploadingProof ? "Uploading..." : proofUrls.length > 0 ? "+ Add Another Proof" : "Click to upload Proof"}
                                   </p>
                                 </div>
-                                <input type="file" className="hidden" accept="*/*" onChange={handleUploadProof} disabled={uploadingProof} />
+                                <input type="file" className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" accept="*/*" onChange={handleUploadProof} disabled={uploadingProof} />
                               </label>
                             </div>
                           </div>
@@ -3765,7 +3765,7 @@ export default function KanbanBoard({
                         onClick={() => setExpandNotesHistory(!expandNotesHistory)}
                       >
                         <StickyNote className="w-4 h-4 text-indigo-500 shrink-0" />
-                        <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
+                        <p className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 tracking-wider">Progress Notes History</p>
                         {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
                       </div>
 
@@ -3789,14 +3789,14 @@ export default function KanbanBoard({
                               const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
 
                               return (
-                                <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
+                                <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 dark:border-gray-700 bg-slate-50/60 dark:bg-slate-950/50 text-left">
                                   <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
                                         {n.userName || "System"}
                                       </span>
                                       {n.updatedAt && (
-                                        <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
+                                        <span className="text-[7px] font-bold text-slate-400 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-1 rounded uppercase tracking-wider">Edited</span>
                                       )}
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -3809,7 +3809,7 @@ export default function KanbanBoard({
                                             setEditingNoteId(noteId);
                                             setEditingNoteText(n.note);
                                           }}
-                                          className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
+                                          className="text-slate-455 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors p-0.5"
                                           title="Edit Note"
                                         >
                                           <Edit2 className="w-3 h-3" />
@@ -3820,7 +3820,7 @@ export default function KanbanBoard({
                                   {isEditingThisNote ? (
                                     <div className="mt-1 space-y-1.5">
                                       <textarea
-                                        className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
+                                        className="w-full border dark:border-gray-700 border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                                         rows={2}
                                         value={editingNoteText}
                                         onChange={e => setEditingNoteText(e.target.value)}
@@ -3832,7 +3832,7 @@ export default function KanbanBoard({
                                             setEditingNoteText("");
                                           }}
                                           disabled={savingEditNote}
-                                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
+                                          className="px-2.5 py-1 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
                                         >
                                           Cancel
                                         </button>
@@ -3847,7 +3847,7 @@ export default function KanbanBoard({
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
+                                    <p className="text-[11px] text-slate-700 dark:text-gray-100 leading-relaxed font-semibold break-words whitespace-pre-wrap">
                                       {n.note}
                                     </p>
                                   )}
@@ -3859,7 +3859,7 @@ export default function KanbanBoard({
                       })()}
 
                       <textarea
-                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs font-medium text-slate-800 dark:text-gray-100 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed dark:bg-gray-800 dark:[color-scheme:dark]"
                         rows={3}
                         placeholder="Add a new progress note, blocker, or update here..."
                         value={editNotes}
@@ -3873,7 +3873,7 @@ export default function KanbanBoard({
                           <button
                             onClick={saveProgressNotes}
                             disabled={savingNotes || !editNotes.trim()}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 dark:text-indigo-300 px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
                           >
                             {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                             {savingNotes ? "Saving..." : "Add Note"}

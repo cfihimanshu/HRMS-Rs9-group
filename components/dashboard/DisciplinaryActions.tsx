@@ -359,16 +359,16 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
   }, [selectedWarning, sessionUser]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       
       {/* 1. Header Section */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex justify-between items-center bg-white dark:bg-gray-900 p-6 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
         <div>
-          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
-            <ShieldAlert className="w-6 h-6 text-rose-600 animate-pulse" />
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100 flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-300 animate-pulse" />
             Disciplinary Warnings & Actions
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Record behavioral warnings, pipeline acknowledgments, and manage critical PIP hold policies</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Record behavioral warnings, pipeline acknowledgments, and manage critical PIP hold policies</p>
         </div>
         
         {isManager && (
@@ -382,7 +382,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
             <button 
               onClick={loadWarnings} 
               disabled={loading}
-              className="p-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-650 transition duration-150 shrink-0 shadow-sm"
+              className="p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-650 transition duration-150 shrink-0 shadow-sm"
             >
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </button>
@@ -394,17 +394,17 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left List Pane */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col h-[750px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase font-mono mb-3">Warnings Ledger</h3>
+        <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-4 flex flex-col h-[750px] shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-slate-400 dark:text-gray-400 uppercase font-mono mb-3">Warnings Ledger</h3>
           
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
             <input 
               type="text" 
               placeholder="Search by Employee or Reason..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-rose-500 text-slate-800"
+              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-rose-500 text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
             />
           </div>
 
@@ -412,44 +412,44 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
             {loading ? (
               <div className="text-center py-10 font-bold text-slate-450 text-[10px] animate-pulse uppercase tracking-wider">Loading warnings...</div>
             ) : filteredWarnings.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px] uppercase tracking-wider">No warnings recorded</div>
+              <div className="text-center py-10 text-slate-400 dark:text-gray-400 font-bold text-[10px] uppercase tracking-wider">No warnings recorded</div>
             ) : (
               filteredWarnings.map((w) => {
                 const isSelected = selectedWarning && selectedWarning.id === w.id;
-                const levelColor = w.warningLevel === 1 ? "bg-amber-100 text-amber-800" : w.warningLevel === 2 ? "bg-orange-100 text-orange-800" : "bg-red-100 text-red-800";
+                const levelColor = w.warningLevel === 1 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300" : w.warningLevel === 2 ? "bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300" : "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300";
                 
                 return (
                   <button
                     key={w.id}
                     onClick={() => setSelectedWarning(w)}
                     className={cn(
-                      "w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 shadow-sm",
+                      "w-full text-left p-3.5 rounded-xl border dark:border-gray-700 transition-all flex flex-col gap-2 shadow-sm",
                       isSelected 
-                        ? "bg-rose-50/30 border-rose-350" 
-                        : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/30"
+                        ? "bg-rose-50/30 dark:bg-rose-950/50 border-rose-350" 
+                        : "bg-white dark:bg-gray-900 border-slate-100 dark:border-gray-700 hover:border-slate-350 hover:bg-slate-50/30 dark:hover:bg-slate-950/50"
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-slate-400 font-bold">{w.id.slice(0, 8)}...</span>
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-gray-400 font-bold">{w.id.slice(0, 8)}...</span>
                       <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full", levelColor)}>
                         Warning {w.warningLevel}
                       </span>
                     </div>
 
-                    <div className="font-bold text-slate-800 text-xs truncate">
+                    <div className="font-bold text-slate-800 dark:text-gray-100 text-xs truncate">
                       {w.employeeDetails?.name || "Target Employee"}
                     </div>
 
-                    <div className="flex items-center justify-between mt-1 text-[10px] font-semibold text-slate-500">
+                    <div className="flex items-center justify-between mt-1 text-[10px] font-semibold text-slate-500 dark:text-gray-400">
                       <span className="truncate max-w-[150px]">{w.reason}</span>
                       <span className={cn(
                         "font-bold px-1.5 py-0.5 rounded",
-                        w.status === "Pending Approval" && "bg-sky-50 text-sky-600 border border-sky-100",
-                        w.status === "Acknowledged" && "bg-emerald-55 text-emerald-700 border border-emerald-100",
-                        w.status === "Rejected" && "bg-rose-50 text-rose-600 border border-rose-100",
-                        w.status === "Resolved" && "bg-slate-100 text-slate-700 border border-slate-200",
+                        w.status === "Pending Approval" && "bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-300 border dark:border-gray-700 border-sky-100",
+                        w.status === "Acknowledged" && "bg-emerald-55 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-100",
+                        w.status === "Rejected" && "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border dark:border-gray-700 border-rose-100",
+                        w.status === "Resolved" && "bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 border border-slate-200 dark:border-gray-700",
                         w.status === "Terminated" && "bg-slate-700 text-white",
-                        ["Active Warning", "Final Warning", "Termination Review"].includes(w.status) && "bg-amber-50 text-amber-700 border border-amber-150"
+                        ["Active Warning", "Final Warning", "Termination Review"].includes(w.status) && "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-150"
                       )}>
                         {w.status}
                       </span>
@@ -464,33 +464,33 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
         {/* Right Details Pane */}
         <div className="lg:col-span-8">
           {selectedWarning ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col h-[750px]">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm flex flex-col h-[750px]">
               
               {/* Profile/Header info */}
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
+              <div className="flex justify-between items-start gap-4 pb-4 border-b dark:border-gray-700 border-slate-150 shrink-0">
                 <div className="space-y-1">
-                  <h2 className="text-base font-black text-slate-850 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-rose-600" />
+                  <h2 className="text-base font-black text-slate-850 dark:text-gray-100 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-300" />
                     Warning Report — {selectedWarning.id}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>Target Employee: <strong className="text-slate-800">{selectedWarning.employeeDetails?.name || "N/A"}</strong></span>
-                    <span>Department: <strong className="text-slate-800">{selectedWarning.employeeDetails?.department || "N/A"}</strong></span>
+                  <div className="text-slate-500 dark:text-gray-400 text-[10px] mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Target Employee: <strong className="text-slate-800 dark:text-gray-100">{selectedWarning.employeeDetails?.name || "N/A"}</strong></span>
+                    <span>Department: <strong className="text-slate-800 dark:text-gray-100">{selectedWarning.employeeDetails?.department || "N/A"}</strong></span>
                     <span>Issued By: <strong className="text-slate-750">{selectedWarning.issuedByDetails?.name || "N/A"} ({selectedWarning.issuedByDetails?.role || "Manager"})</strong></span>
                     <span>Incident Date: <strong className="text-slate-750">{selectedWarning.incidentDate ? new Date(selectedWarning.incidentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(selectedWarning.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</strong></span>
                   </div>
                 </div>
                 
-                <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-center min-w-28 shadow-sm">
+                <div className="px-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-center min-w-28 shadow-sm">
                   <span className="text-[8px] uppercase font-black tracking-widest text-slate-450 block mb-0.5">Warning Status</span>
                   <span className={cn(
                     "text-xs font-bold",
-                    selectedWarning.status === "Pending Approval" && "text-sky-600",
-                    selectedWarning.status === "Acknowledged" && "text-emerald-600",
-                    selectedWarning.status === "Rejected" && "text-rose-600",
-                    selectedWarning.status === "Terminated" && "text-slate-800",
-                    selectedWarning.status === "Resolved" && "text-slate-500",
-                    ["Active Warning", "Final Warning", "Termination Review"].includes(selectedWarning.status) && "text-amber-600"
+                    selectedWarning.status === "Pending Approval" && "text-sky-600 dark:text-sky-300",
+                    selectedWarning.status === "Acknowledged" && "text-emerald-600 dark:text-emerald-300",
+                    selectedWarning.status === "Rejected" && "text-rose-600 dark:text-rose-300",
+                    selectedWarning.status === "Terminated" && "text-slate-800 dark:text-gray-100",
+                    selectedWarning.status === "Resolved" && "text-slate-500 dark:text-gray-400",
+                    ["Active Warning", "Final Warning", "Termination Review"].includes(selectedWarning.status) && "text-amber-600 dark:text-amber-300"
                   )}>
                     {selectedWarning.status}
                   </span>
@@ -499,33 +499,33 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
               {/* Scrollable details */}
               <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin space-y-6">
-                <div className="bg-white p-8 font-sans leading-relaxed text-black animate-fadeIn select-text shadow-sm border border-slate-200 rounded-xl">
+                <div className="bg-white dark:bg-gray-900 p-8 font-sans leading-relaxed text-black dark:text-gray-100 animate-fadeIn select-text shadow-sm border border-slate-200 dark:border-gray-700 rounded-xl">
                   
                   {/* Memo Header */}
                   <div className="text-center border-b-2 border-black pb-4 mb-6">
-                    <h2 className="text-2xl font-extrabold tracking-widest text-black">RS9 GROUP</h2>
-                    <p className="text-[9px] font-bold tracking-widest uppercase text-slate-600">HUMAN RESOURCES & DISCIPLINARY COMPLIANCE BOARD</p>
+                    <h2 className="text-2xl font-extrabold tracking-widest text-black dark:text-gray-100">RS9 GROUP</h2>
+                    <p className="text-[9px] font-bold tracking-widest uppercase text-slate-600 dark:text-gray-300">HUMAN RESOURCES & DISCIPLINARY COMPLIANCE BOARD</p>
                   </div>
 
-                  <div className="space-y-6 text-xs text-black">
+                  <div className="space-y-6 text-xs text-black dark:text-gray-100">
                     
                     {/* Memo Details */}
-                    <div className="grid grid-cols-2 gap-4 text-xs font-sans text-black pb-4 border-b border-slate-200">
+                    <div className="grid grid-cols-2 gap-4 text-xs font-sans text-black dark:text-gray-100 pb-4 border-b border-slate-200 dark:border-gray-700">
                       <div className="space-y-1.5 text-left">
                         <p><strong>DATE:</strong> {new Date(selectedWarning.createdAt).toLocaleDateString()}</p>
-                        <p><strong>TO:</strong> {selectedWarning.employeeDetails?.name} <span className="text-slate-500">({selectedWarning.employeeDetails?.role || "Employee"})</span></p>
+                        <p><strong>TO:</strong> {selectedWarning.employeeDetails?.name} <span className="text-slate-500 dark:text-gray-400">({selectedWarning.employeeDetails?.role || "Employee"})</span></p>
                         <p><strong>DEPARTMENT:</strong> {selectedWarning.employeeDetails?.department || "N/A"}</p>
                       </div>
                       <div className="text-right space-y-1.5">
                         <p><strong>MEMO REF:</strong> {selectedWarning.id}</p>
-                        <p><strong>FROM:</strong> {selectedWarning.issuedByDetails?.name} <span className="text-slate-500">({selectedWarning.issuedByDetails?.role || "Authorized Manager"})</span></p>
+                        <p><strong>FROM:</strong> {selectedWarning.issuedByDetails?.name} <span className="text-slate-500 dark:text-gray-400">({selectedWarning.issuedByDetails?.role || "Authorized Manager"})</span></p>
                         <p><strong>COMPANY:</strong> RS9 GROUP</p>
                       </div>
                     </div>
 
                     {/* Subject */}
-                    <div className="border-t border-b border-black py-2.5 my-4 text-center">
-                      <h3 className="font-extrabold uppercase text-xs tracking-wider text-black">
+                    <div className="border-t dark:border-gray-700 border-b border-black py-2.5 my-4 text-center">
+                      <h3 className="font-extrabold uppercase text-xs tracking-wider text-black dark:text-gray-100">
                         SUBJECT: OFFICIAL DISCIPLINARY DIRECTIVE — WARNING {selectedWarning.warningLevel}
                       </h3>
                     </div>
@@ -542,21 +542,21 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                       The specific incident rationale and details filed by the complainant are documented below:
                     </p>
 
-                    <div className="my-4 pl-6 border-l-2 border-black italic text-black whitespace-pre-wrap leading-relaxed text-left">
+                    <div className="my-4 pl-6 border-l-2 border-black italic text-black dark:text-gray-100 whitespace-pre-wrap leading-relaxed text-left">
                       "{selectedWarning.description}"
                     </div>
 
                     {selectedWarning.warningLevel === 2 && (
-                      <div className="my-5 p-5 border border-slate-350 rounded-xl bg-slate-50/50 space-y-3 font-sans text-left">
-                        <h5 className="font-bold uppercase text-[10px] tracking-wider text-black">Warning 2 Final Warning Holds & PIP Activated:</h5>
-                        <ul className="list-disc pl-5 space-y-1 text-slate-800 font-sans">
+                      <div className="my-5 p-5 border border-slate-350 dark:border-gray-700 rounded-xl bg-slate-50/50 dark:bg-slate-950/50 space-y-3 font-sans text-left">
+                        <h5 className="font-bold uppercase text-[10px] tracking-wider text-black dark:text-gray-100">Warning 2 Final Warning Holds & PIP Activated:</h5>
+                        <ul className="list-disc pl-5 space-y-1 text-slate-800 dark:text-gray-100 font-sans">
                           {selectedWarning.salaryHold && Number(selectedWarning.salaryHold) > 0 && <li><strong>Salary increment hold:</strong> Active ({selectedWarning.salaryHold} Months)</li>}
                           {selectedWarning.promotionHold && <li><strong>Promotion eligibility hold:</strong> Active (3 to 6 Months)</li>}
                           {selectedWarning.bonusHold && <li><strong>Performance bonus payout hold:</strong> Active (3 to 6 Months)</li>}
                         </ul>
-                        <div className="mt-4 pt-3 border-t border-slate-200">
-                          <p className="font-bold text-[9px] uppercase tracking-wider text-black">Performance Improvement Plan Targets:</p>
-                          <p className="mt-1 text-slate-700 italic">"{selectedWarning.pipPlan || "No target targets entered."}"</p>
+                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-gray-700">
+                          <p className="font-bold text-[9px] uppercase tracking-wider text-black dark:text-gray-100">Performance Improvement Plan Targets:</p>
+                          <p className="mt-1 text-slate-700 dark:text-gray-100 italic">"{selectedWarning.pipPlan || "No target targets entered."}"</p>
                         </div>
                       </div>
                     )}
@@ -566,18 +566,18 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                     </p>
 
                     {/* Signature Block */}
-                    <div className="grid grid-cols-2 gap-8 pt-10 border-t border-slate-100 font-sans">
+                    <div className="grid grid-cols-2 gap-8 pt-10 border-t border-slate-100 dark:border-gray-700 font-sans">
                       <div className="space-y-1 text-left font-sans">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Issued By Authority:</p>
-                        <p className="font-extrabold text-black pt-1">{selectedWarning.issuedByDetails?.name}</p>
-                        <p className="text-slate-600 font-semibold">{selectedWarning.issuedByDetails?.role || "Authorized Manager"}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">RS9 Group Corporate Division</p>
+                        <p className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest">Issued By Authority:</p>
+                        <p className="font-extrabold text-black dark:text-gray-100 pt-1">{selectedWarning.issuedByDetails?.name}</p>
+                        <p className="text-slate-600 dark:text-gray-300 font-semibold">{selectedWarning.issuedByDetails?.role || "Authorized Manager"}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">RS9 Group Corporate Division</p>
                       </div>
                       <div className="text-right space-y-1 font-sans">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Target Recipient:</p>
-                        <p className="font-extrabold text-black pt-1">{selectedWarning.employeeDetails?.name}</p>
+                        <p className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest">Target Recipient:</p>
+                        <p className="font-extrabold text-black dark:text-gray-100 pt-1">{selectedWarning.employeeDetails?.name}</p>
                         <p className="text-slate-655 font-semibold">{selectedWarning.employeeDetails?.role || "Employee"}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">RS9 Group Operations Division</p>
+                        <p className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">RS9 Group Operations Division</p>
                       </div>
                     </div>
 
@@ -586,41 +586,41 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
                 {/* Management controls for Owner, HR, Managers */}
                 {loggedInUserId !== selectedWarning.employeeId && (
-                  <div className="mt-8 pt-6 border-t-2 border-dashed border-slate-200 space-y-6">
-                    <h4 className="font-sans text-xs font-black text-slate-800 uppercase tracking-wider text-left">Management Review & Action Controls</h4>
+                  <div className="mt-8 pt-6 border-t-2 border-dashed border-slate-200 dark:border-gray-700 space-y-6">
+                    <h4 className="font-sans text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider text-left">Management Review & Action Controls</h4>
                     
                     {/* Management indicator */}
-                    <div className="p-4 bg-slate-55/40 border border-slate-100 rounded-xl flex items-center justify-between gap-4">
+                    <div className="p-4 bg-slate-55/40 border border-slate-100 dark:border-gray-700 rounded-xl flex items-center justify-between gap-4">
                       <div className="text-left">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono">Disciplinary Tier</span>
-                        <h4 className="text-sm font-black text-slate-850 mt-0.5">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-400 font-mono">Disciplinary Tier</span>
+                        <h4 className="text-sm font-black text-slate-850 dark:text-gray-100 mt-0.5">
                           Warning {selectedWarning.warningLevel} - {
                             selectedWarning.warningLevel === 1 ? "First Written Warning" : selectedWarning.warningLevel === 2 ? "Final Written Warning" : "Termination Review Process"
                           }
                         </h4>
                       </div>
                       <div className="flex gap-1.5 shrink-0">
-                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 1 ? "bg-amber-400" : "bg-slate-200")} />
-                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 2 ? "bg-orange-500" : "bg-slate-200")} />
-                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 3 ? "bg-red-650 animate-pulse" : "bg-slate-200")} />
+                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 1 ? "bg-amber-400" : "bg-slate-200 dark:bg-gray-800")} />
+                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 2 ? "bg-orange-500" : "bg-slate-200 dark:bg-gray-800")} />
+                        <span className={cn("w-3.5 h-3.5 rounded-full", selectedWarning.warningLevel >= 3 ? "bg-red-650 animate-pulse" : "bg-slate-200 dark:bg-gray-800")} />
                       </div>
                     </div>
 
                     {/* Level 3 Approval Workflow Panel */}
                     {/* Render Termination Letter if terminated, visible to everyone */}
                     {selectedWarning.warningLevel === 3 && selectedWarning.status === "Terminated" && (
-                      <div className="p-4 bg-emerald-50 border border-emerald-250 rounded-xl space-y-3 shadow-inner text-left">
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-250 rounded-xl space-y-3 shadow-inner text-left">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                           <div>
-                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">termination cleared</h5>
-                            <p className="text-[9px] text-slate-500 font-semibold mt-0.5">Required approvals obtained. Service contract termination finalized.</p>
+                            <h5 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">termination cleared</h5>
+                            <p className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold mt-0.5">Required approvals obtained. Service contract termination finalized.</p>
                           </div>
                         </div>
 
-                        <div className="p-4 bg-white border border-emerald-100 rounded-lg space-y-4">
-                          <h4 className="text-xs font-serif font-black text-rose-700 tracking-wider text-center uppercase">official service termination notice</h4>
-                          <div className="text-[9px] text-slate-700 font-semibold space-y-2 leading-relaxed border-t border-b border-slate-100 py-3 font-mono">
+                        <div className="p-4 bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-100 rounded-lg space-y-4">
+                          <h4 className="text-xs font-serif font-black text-rose-700 dark:text-rose-300 tracking-wider text-center uppercase">official service termination notice</h4>
+                          <div className="text-[9px] text-slate-700 dark:text-gray-100 font-semibold space-y-2 leading-relaxed border-t border-b border-slate-100 dark:border-gray-700 py-3 font-mono">
                             <p>Date: {selectedWarning.terminatedAt ? new Date(selectedWarning.terminatedAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
                             <p>To: {selectedWarning.employeeDetails?.name}</p>
                             <p>Re: Termination of Employment Services due to repeated policy non-compliance.</p>
@@ -647,20 +647,20 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
                     {/* Show Board Approvals panel only if not terminated and NOT Owner */}
                     {selectedWarning.warningLevel === 3 && selectedWarning.status !== "Terminated" && !isOwner && (
-                      <div className="bg-red-50/20 border border-red-100 rounded-xl p-5 space-y-4">
-                        <h4 className="text-[9px] font-black tracking-widest text-red-600 uppercase font-mono pb-2 border-b border-red-100 flex items-center gap-1.5 text-left">
+                      <div className="bg-red-50/20 dark:bg-red-950/50 border dark:border-gray-700 border-red-100 rounded-xl p-5 space-y-4">
+                        <h4 className="text-[9px] font-black tracking-widest text-red-600 dark:text-red-300 uppercase font-mono pb-2 border-b dark:border-gray-700 border-red-100 flex items-center gap-1.5 text-left">
                           <AlertOctagon className="w-3.5 h-3.5" /> Disciplinary Review Board Approvals (Direct Fire Guard)
                         </h4>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* HR Head approval check */}
-                          <div className="bg-white border border-slate-250 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
+                          <div className="bg-white dark:bg-gray-900 border border-slate-250 dark:border-gray-700 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
                             <div>
-                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Step 1</span>
-                              <h5 className="text-xs font-bold text-slate-800">HR Review</h5>
+                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-400">Step 1</span>
+                              <h5 className="text-xs font-bold text-slate-800 dark:text-gray-100">HR Review</h5>
                             </div>
                             {selectedWarning.hrApproved ? (
-                              <div className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                              <div className="text-emerald-600 dark:text-emerald-300 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> APPROVED
                               </div>
                             ) : (
@@ -675,13 +675,13 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                           </div>
 
                           {/* Department Head approval check */}
-                          <div className="bg-white border border-slate-250 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
+                          <div className="bg-white dark:bg-gray-900 border border-slate-250 dark:border-gray-700 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
                             <div>
-                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Step 2</span>
-                              <h5 className="text-xs font-bold text-slate-800">Dept Head Approval</h5>
+                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-400">Step 2</span>
+                              <h5 className="text-xs font-bold text-slate-800 dark:text-gray-100">Dept Head Approval</h5>
                             </div>
                             {selectedWarning.deptHeadApproved ? (
-                              <div className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                              <div className="text-emerald-600 dark:text-emerald-300 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> APPROVED
                               </div>
                             ) : (
@@ -696,13 +696,13 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                           </div>
 
                           {/* Director Approval check */}
-                          <div className="bg-white border border-slate-250 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
+                          <div className="bg-white dark:bg-gray-900 border border-slate-250 dark:border-gray-700 p-4 rounded-xl flex flex-col justify-between h-28 shadow-sm text-left">
                             <div>
                               <span className="text-[8px] font-black uppercase tracking-wider text-slate-450">Step 3 (Optional)</span>
-                              <h5 className="text-xs font-bold text-slate-800">Director Approval</h5>
+                              <h5 className="text-xs font-bold text-slate-800 dark:text-gray-100">Director Approval</h5>
                             </div>
                             {selectedWarning.directorApproved ? (
-                              <div className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                              <div className="text-emerald-600 dark:text-emerald-300 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> APPROVED
                               </div>
                             ) : (
@@ -719,12 +719,12 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
                         {/* Complete Letter Generation section */}
                         {selectedWarning.hrApproved && selectedWarning.deptHeadApproved && (
-                          <div className="p-4 bg-emerald-50 border border-emerald-250 rounded-xl space-y-3 shadow-inner text-left">
+                          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-250 rounded-xl space-y-3 shadow-inner text-left">
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-5 h-5 text-emerald-600" />
+                              <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                               <div>
-                                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">termination cleared</h5>
-                                <p className="text-[9px] text-slate-500 font-semibold mt-0.5">Required approvals obtained. Service contract termination finalized.</p>
+                                <h5 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">termination cleared</h5>
+                                <p className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold mt-0.5">Required approvals obtained. Service contract termination finalized.</p>
                               </div>
                             </div>
                             <button
@@ -742,7 +742,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
               </div>
 
               {/* 6. Dynamic Action Workspace Footer */}
-              <div className="mt-4 pt-4 border-t border-slate-150 shrink-0">
+              <div className="mt-4 pt-4 border-t dark:border-gray-700 border-slate-150 shrink-0">
                 {selectedWarning.status === "Pending Approval" && isOwner && (
                   <div className="flex gap-3">
                     <button
@@ -777,10 +777,10 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                 {isOwner && selectedWarning.warningLevel === 3 && selectedWarning.status !== "Terminated" && selectedWarning.status !== "Resolved" && (
                   <div className="mt-3 p-4 bg-red-950/5 border-2 border-red-700/30 rounded-xl space-y-3">
                     <div className="flex items-center gap-2">
-                      <AlertOctagon className="w-5 h-5 text-red-700 shrink-0" />
+                      <AlertOctagon className="w-5 h-5 text-red-700 dark:text-red-300 shrink-0" />
                       <div>
-                        <h5 className="text-[10px] font-black uppercase tracking-widest text-red-700">Owner — Direct Termination Authority</h5>
-                        <p className="text-[9px] text-slate-500 mt-0.5">As Owner, you may terminate this employee immediately without waiting for board approvals.</p>
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-red-700 dark:text-red-300">Owner — Direct Termination Authority</h5>
+                        <p className="text-[9px] text-slate-500 dark:text-gray-400 mt-0.5">As Owner, you may terminate this employee immediately without waiting for board approvals.</p>
                       </div>
                     </div>
                     <button
@@ -794,23 +794,23 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                 )}
 
                 {selectedWarning.status === "Terminated" && (
-                  <div className="mt-3 p-4 bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-3 text-white">
+                  <div className="mt-3 p-4 bg-slate-800 border dark:border-gray-700 border-slate-700 rounded-xl flex items-center gap-3 text-white">
                     <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0" />
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-rose-400">Employee Terminated</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Termination notice sent via email. {selectedWarning.terminatedAt ? `Date: ${new Date(selectedWarning.terminatedAt).toLocaleDateString()}` : ""}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-gray-400 mt-0.5">Termination notice sent via email. {selectedWarning.terminatedAt ? `Date: ${new Date(selectedWarning.terminatedAt).toLocaleDateString()}` : ""}</p>
                     </div>
                   </div>
                 )}
 
                 {selectedWarning.status === "Resolved" && (
-                  <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-slate-700 text-xs font-bold w-full">
+                  <div className="p-3 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl flex items-center justify-center gap-2 text-slate-700 dark:text-gray-100 text-xs font-bold w-full">
                     <CheckCircle className="w-5 h-5" /> Warning Resolved &amp; Removed from Employee view
                   </div>
                 )}
 
                 {selectedWarning.status === "Acknowledged" && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center gap-2 text-emerald-750 text-xs font-bold">
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-xl flex items-center justify-center gap-2 text-emerald-750 text-xs font-bold">
                     <CheckCircle className="w-5 h-5" /> Warning Acknowledged on {selectedWarning.acknowledgedAt ? new Date(selectedWarning.acknowledgedAt).toLocaleString() : "N/A"}
                   </div>
                 )}
@@ -818,10 +818,10 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[750px]">
+            <div className="text-center py-32 bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center h-[750px]">
               <ShieldAlert className="w-12 h-12 text-slate-300 mb-4" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Warning Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">No Warning Selected</h4>
+              <p className="text-xs text-slate-400 dark:text-gray-400 mt-2 max-w-xs leading-normal">
                 Select a disciplinary record from the ledger list to view warning status, acknowledgments, and holds.
               </p>
             </div>
@@ -838,18 +838,18 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
           }}
           className="fixed inset-0 z-[9999] overflow-y-auto bg-black/40 backdrop-blur-sm flex justify-center items-center p-4"
         >
-          <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative max-h-[90vh] border border-[#E8E4DF]">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative max-h-[90vh] border border-[#E8E4DF] dark:border-gray-700">
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-[#FCFBF9]">
-              <h3 className="font-serif text-base text-slate-800 flex items-center gap-2 font-semibold">
-                <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <div className="px-6 py-4 border-b border-[#E8E4DF] dark:border-gray-700 flex justify-between items-center bg-[#FCFBF9] dark:bg-gray-800">
+              <h3 className="font-serif text-base text-slate-800 dark:text-gray-100 flex items-center gap-2 font-semibold">
+                <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-300" />
                 ISSUE DISCIPLINARY WARNING
               </h3>
               <button 
                 type="button"
                 onClick={handleCloseModal}
-                className="p-1.5 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                className="p-1.5 text-slate-450 hover:text-rose-600 dark:hover:text-rose-300 rounded-lg transition-colors border dark:border-gray-700 border-transparent hover:border-rose-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -860,7 +860,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
               
               {/* Employee selector autocomplete style */}
               <div className="relative" ref={dropdownRef}>
-                <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Select Employee *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1">Select Employee *</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -872,7 +872,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                       setEmpDropdownOpen(true);
                       if (targetEmployeeId) setTargetEmployeeId("");
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg pl-3 pr-8 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg pl-3 pr-8 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100 dark:[color-scheme:dark]"
                     required={!targetEmployeeId}
                   />
                   {empSearch && (
@@ -883,7 +883,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                         setTargetEmployeeId("");
                         setEmpDropdownOpen(false);
                       }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 p-0.5"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -891,7 +891,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                 </div>
                 
                 {empDropdownOpen && filteredEmployees.length > 0 && (
-                  <div className="absolute left-0 right-0 z-[10000] mt-1 bg-white border border-[#E8E4DF] rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-[#E8E4DF] font-sans">
+                  <div className="absolute left-0 right-0 z-[10000] mt-1 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-[#E8E4DF] dark:divide-gray-700 font-sans">
                     {filteredEmployees.map(emp => (
                       <button
                         key={emp.id}
@@ -901,7 +901,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                           setEmpSearch(emp.name || "");
                           setEmpDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 transition-colors flex justify-between items-center ${targetEmployeeId === emp.id ? "bg-rose-50/50 font-bold" : ""}`}
+                        className={`w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors flex justify-between items-center ${targetEmployeeId === emp.id ? "bg-rose-50/50 dark:bg-rose-950/50 font-bold" : ""}`}
                       >
                         <span className="font-bold text-slate-750">{emp.name}</span>
                         <span className="text-[9px] font-mono text-slate-450 font-semibold">{emp.email} ({emp.role || "Employee"})</span>
@@ -913,23 +913,23 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
               {/* Incident / Warning Date picker */}
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Incident / Warning Date *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1">Incident / Warning Date *</label>
                 <input
                   type="date"
                   value={incidentDate}
                   onChange={e => setIncidentDate(e.target.value)}
                   required
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-700"
+                  className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-700 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
 
               {/* Misconduct Reason dropdown */}
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Offense Category *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1">Offense Category *</label>
                 <select
                   value={reason}
                   onChange={e => setReason(e.target.value)}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-700"
+                  className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-700 dark:text-gray-100 dark:[color-scheme:dark]"
                 >
                   {REASONS.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -939,42 +939,42 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
               {reason === "Others" && (
                 <div className="animate-fadeIn">
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Specify Custom Reason *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1">Specify Custom Reason *</label>
                   <input
                     type="text"
                     required
                     placeholder="Enter custom misconduct reason..."
                     value={customReason}
                     onChange={e => setCustomReason(e.target.value)}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
               )}
 
               {/* Warning Rationale details */}
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Incident Rationale Description *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1">Incident Rationale Description *</label>
                 <textarea
                   placeholder="Document specific details, date, and description of misconduct..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   required
                   rows={4}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg p-3 text-xs focus:outline-none font-semibold text-slate-800 leading-relaxed"
+                  className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg p-3 text-xs focus:outline-none font-semibold text-slate-800 dark:text-gray-100 leading-relaxed dark:[color-scheme:dark]"
                 />
               </div>
 
               {/* Level preview box */}
               {targetEmployeeId && (
-                <div className="p-4 bg-slate-50 border border-slate-205 rounded-xl space-y-1">
+                <div className="p-4 bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-205 rounded-xl space-y-1">
                   <span className="text-[8px] font-black uppercase tracking-wider text-slate-450">calculated severity</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">
+                    <span className="text-xs font-bold text-slate-800 dark:text-gray-100">
                       Disciplinary Tier Assigned: <strong>Warning {previewWarningLevel}</strong>
                     </span>
                     <span className={cn(
                       "text-[9px] font-black px-2 py-0.5 rounded-full uppercase",
-                      previewWarningLevel === 1 ? "bg-amber-100 text-amber-800" : previewWarningLevel === 2 ? "bg-orange-100 text-orange-800" : "bg-red-100 text-red-800"
+                      previewWarningLevel === 1 ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300" : previewWarningLevel === 2 ? "bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300" : "bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300"
                     )}>
                       {previewWarningLevel === 1 ? "verbal/written" : previewWarningLevel === 2 ? "final warning" : "termination review"}
                     </span>
@@ -988,8 +988,8 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
               )}
                             {/* Level 2 PIP holds configuration */}
               {targetEmployeeId && previewWarningLevel === 2 && (
-                <div className="bg-orange-50/20 border border-orange-100 rounded-xl p-4 space-y-4 font-sans text-left">
-                  <h4 className="text-[9px] font-black tracking-widest text-orange-600 uppercase font-mono border-b border-orange-100 pb-2">
+                <div className="bg-orange-50/20 dark:bg-orange-950/50 border dark:border-gray-700 border-orange-100 rounded-xl p-4 space-y-4 font-sans text-left">
+                  <h4 className="text-[9px] font-black tracking-widest text-orange-600 dark:text-orange-300 uppercase font-mono border-b dark:border-gray-700 border-orange-100 pb-2">
                     Warning 2 Policy Holds & PIP
                   </h4>
                   
@@ -997,11 +997,11 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                     <label className="text-[10px] font-bold text-slate-655 block">Optional Warning Holds:</label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1 font-sans">Salary Hold Duration</label>
+                        <label className="block text-[9px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-bold mb-1 font-sans">Salary Hold Duration</label>
                         <select
                           value={salaryHold}
                           onChange={e => setSalaryHold(Number(e.target.value))}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-rose-455 rounded-lg px-2.5 py-1.5 text-[10px] focus:outline-none font-bold text-slate-700"
+                          className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-455 rounded-lg px-2.5 py-1.5 text-[10px] focus:outline-none font-bold text-slate-700 dark:text-gray-100 dark:[color-scheme:dark]"
                         >
                           <option value={0}>No Hold</option>
                           <option value={1}>1 Month</option>
@@ -1014,15 +1014,15 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                       </div>
                       
                       <div className="flex flex-col justify-end">
-                        <label className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 cursor-pointer h-[34px] font-sans">
-                          <input type="checkbox" checked={promotionHold} onChange={e => setPromotionHold(e.target.checked)} className="accent-orange-500 w-3.5 h-3.5" />
+                        <label className="flex items-center gap-2 p-2.5 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-100 cursor-pointer h-[34px] font-sans">
+                          <input type="checkbox" checked={promotionHold} onChange={e => setPromotionHold(e.target.checked)} className="accent-orange-500 w-3.5 h-3.5 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
                           Promotion Hold
                         </label>
                       </div>
 
                       <div className="flex flex-col justify-end">
-                        <label className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 cursor-pointer h-[34px] font-sans">
-                          <input type="checkbox" checked={bonusHold} onChange={e => setBonusHold(e.target.checked)} className="accent-orange-500 w-3.5 h-3.5" />
+                        <label className="flex items-center gap-2 p-2.5 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-100 cursor-pointer h-[34px] font-sans">
+                          <input type="checkbox" checked={bonusHold} onChange={e => setBonusHold(e.target.checked)} className="accent-orange-500 w-3.5 h-3.5 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
                           Bonus Hold
                         </label>
                       </div>
@@ -1030,14 +1030,14 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                   </div>
 
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1 font-mono">Performance Improvement Plan (PIP) details *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-black dark:text-gray-100 font-black mb-1 font-mono">Performance Improvement Plan (PIP) details *</label>
                     <textarea
                       placeholder="Specify targets, tasks, daily checkpoints, and PIP feedback criteria..."
                       value={pipPlan}
                       onChange={e => setPipPlan(e.target.value)}
                       required={previewWarningLevel === 2}
                       rows={3}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg p-2.5 text-xs focus:outline-none font-semibold text-slate-850 leading-relaxed"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-rose-450 rounded-lg p-2.5 text-xs focus:outline-none font-semibold text-slate-850 dark:text-gray-100 leading-relaxed dark:[color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -1045,8 +1045,8 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
               {/* Informative Approval message */}
               {!isGlobalViewer && (
-                <div className="p-3.5 bg-sky-50 border border-sky-150 rounded-xl flex items-start gap-2.5 text-sky-750 text-[10px] font-bold">
-                  <HelpCircle className="w-4 h-4 shrink-0 text-sky-600 mt-0.5" />
+                <div className="p-3.5 bg-sky-50 dark:bg-sky-950/50 border dark:border-gray-700 border-sky-150 rounded-xl flex items-start gap-2.5 text-sky-750 text-[10px] font-bold">
+                  <HelpCircle className="w-4 h-4 shrink-0 text-sky-600 dark:text-sky-300 mt-0.5" />
                   <div>
                     Approval Required: Since you are a Department Manager, this warning request will start as "Pending Approval" and require the Owner's review before being issued to the employee.
                   </div>
@@ -1054,11 +1054,11 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
               )}
 
               {/* Modal buttons */}
-              <div className="flex gap-3 pt-4 border-t border-[#E8E4DF] mt-6">
+              <div className="flex gap-3 pt-4 border-t border-[#E8E4DF] dark:border-gray-700 mt-6">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E4DF] text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-[#F5F0EA] transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E4DF] dark:border-gray-700 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancel
                 </button>

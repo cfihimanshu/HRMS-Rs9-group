@@ -1,3 +1,5 @@
+import { invoiceUpdateAudit } from "@/lib/invoice-update-audit";
+import { calculateInvoiceSettlement } from "@/lib/invoice-settlement";
 import { validateCollectionUpdate } from "@/lib/invoice-collection";
 import { NextResponse } from "next/server";
 import { Op, QueryTypes } from "sequelize";
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    const importAudit = invoiceUpdateAudit(session.user);
     const entryUserName = String(session.user.name || session.user.email || (session.user as any).id || "").trim();
     const importRole = String((session.user as any).role || "").trim().toLowerCase();
 
@@ -170,7 +173,7 @@ export async function POST(request: Request) {
       if (key && seen.has(key)) errors.push("Duplicate company + invoice number inside this file");
       else if (existingBill) warnings.push("Existing invoice will be updated with this file");
       if (key) seen.add(key);
-      return { rowNumber: index + 2, sourceSheet: clean(row.sourceSheet), rawCompany: clean(row.company), rawBank: clean(row.bank), rawBranch, company, bank, branch, existingBill, invoiceNo, billDate, billAmount, paymentReceivedDate: isoDate(row.paymentReceivedDate), receivedAmount, tdsAmount, tdsPercent: amount(row.tdsPercent), dueAmount, remark: clean(row.remark), status, revenueType: clean(row.revenueType), revenueAmount: amount(row.revenueAmount), internalRemark: clean(row.internalRemark), assignedTo: existingBill ? existingBill.assignedTo : entryUserName, errors, warnings };
+      return { rowNumber: index + 2, sourceSheet: clean(row.sourceSheet), rawCompany: clean(row.company), rawBank: clean(row.bank), rawBranch, company, bank, branch, existingBill, invoiceNo, billDate, billAmount, paymentReceivedDate: isoDate(row.paymentReceivedDate), receivedAmount, tdsAmount, tdsPercent: amount(row.tdsPercent), dueAmount, remark: clean(row.remark), status, revenueType: clean(row.revenueType), revenueAmount: amount(row.revenueAmount), internalRemark: clean(row.internalRemark), kabClrHoga: clean(row.kabClrHoga), kyaKrnaPdega: clean(row.kyaKrnaPdega), category: clean(row.category), priyankaUpdation: clean(row.priyankaUpdation), vishnuUpdation: clean(row.vishnuUpdation), revenueIc: clean(row.revenueIc), revenueIcRemark: clean(row.revenueIcRemark), khushal: clean(row.khushal), priyankaRemark: clean(row.priyankaRemark), assignedTo: existingBill ? existingBill.assignedTo : entryUserName, errors, warnings };
     });
 
     const valid = checked.filter((r: any) => !r.errors.length);
@@ -211,7 +214,7 @@ export async function POST(request: Request) {
             : { branchName: resolvedBranch.branchName };
           let master = await LegalRecoveryMaster.findOne({ where: { archivedAt: null, bankName: resolvedBank.bankName, ...masterBranchMatch }, transaction });
           if (!master) master = await LegalRecoveryMaster.create({ bankName: resolvedBank.bankName, branchName: resolvedBranch.branchName, branchId: clean(resolvedBranch.branchCode) || String(resolvedBranch.id), totalBillAmount: 0, pendingAmount: 0, pendingSince: row.billDate, status: "Open", pocName: entryUserName }, { transaction });
-          const billPayload = { masterId: master.id, companyId: row.company.id, companyCode: row.company.code || row.company.name, bankId: resolvedBank.id, branchId: resolvedBranch.id, invoiceNo: row.invoiceNo, billDate: row.billDate, billAmount: row.billAmount, paymentReceivedDate: row.paymentReceivedDate, receivedAmount: row.receivedAmount, tdsAmount: row.tdsAmount, tdsPercent: row.tdsPercent, dueAmount: row.dueAmount, remark: row.remark, status: row.status, revenueType: row.revenueType, revenueAmount: row.revenueAmount, internalRemark: row.internalRemark, assignedTo: row.existingBill ? row.existingBill.assignedTo : entryUserName, importBatchId: batchId };
+          const billPayload = { ...importAudit, masterId: master.id, companyId: row.company.id, companyCode: row.company.code || row.company.name, bankId: resolvedBank.id, branchId: resolvedBranch.id, invoiceNo: row.invoiceNo, billDate: row.billDate, billAmount: row.billAmount, paymentReceivedDate: row.paymentReceivedDate, receivedAmount: row.receivedAmount, tdsAmount: row.tdsAmount, tdsPercent: row.tdsPercent, dueAmount: row.dueAmount, remark: row.remark, status: row.status, revenueType: row.revenueType, revenueAmount: row.revenueAmount, internalRemark: row.internalRemark, kabClrHoga: row.kabClrHoga, kyaKrnaPdega: row.kyaKrnaPdega, category: row.category, priyankaUpdation: row.priyankaUpdation, vishnuUpdation: row.vishnuUpdation, revenueIc: row.revenueIc, revenueIcRemark: row.revenueIcRemark, khushal: row.khushal, priyankaRemark: row.priyankaRemark, assignedTo: row.existingBill ? row.existingBill.assignedTo : entryUserName, importBatchId: batchId };
           if (row.existingBill?.id) {
             const existingMaster = await LegalRecoveryMaster.findByPk(row.existingBill.masterId, { transaction });
             const canManageImport = ["owner", "director"].includes(importRole) || importRole.includes("head") || importRole.includes("manager") || importRole.includes("admin");
@@ -255,7 +258,7 @@ export async function PUT(request: Request) {
       if (role !== "owner") return NextResponse.json({ success: false, error: "Only the Owner can forward invoices" }, { status: 403 });
       const employee = await User.findByPk(String(data.employeeId || ""), { attributes: ["id", "name", "status"] });
       if (!employee?.name || String(employee.status || "").toLowerCase() !== "active") return NextResponse.json({ success: false, error: "Select an active employee" }, { status: 400 });
-      await bill.update({ assignedTo: employee.name });
+      await bill.update({ assignedTo: employee.name, ...invoiceUpdateAudit(sessionUser) });
       billRegisterCache = null;
       return NextResponse.json({ success: true, data: { ...bill.toJSON(), pocName: employee.name } });
     }
@@ -265,6 +268,7 @@ export async function PUT(request: Request) {
       const error = validateCollectionUpdate(data.collectionStatus, collectionRemark);
       if (error) return NextResponse.json({ success: false, error }, { status: 400 });
       await bill.update({
+        ...invoiceUpdateAudit(sessionUser),
         collectionStatus: data.collectionStatus,
         collectionRemark: collectionRemark.trim(),
         collectionUpdatedById: String(sessionUser.id || sessionUser.email || sessionUser.name),
@@ -275,15 +279,24 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: true, data: bill.toJSON() });
     }
 
-    const billAmount = amount(data.billAmount);
-    const receivedAmount = amount(data.receivedAmount);
-    const tdsAmount = amount(data.tdsAmount);
+    const billAmount = Number(clean(data.billAmount).replace(/[₹,\s]/g, ""));
+    const receivedAmount = Number(clean(data.receivedAmount).replace(/[₹,\s]/g, ""));
+    const tdsAmount = Number(clean(data.tdsAmount).replace(/[₹,\s]/g, ""));
     if (billAmount < 0 || receivedAmount < 0 || tdsAmount < 0) {
       return NextResponse.json({ success: false, error: "Amounts cannot be negative" }, { status: 400 });
     }
-    const dueAmount = Math.max(0, billAmount - receivedAmount - tdsAmount);
-    const status = data.status === "Cancelled" ? "Cancelled" : dueAmount <= 0 ? "Received" : "Pending";
+    let settlement;
+    try {
+      settlement = calculateInvoiceSettlement(billAmount, receivedAmount, tdsAmount, String(data.status || "Pending"), clean(data.settlementReason));
+    } catch (error: any) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    if (data.status === "Cancelled" && !clean(data.cancellationReason)) {
+      return NextResponse.json({ success: false, error: "Cancellation reason is required" }, { status: 400 });
+    }
+    const { dueAmount, status } = settlement;
     const updates = {
+      ...invoiceUpdateAudit(sessionUser),
       billDate: isoDate(data.billDate) || bill.billDate,
       billAmount,
       paymentReceivedDate: isoDate(data.paymentReceivedDate),
@@ -293,7 +306,12 @@ export async function PUT(request: Request) {
       dueAmount,
       remark: clean(data.remark),
       status,
-      internalRemark: clean(data.internalRemark)
+      internalRemark: clean(data.internalRemark),
+      cancellationReason: status === "Cancelled" ? clean(data.cancellationReason) : null,
+      settlementAmount: settlement.settlementAmount,
+      settlementReason: settlement.settlementReason,
+      settledByName: status === "Settled" ? String(sessionUser.name || sessionUser.email || sessionUser.id) : null,
+      settledAt: status === "Settled" ? new Date() : null
     };
     await bill.update(updates);
     billRegisterCache = null;

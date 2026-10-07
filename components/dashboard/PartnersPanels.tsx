@@ -334,20 +334,20 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
   const territoriesCount = Array.from(new Set(associates.map(a => a.territory).filter(Boolean))).length;
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm">
         <div>
-          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100 flex items-center gap-2">
             Business Associates Dashboard
           </h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Channel partner network, territory assignments, payouts & risk monitoring</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">Channel partner network, territory assignments, payouts & risk monitoring</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={exportAssociatesCSV}
-            className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
           >
             <Download className="w-4 h-4" /> Export Report
           </button>
@@ -360,7 +360,7 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
           <button
             onClick={loadAssociates}
             disabled={loading}
-            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0"
+            className="p-2 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -371,90 +371,90 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div
           onClick={() => setStatusFilter("All")}
-          className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === "All" ? "border-[#714B67] ring-2 ring-[#714B67]/20" : "border-slate-200"
+          className={`bg-white dark:bg-gray-900 p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === "All" ? "border-[#714B67] dark:border-gray-700 ring-2 ring-[#714B67]/20" : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to show all associates"
         >
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">Total Associates</span>
-          <div className="text-2xl font-black text-[#714B67] mt-2">{totalAssociatesCount}</div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-400 font-mono">Total Associates</span>
+          <div className="text-2xl font-black text-[#714B67] dark:text-purple-300 mt-2">{totalAssociatesCount}</div>
         </div>
 
         <div
           onClick={() => setStatusFilter("Active")}
           className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20" : "border-slate-200"
+            statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/50" : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to filter Active Channel associates"
         >
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-mono flex items-center gap-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300 font-mono flex items-center gap-1">
             ● Active Channel
           </span>
-          <div className="text-2xl font-black text-emerald-600 mt-2">{activeNetworkCount}</div>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300 mt-2">{activeNetworkCount}</div>
         </div>
 
         <div
           onClick={() => setStatusFilter("Inactive")}
           className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === "Inactive" ? "border-slate-500 ring-2 ring-slate-400/20 bg-slate-100/50" : "border-slate-200"
+            statusFilter === "Inactive" ? "border-slate-500 ring-2 ring-slate-400/20 bg-slate-100/50 dark:bg-slate-950/50" : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to filter Inactive associates"
         >
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">Inactive Channel</span>
-          <div className="text-2xl font-black text-slate-600 mt-2">{associates.length - activeNetworkCount}</div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Inactive Channel</span>
+          <div className="text-2xl font-black text-slate-600 dark:text-gray-300 mt-2">{associates.length - activeNetworkCount}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">Territories Covered</span>
-          <div className="text-2xl font-black text-indigo-600 mt-2">{territoriesCount}</div>
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-400 font-mono">Territories Covered</span>
+          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-300 mt-2">{territoriesCount}</div>
         </div>
       </div>
 
       {/* Search Toolbar */}
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Search by associate name, business name, mobile, email, code or territory..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-bold">
+          <div className="flex bg-slate-100 dark:bg-gray-800 p-1 rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold">
             <button
               onClick={() => setStatusFilter("All")}
-              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "All" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "All" ? "bg-white dark:bg-gray-900 text-slate-900 dark:text-gray-100 shadow-xs" : "text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-100"}`}
             >
               All ({associates.length})
             </button>
             <button
               onClick={() => setStatusFilter("Active")}
-              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Active" ? "bg-emerald-600 text-white shadow-xs" : "text-emerald-700 hover:bg-emerald-50"}`}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Active" ? "bg-emerald-600 text-white shadow-xs" : "text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"}`}
             >
               ● Active ({activeNetworkCount})
             </button>
             <button
               onClick={() => setStatusFilter("Inactive")}
-              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Inactive" ? "bg-slate-700 text-white shadow-xs" : "text-slate-600 hover:bg-slate-200"}`}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Inactive" ? "bg-slate-700 text-white shadow-xs" : "text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-800"}`}
             >
               ○ Inactive ({associates.length - activeNetworkCount})
             </button>
           </div>
-          <span className="text-xs font-bold text-slate-500 whitespace-nowrap pl-2 border-l border-slate-200">
+          <span className="text-xs font-bold text-slate-500 dark:text-gray-400 whitespace-nowrap pl-2 border-l border-slate-200 dark:border-gray-700">
             Showing {filteredAssociates.length} associate(s)
           </span>
         </div>
       </div>
 
       {/* DATA TABLE FORMAT */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase font-mono tracking-wider text-slate-500">
+              <tr className="bg-slate-50 dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 text-[10px] font-black uppercase font-mono tracking-wider text-slate-500 dark:text-gray-400">
                 <th className="p-3.5 pl-5">Associate / Firm</th>
                 <th className="p-3.5">Contact Info</th>
                 <th className="p-3.5">Territory & Location</th>
@@ -464,16 +464,16 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                 <th className="p-3.5 pr-5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-150">
+            <tbody className="divide-y dark:divide-gray-700 divide-slate-150">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400 font-bold animate-pulse">
+                  <td colSpan={7} className="text-center py-12 text-slate-400 dark:text-gray-400 font-bold animate-pulse">
                     Loading business associates data...
                   </td>
                 </tr>
               ) : filteredAssociates.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400 font-bold">
+                  <td colSpan={7} className="text-center py-12 text-slate-400 dark:text-gray-400 font-bold">
                     No business associate records found matching your search.
                   </td>
                 </tr>
@@ -488,25 +488,25 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                     <React.Fragment key={assoc.id || idx}>
                       <tr
                         onClick={() => toggleExpand(assoc)}
-                        className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${isExpanded ? "bg-[#714B67]/5" : ""}`}
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-950/50 transition-colors cursor-pointer ${isExpanded ? "bg-[#714B67]/5" : ""}`}
                       >
                         {/* Associate & Firm Name */}
-                        <td className="p-3.5 pl-5 font-semibold text-slate-800">
+                        <td className="p-3.5 pl-5 font-semibold text-slate-800 dark:text-gray-100">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-[#714B67]/10 text-[#714B67] flex items-center justify-center font-black text-sm shrink-0 uppercase border border-[#714B67]/20">
+                            <div className="w-9 h-9 rounded-full bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 flex items-center justify-center font-black text-sm shrink-0 uppercase border dark:border-gray-700 border-[#714B67]/20">
                               {assocName.substring(0, 2)}
                             </div>
                             <div>
-                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                              <div className="font-bold text-slate-900 dark:text-gray-100 flex items-center gap-1.5">
                                 {assocName}
                                 {assoc.referralCode && (
-                                  <span className="text-[9px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.2 rounded font-mono font-bold">
+                                  <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.2 rounded font-mono font-bold">
                                     {assoc.referralCode}
                                   </span>
                                 )}
                               </div>
                               {assoc.businessName && (
-                                <div className="text-[10px] text-slate-500 font-medium">
+                                <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
                                   {assoc.businessName} ({assoc.businessType || 'Firm'})
                                 </div>
                               )}
@@ -517,35 +517,35 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                         {/* Contact Info */}
                         <td className="p-3.5">
                           <div className="space-y-0.5 text-[11px]">
-                            <div className="flex items-center gap-1 text-slate-700">
-                              <Mail className="w-3 h-3 text-slate-400" />
+                            <div className="flex items-center gap-1 text-slate-700 dark:text-gray-100">
+                              <Mail className="w-3 h-3 text-slate-400 dark:text-gray-400" />
                               <span>{email}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-slate-600 font-mono text-[10px]">
-                              <Phone className="w-3 h-3 text-slate-400" />
+                            <div className="flex items-center gap-1 text-slate-600 dark:text-gray-300 font-mono text-[10px]">
+                              <Phone className="w-3 h-3 text-slate-400 dark:text-gray-400" />
                               <span>{mobile}</span>
-                              {assoc.alternateMobile && <span className="text-slate-400">/ {assoc.alternateMobile}</span>}
+                              {assoc.alternateMobile && <span className="text-slate-400 dark:text-gray-400">/ {assoc.alternateMobile}</span>}
                             </div>
                           </div>
                         </td>
 
                         {/* Territory & Location */}
                         <td className="p-3.5">
-                          <div className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#714B67]" />
+                          <div className="font-bold text-slate-800 dark:text-gray-100 text-xs flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#714B67] dark:text-purple-300" />
                             {assoc.territory || "General"}
                           </div>
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-slate-500 dark:text-gray-400">
                             {[assoc.city, assoc.state].filter(Boolean).join(", ") || "N/A"}
                           </div>
                         </td>
 
                         {/* Commercial & Payout */}
                         <td className="p-3.5">
-                          <div className="text-xs font-bold text-slate-700">
+                          <div className="text-xs font-bold text-slate-700 dark:text-gray-100">
                             {assoc.payoutTerms || "Standard Commission"}
                           </div>
-                          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                          <div className="text-[10px] font-mono text-slate-500 dark:text-gray-400 mt-0.5">
                             PAN: {assoc.pan || 'N/A'} {assoc.gstin ? `| GST: ${assoc.gstin}` : ''}
                           </div>
                         </td>
@@ -553,20 +553,20 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                         {/* Bank & KYC Documents */}
                         <td className="p-3.5">
                           {assoc.bankAccountNumber ? (
-                            <div className="text-[10px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded inline-block">
+                            <div className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 px-2 py-0.5 rounded inline-block">
                               {assoc.bankAccountNumber} ({assoc.ifscCode || 'IFSC'})
                             </div>
                           ) : (
-                            <span className="text-[10px] text-slate-400">No Bank Info</span>
+                            <span className="text-[10px] text-slate-400 dark:text-gray-400">No Bank Info</span>
                           )}
                           <div className="flex items-center gap-2 mt-1">
                             {assoc.kycDocUrl && (
-                              <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
+                              <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 dark:text-indigo-300 font-bold hover:underline flex items-center gap-0.5">
                                 <Paperclip className="w-3 h-3" /> KYC
                               </a>
                             )}
                             {assoc.cancelledChequeUrl && (
-                              <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
+                              <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 dark:text-indigo-300 font-bold hover:underline flex items-center gap-0.5">
                                 <Paperclip className="w-3 h-3" /> Cheque
                               </a>
                             )}
@@ -579,8 +579,8 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                             onClick={(e) => handleToggleAssociateStatus(assoc, e)}
                             className={`px-2.5 py-1 rounded-full text-[10px] font-black border transition-all cursor-pointer inline-flex items-center gap-1 ${
                               (assoc.status || "active").toLowerCase() === "active"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
+                                : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-200 dark:hover:bg-gray-800"
                             }`}
                             title="Click to toggle status (Active / Inactive)"
                           >
@@ -594,8 +594,8 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                             <button
                               onClick={() => toggleExpand(assoc)}
                               className={`px-3 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${isExpanded
-                                  ? "bg-[#714B67] text-white border-[#714B67] shadow-sm"
-                                  : "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                                  ? "bg-[#714B67] text-white border-[#714B67] dark:border-gray-700 shadow-sm"
+                                  : "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
                                 }`}
                               title={isExpanded ? "Hide Details" : "View All Associate Details Below"}
                             >
@@ -608,7 +608,7 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                                 handleSelectAssociate(assoc);
                                 setShowEditModal(true);
                               }}
-                              className="px-3 py-1.5 bg-[#714B67]/10 border border-[#714B67]/30 text-[#714B67] hover:bg-[#714B67] hover:text-white rounded-md text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              className="px-3 py-1.5 bg-[#714B67]/10 border dark:border-gray-700 border-[#714B67]/30 text-[#714B67] dark:text-purple-300 hover:bg-[#714B67] hover:text-white rounded-md text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                               title="Edit Associate Profile"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -620,33 +620,33 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
 
                       {/* EXPANDED FULL DETAILS SHEET DIRECTLY BELOW ROW */}
                       {isExpanded && (
-                        <tr className="bg-slate-50 border-y border-[#714B67]/20">
+                        <tr className="bg-slate-50 dark:bg-gray-800 border-y border-[#714B67]/20">
                           <td colSpan={7} className="p-5">
                             <div className="space-y-4 animate-fadeIn">
 
                               {/* Header Title */}
-                              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                              <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 rounded-xl bg-[#714B67] text-white flex items-center justify-center font-black text-sm shadow-sm uppercase">
                                     {assocName.substring(0, 2)}
                                   </div>
                                   <div>
-                                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-gray-100 flex items-center gap-2">
                                       {assocName}
                                       {assoc.businessName && (
-                                        <span className="text-xs bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-bold">
+                                        <span className="text-xs bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 px-2 py-0.5 rounded font-bold">
                                           {assoc.businessName} ({assoc.businessType || 'Firm'})
                                         </span>
                                       )}
                                       {assoc.referralCode && (
-                                        <span className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded font-mono font-bold">
+                                        <span className="text-xs bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded font-mono font-bold">
                                           Code: {assoc.referralCode}
                                         </span>
                                       )}
                                     </h3>
-                                    <p className="text-[11px] text-slate-600 mt-0.5 font-medium">
-                                      Assigned Territory: <strong className="text-slate-900">{assoc.territory || "General"}</strong> •
-                                      Registered Date: <strong className="text-slate-900">{new Date(assoc.createdAt).toLocaleDateString()}</strong>
+                                    <p className="text-[11px] text-slate-600 dark:text-gray-300 mt-0.5 font-medium">
+                                      Assigned Territory: <strong className="text-slate-900 dark:text-gray-100">{assoc.territory || "General"}</strong> •
+                                      Registered Date: <strong className="text-slate-900 dark:text-gray-100">{new Date(assoc.createdAt).toLocaleDateString()}</strong>
                                     </p>
                                   </div>
                                 </div>
@@ -666,57 +666,57 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                                 {/* Card 1: Personal & Contact */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
-                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider border-b border-slate-100 dark:border-gray-700 pb-1 flex justify-between">
                                     <span>Personal & Contact</span>
                                     <span>👤</span>
                                   </div>
-                                  <div><span className="text-slate-500 font-bold">Full Name:</span> <strong className="text-slate-900 block mt-0.5">{assocName}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">Email ID:</span> <strong className="text-slate-900 block font-mono text-[11px]">{email}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">Mobile:</span> <strong className="text-slate-900 font-mono">{mobile}</strong></div>
-                                  {assoc.alternateMobile && <div><span className="text-slate-500 font-bold">WhatsApp / Alt:</span> <strong className="text-slate-900 font-mono">{assoc.alternateMobile}</strong></div>}
-                                  {assoc.assignedManager && <div><span className="text-slate-500 font-bold">Assigned Manager:</span> <strong className="text-slate-900 block mt-0.5">{assoc.assignedManager}</strong></div>}
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Full Name:</span> <strong className="text-slate-900 dark:text-gray-100 block mt-0.5">{assocName}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Email ID:</span> <strong className="text-slate-900 dark:text-gray-100 block font-mono text-[11px]">{email}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Mobile:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono">{mobile}</strong></div>
+                                  {assoc.alternateMobile && <div><span className="text-slate-500 dark:text-gray-400 font-bold">WhatsApp / Alt:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono">{assoc.alternateMobile}</strong></div>}
+                                  {assoc.assignedManager && <div><span className="text-slate-500 dark:text-gray-400 font-bold">Assigned Manager:</span> <strong className="text-slate-900 dark:text-gray-100 block mt-0.5">{assoc.assignedManager}</strong></div>}
                                   <div>
-                                    <span className="text-slate-500 font-bold">Account Status:</span>
-                                    <span className={`inline-block ml-1.5 text-[10px] px-2 py-0.5 rounded-full font-black border ${ (assoc.status || "active").toLowerCase() === 'inactive' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                    <span className="text-slate-500 dark:text-gray-400 font-bold">Account Status:</span>
+                                    <span className={`inline-block ml-1.5 text-[10px] px-2 py-0.5 rounded-full font-black border ${ (assoc.status || "active").toLowerCase() === 'inactive' ? 'bg-slate-100 text-slate-600 border-slate-200 dark:border-gray-700' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200'}`}>
                                       {(assoc.status || "Active").toUpperCase()}
                                     </span>
                                   </div>
                                 </div>
 
                                 {/* Card 2: Business & Location */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
-                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider border-b border-slate-100 dark:border-gray-700 pb-1 flex justify-between">
                                     <span>Business & Territory</span>
                                     <span>🏢</span>
                                   </div>
-                                  <div><span className="text-slate-500 font-bold">Business Name:</span> <strong className="text-slate-900 block mt-0.5">{assoc.businessName || "N/A"}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">Nature of Business:</span> <strong className="text-slate-900 block">{assoc.businessType || "N/A"}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">Assigned Territory:</span> <strong className="text-slate-900 block">{assoc.territory || "General"}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">City / State / PIN:</span> <strong className="text-slate-900 block">{[assoc.city, assoc.state, assoc.pincode].filter(Boolean).join(", ") || "N/A"}</strong></div>
-                                  {assoc.businessAddress && <div><span className="text-slate-500 font-bold">Business Address:</span> <span className="text-slate-800 block text-[11px] mt-0.5 font-medium leading-normal">{assoc.businessAddress}</span></div>}
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Business Name:</span> <strong className="text-slate-900 dark:text-gray-100 block mt-0.5">{assoc.businessName || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Nature of Business:</span> <strong className="text-slate-900 dark:text-gray-100 block">{assoc.businessType || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Assigned Territory:</span> <strong className="text-slate-900 dark:text-gray-100 block">{assoc.territory || "General"}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">City / State / PIN:</span> <strong className="text-slate-900 dark:text-gray-100 block">{[assoc.city, assoc.state, assoc.pincode].filter(Boolean).join(", ") || "N/A"}</strong></div>
+                                  {assoc.businessAddress && <div><span className="text-slate-500 dark:text-gray-400 font-bold">Business Address:</span> <span className="text-slate-800 dark:text-gray-100 block text-[11px] mt-0.5 font-medium leading-normal">{assoc.businessAddress}</span></div>}
                                 </div>
 
                                 {/* Card 3: Tax, Banking & KYC Documents */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
-                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider border-b border-slate-100 dark:border-gray-700 pb-1 flex justify-between">
                                     <span>Tax & Banking Docs</span>
                                     <span>🏦</span>
                                   </div>
-                                  <div><span className="text-slate-500 font-bold">Payout Terms:</span> <strong className="text-slate-900 block font-mono">{assoc.payoutTerms || "Standard"}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">PAN Number:</span> <strong className="text-slate-900 font-mono">{assoc.pan || "N/A"}</strong></div>
-                                  {assoc.gstin && <div><span className="text-slate-500 font-bold">GSTIN:</span> <strong className="text-slate-900 font-mono">{assoc.gstin}</strong></div>}
-                                  <div><span className="text-slate-500 font-bold">Account Holder:</span> <strong className="text-slate-900 block">{assoc.accountHolderName || assocName}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">Bank Account:</span> <strong className="text-slate-900 font-mono block">{assoc.bankAccountNumber || "N/A"}</strong></div>
-                                  <div><span className="text-slate-500 font-bold">IFSC Code:</span> <strong className="text-slate-900 font-mono">{assoc.ifscCode || "N/A"}</strong></div>
-                                  <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Payout Terms:</span> <strong className="text-slate-900 dark:text-gray-100 block font-mono">{assoc.payoutTerms || "Standard"}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">PAN Number:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono">{assoc.pan || "N/A"}</strong></div>
+                                  {assoc.gstin && <div><span className="text-slate-500 dark:text-gray-400 font-bold">GSTIN:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono">{assoc.gstin}</strong></div>}
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Account Holder:</span> <strong className="text-slate-900 dark:text-gray-100 block">{assoc.accountHolderName || assocName}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">Bank Account:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono block">{assoc.bankAccountNumber || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 dark:text-gray-400 font-bold">IFSC Code:</span> <strong className="text-slate-900 dark:text-gray-100 font-mono">{assoc.ifscCode || "N/A"}</strong></div>
+                                  <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-gray-700">
                                     {assoc.kycDocUrl && (
-                                      <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
+                                      <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
                                         📄 KYC Document
                                       </a>
                                     )}
                                     {assoc.cancelledChequeUrl && (
-                                      <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
+                                      <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
                                         🏦 Cheque Copy
                                       </a>
                                     )}
@@ -741,15 +741,15 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
       {/* EDIT ALL FIELDS MODAL */}
       {showEditModal && selectedAssociate && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6 relative">
-            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold" onClick={() => setShowEditModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6 relative">
+            <button className="absolute top-4 right-4 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 text-lg font-bold" onClick={() => setShowEditModal(false)}>
               ✕
             </button>
-            <div className="mb-6 pb-3 border-b border-slate-100">
-              <h3 className="text-lg font-black text-[#714B67] uppercase tracking-tight flex items-center gap-2">
+            <div className="mb-6 pb-3 border-b border-slate-100 dark:border-gray-700">
+              <h3 className="text-lg font-black text-[#714B67] dark:text-purple-300 uppercase tracking-tight flex items-center gap-2">
                 <span>✏️</span> Edit Business Associate Details
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">
                 Update personal information, business profile, tax & banking info, documents, and performance ratings.
               </p>
             </div>
@@ -757,44 +757,44 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
             <form onSubmit={handleSaveProfile} className="space-y-6">
 
               {/* Section 1: Personal & Contact Details */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider font-mono flex items-center gap-1.5">
                   👤 1. Personal & Contact Information
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Full Name *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Full Name *</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.name} onChange={e => setFormState({ ...formState, name: e.target.value })} required />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Email ID *</label>
-                    <input type="email" className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Email ID *</label>
+                    <input type="email" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.email} onChange={e => setFormState({ ...formState, email: e.target.value })} required />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Mobile Number *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Mobile Number *</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 font-mono focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.mobile} onChange={e => setFormState({ ...formState, mobile: e.target.value })} required />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">WhatsApp / Alt Phone</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">WhatsApp / Alt Phone</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 font-mono focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.alternateMobile} onChange={e => setFormState({ ...formState, alternateMobile: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Referral Code</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-indigo-700 font-mono mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Referral Code</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 font-mono mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.referralCode} onChange={e => setFormState({ ...formState, referralCode: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Assigned Manager</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Assigned Manager</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.assignedManager} onChange={e => setFormState({ ...formState, assignedManager: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Account Status</label>
-                    <select className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Account Status</label>
+                    <select className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.status} onChange={e => setFormState({ ...formState, status: e.target.value })}>
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -804,160 +804,160 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
               </div>
 
               {/* Section 2: Business & Territory */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider font-mono flex items-center gap-1.5">
                   🏢 2. Business & Territory Details
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Business Name</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Business Name</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.businessName} onChange={e => setFormState({ ...formState, businessName: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Nature of Business</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Nature of Business</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="e.g. Proprietorship, Partnership, Agency" value={formState.businessType} onChange={e => setFormState({ ...formState, businessType: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Assigned Territory *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Assigned Territory *</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.territory} onChange={e => setFormState({ ...formState, territory: e.target.value })} required />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">City</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">City</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.city} onChange={e => setFormState({ ...formState, city: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">State</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">State</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.state} onChange={e => setFormState({ ...formState, state: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">PIN Code</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">PIN Code</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 font-mono focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.pincode} onChange={e => setFormState({ ...formState, pincode: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Full Business Address</label>
-                  <textarea rows={2} className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Full Business Address</label>
+                  <textarea rows={2} className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-semibold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                     value={formState.businessAddress} onChange={e => setFormState({ ...formState, businessAddress: e.target.value })} />
                 </div>
               </div>
 
               {/* Section 3: Tax & Banking Details */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider font-mono flex items-center gap-1.5">
                   🏦 3. Tax & Banking Details
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Payout Terms</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Payout Terms</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="e.g. 10% Flat Commission" value={formState.payoutTerms} onChange={e => setFormState({ ...formState, payoutTerms: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">PAN Number</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">PAN Number</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.pan} onChange={e => setFormState({ ...formState, pan: e.target.value.toUpperCase() })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">GSTIN Number</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">GSTIN Number</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.gstin} onChange={e => setFormState({ ...formState, gstin: e.target.value.toUpperCase() })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Account Holder Name</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Account Holder Name</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.accountHolderName} onChange={e => setFormState({ ...formState, accountHolderName: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Bank Account Number</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">Bank Account Number</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 font-mono mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.bankAccountNumber} onChange={e => setFormState({ ...formState, bankAccountNumber: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">IFSC Code</label>
-                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono">IFSC Code</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={formState.ifscCode} onChange={e => setFormState({ ...formState, ifscCode: e.target.value.toUpperCase() })} />
                   </div>
                 </div>
               </div>
 
               {/* Section 4: Document Links & Uploads */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+              <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider font-mono flex items-center gap-1.5">
                   📄 4. Documents & Photo Uploads
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                   {/* Profile Photo Upload */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                  <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-between space-y-2">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">Profile Photo</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Profile Photo</label>
                       {formState.profilePhotoUrl ? (
                         <div className="flex items-center gap-2 mt-1.5">
-                          <img src={formState.profilePhotoUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover border border-slate-300 shrink-0" />
-                          <a href={formState.profilePhotoUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline truncate">
+                          <img src={formState.profilePhotoUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover border border-slate-300 dark:border-gray-700 shrink-0" />
+                          <a href={formState.profilePhotoUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold hover:underline truncate">
                             ✓ Photo Uploaded
                           </a>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No photo uploaded</span>
+                        <span className="text-[11px] text-slate-400 dark:text-gray-400 font-medium block mt-1">No photo uploaded</span>
                       )}
                     </div>
-                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                    <label className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
                       <Paperclip className="w-3.5 h-3.5" />
                       <span>{formState.profilePhotoUrl ? "Change Photo" : "Upload Photo"}</span>
-                      <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "profilePhotoUrl")} />
+                      <input type="file" className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" accept="image/*" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "profilePhotoUrl")} />
                     </label>
                   </div>
 
                   {/* KYC Document Upload */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                  <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-between space-y-2">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">KYC Document (Aadhaar / ID)</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">KYC Document (Aadhaar / ID)</label>
                       {formState.kycDocUrl ? (
-                        <a href={formState.kycDocUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1 mt-1.5">
+                        <a href={formState.kycDocUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold hover:underline flex items-center gap-1 mt-1.5">
                           ✓ KYC File Uploaded
                         </a>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No document uploaded</span>
+                        <span className="text-[11px] text-slate-400 dark:text-gray-400 font-medium block mt-1">No document uploaded</span>
                       )}
                     </div>
-                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                    <label className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
                       <Paperclip className="w-3.5 h-3.5" />
                       <span>{formState.kycDocUrl ? "Change KYC Doc" : "Upload KYC Doc"}</span>
-                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "kycDocUrl")} />
+                      <input type="file" className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "kycDocUrl")} />
                     </label>
                   </div>
 
                   {/* Cancelled Cheque Upload */}
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                  <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-between space-y-2">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">Cancelled Cheque Copy</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Cancelled Cheque Copy</label>
                       {formState.cancelledChequeUrl ? (
-                        <a href={formState.cancelledChequeUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1 mt-1.5">
+                        <a href={formState.cancelledChequeUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold hover:underline flex items-center gap-1 mt-1.5">
                           ✓ Cheque Copy Uploaded
                         </a>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No cheque uploaded</span>
+                        <span className="text-[11px] text-slate-400 dark:text-gray-400 font-medium block mt-1">No cheque uploaded</span>
                       )}
                     </div>
-                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                    <label className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
                       <Paperclip className="w-3.5 h-3.5" />
                       <span>{formState.cancelledChequeUrl ? "Change Cheque" : "Upload Cheque"}</span>
-                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "cancelledChequeUrl")} />
+                      <input type="file" className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "cancelledChequeUrl")} />
                     </label>
                   </div>
 
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowEditModal(false)} className="px-5 py-2.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+              <div className="pt-3 border-t border-slate-200 dark:border-gray-700 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-gray-700 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all">Cancel</button>
                 <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] rounded-lg text-xs font-black text-white transition-all shadow-md cursor-pointer flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4" />
                   <span>Save All Changes</span>
@@ -971,13 +971,13 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
       {/* FORM-9 Modal */}
       {showForm9 && selectedAssociate && (
         <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-950/50 rounded-t-2xl">
               <div>
-                <h2 className="text-lg font-black text-indigo-900 tracking-tight">FORM-9 Associate Performance</h2>
-                <p className="text-xs text-indigo-600 font-bold mt-1">Evaluating: {selectedAssociate.user?.name}</p>
+                <h2 className="text-lg font-black text-indigo-900 dark:text-indigo-300 tracking-tight">FORM-9 Associate Performance</h2>
+                <p className="text-xs text-indigo-600 dark:text-indigo-300 font-bold mt-1">Evaluating: {selectedAssociate.user?.name}</p>
               </div>
-              <button onClick={() => setShowForm9(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all text-slate-500 hover:text-rose-500">
+              <button onClick={() => setShowForm9(false)} className="w-8 h-8 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-gray-800 transition-all text-slate-500 dark:text-gray-400 hover:text-rose-500">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
@@ -986,36 +986,36 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
               <form onSubmit={handleForm9Submit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">1. Associate Name</label>
-                    <input disabled className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-xs font-bold text-slate-600 mt-1.5 cursor-not-allowed" value={selectedAssociate.user?.name || "Unknown"} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">1. Associate Name</label>
+                    <input disabled className="w-full bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-600 dark:text-gray-300 mt-1.5 cursor-not-allowed dark:[color-scheme:dark]" value={selectedAssociate.user?.name || "Unknown"} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">2. Territory *</label>
-                    <input required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form9.territory} onChange={e => setForm9({ ...form9, territory: e.target.value })} placeholder="Assigned Area" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">2. Territory *</label>
+                    <input required className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none dark:[color-scheme:dark]" value={form9.territory} onChange={e => setForm9({ ...form9, territory: e.target.value })} placeholder="Assigned Area" />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">3. Leads Generated *</label>
-                    <input required type="number" min="0" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none font-mono" value={form9.leads} onChange={e => setForm9({ ...form9, leads: Number(e.target.value) })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">3. Leads Generated *</label>
+                    <input required type="number" min="0" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none font-mono dark:[color-scheme:dark]" value={form9.leads} onChange={e => setForm9({ ...form9, leads: Number(e.target.value) })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">4. Conversion (%) *</label>
-                    <input required type="number" min="0" max="100" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none font-mono" value={form9.conversion} onChange={e => setForm9({ ...form9, conversion: Number(e.target.value) })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">4. Conversion (%) *</label>
+                    <input required type="number" min="0" max="100" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none font-mono dark:[color-scheme:dark]" value={form9.conversion} onChange={e => setForm9({ ...form9, conversion: Number(e.target.value) })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">5. Collection / Payout *</label>
-                    <input required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form9.collectionPayout} onChange={e => setForm9({ ...form9, collectionPayout: e.target.value })} placeholder="e.g., ₹50,000 / 10%" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">5. Collection / Payout *</label>
+                    <input required className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none dark:[color-scheme:dark]" value={form9.collectionPayout} onChange={e => setForm9({ ...form9, collectionPayout: e.target.value })} placeholder="e.g., ₹50,000 / 10%" />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">6. Complaint Count *</label>
-                    <input required type="number" min="0" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none font-mono" value={form9.complaint} onChange={e => setForm9({ ...form9, complaint: Number(e.target.value) })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">6. Complaint Count *</label>
+                    <input required type="number" min="0" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none font-mono dark:[color-scheme:dark]" value={form9.complaint} onChange={e => setForm9({ ...form9, complaint: Number(e.target.value) })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">7. Reporting Discipline (%) *</label>
-                    <input required type="number" min="0" max="100" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none font-mono" value={form9.reporting} onChange={e => setForm9({ ...form9, reporting: Number(e.target.value) })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">7. Reporting Discipline (%) *</label>
+                    <input required type="number" min="0" max="100" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none font-mono dark:[color-scheme:dark]" value={form9.reporting} onChange={e => setForm9({ ...form9, reporting: Number(e.target.value) })} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">8. Risk Flag</label>
-                    <select className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form9.riskFlag} onChange={e => setForm9({ ...form9, riskFlag: e.target.value })}>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-widest">8. Risk Flag</label>
+                    <select className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1.5 focus:outline-none dark:[color-scheme:dark]" value={form9.riskFlag} onChange={e => setForm9({ ...form9, riskFlag: e.target.value })}>
                       <option value="None">None (Safe)</option>
                       <option value="Side Settlement">Side Settlement</option>
                       <option value="Client Diversion">Client Diversion</option>
@@ -1026,8 +1026,8 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowForm9(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
+                <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowForm9(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all">Cancel</button>
                   <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" /> Submit FORM-9
                   </button>
@@ -1392,14 +1392,14 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-black text-slate-850">Vendor Management</h1>
-            <span className="bg-[#714B67]/10 text-[#714B67] px-2.5 py-0.5 rounded-full text-xs font-black font-mono">
+            <h1 className="text-xl font-black text-slate-850 dark:text-gray-100">Vendor Management</h1>
+            <span className="bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 px-2.5 py-0.5 rounded-full text-xs font-black font-mono">
               {filteredVendors.length} {filteredVendors.length === 1 ? "Vendor" : "Vendors"}
             </span>
           </div>
@@ -1422,7 +1422,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
           <button
             onClick={loadVendors}
             disabled={loading}
-            className="p-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0 cursor-pointer"
+            className="p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0 cursor-pointer"
             title="Refresh Vendors List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1439,16 +1439,16 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
             setAgreementFilter("All");
             setSearchQuery("");
           }}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-indigo-300 hover:shadow-md flex items-center justify-between ${categoryFilter === "All" && agreementFilter === "All" && !searchQuery ? "border-indigo-400 ring-2 ring-indigo-400/20 bg-indigo-50/20" : "border-slate-200 shadow-2xs"
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-indigo-300 hover:shadow-md flex items-center justify-between ${categoryFilter === "All" && agreementFilter === "All" && !searchQuery ? "border-indigo-400 ring-2 ring-indigo-400/20 bg-indigo-50/20 dark:bg-indigo-950/50" : "border-slate-200 dark:border-gray-700 shadow-2xs"
             }`}
           title="Click to show all vendors"
         >
           <div>
-            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Total Vendors</div>
-            <div className="text-xl font-black text-slate-850 mt-1">{vendors.length}</div>
-            <span className="text-[9px] font-bold text-indigo-600 block mt-0.5">Click to view all</span>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 dark:text-gray-400">Total Vendors</div>
+            <div className="text-xl font-black text-slate-850 dark:text-gray-100 mt-1">{vendors.length}</div>
+            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-300 block mt-0.5">Click to view all</span>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
             <Building2 className="w-5 h-5" />
           </div>
         </div>
@@ -1456,18 +1456,18 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         {/* With Agreement Card */}
         <div
           onClick={() => setAgreementFilter(agreementFilter === "WithAgreement" ? "All" : "WithAgreement")}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-emerald-300 hover:shadow-md flex items-center justify-between ${agreementFilter === "WithAgreement" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40" : "border-slate-200 shadow-2xs"
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-emerald-300 hover:shadow-md flex items-center justify-between ${agreementFilter === "WithAgreement" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/50" : "border-slate-200 dark:border-gray-700 shadow-2xs"
             }`}
           title="Click to filter vendors with signed agreement"
         >
           <div>
-            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">With Agreement</div>
-            <div className="text-xl font-black text-emerald-600 mt-1">{vendors.filter(v => v.agreementUrl).length}</div>
-            <span className={`text-[9px] font-bold block mt-0.5 ${agreementFilter === "WithAgreement" ? "text-emerald-700 underline font-black" : "text-emerald-600"}`}>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 dark:text-gray-400">With Agreement</div>
+            <div className="text-xl font-black text-emerald-600 dark:text-emerald-300 mt-1">{vendors.filter(v => v.agreementUrl).length}</div>
+            <span className={`text-[9px] font-bold block mt-0.5 ${agreementFilter === "WithAgreement" ? "text-emerald-700 dark:text-emerald-300 underline font-black" : "text-emerald-600 dark:text-emerald-300"}`}>
               {agreementFilter === "WithAgreement" ? "Filter Active ✓" : "Click to filter"}
             </span>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
             <Paperclip className="w-5 h-5" />
           </div>
         </div>
@@ -1475,18 +1475,18 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         {/* Categories Card */}
         <div
           onClick={() => setShowCategoryModal(true)}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-md flex items-center justify-between ${categoryFilter !== "All" ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40" : "border-slate-200 shadow-2xs"
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-md flex items-center justify-between ${categoryFilter !== "All" ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/50" : "border-slate-200 dark:border-gray-700 shadow-2xs"
             }`}
           title="Click to view all categories & vendor counts"
         >
           <div>
-            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Categories</div>
-            <div className="text-xl font-black text-purple-600 mt-1">{activeCategoriesCount || categories.length}</div>
-            <span className={`text-[9px] font-bold block mt-0.5 ${categoryFilter !== "All" ? "text-purple-700 font-black" : "text-purple-600"}`}>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 dark:text-gray-400">Categories</div>
+            <div className="text-xl font-black text-purple-600 dark:text-purple-300 mt-1">{activeCategoriesCount || categories.length}</div>
+            <span className={`text-[9px] font-bold block mt-0.5 ${categoryFilter !== "All" ? "text-purple-700 dark:text-purple-300 font-black" : "text-purple-600 dark:text-purple-300"}`}>
               {categoryFilter !== "All" ? `Active: ${categoryFilter}` : "Click to view categories"}
             </span>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 flex items-center justify-center">
             <FileText className="w-5 h-5" />
           </div>
         </div>
@@ -1498,40 +1498,40 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
             setAgreementFilter("All");
             setSearchQuery("");
           }}
-          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-amber-300 hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
+          className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-2xs hover:border-amber-300 hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
           title="Matching current search & filters. Click to reset all filters."
         >
           <div>
-            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Filtered Vendors</div>
-            <div className="text-xl font-black text-amber-600 mt-1">{filteredVendors.length}</div>
-            <span className="text-[9px] font-bold text-amber-600 block mt-0.5">Click to reset filters</span>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400 dark:text-gray-400">Filtered Vendors</div>
+            <div className="text-xl font-black text-amber-600 dark:text-amber-300 mt-1">{filteredVendors.length}</div>
+            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-300 block mt-0.5">Click to reset filters</span>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-300 flex items-center justify-center">
             <Search className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Search vendor name, shop, location, contact..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 shrink-0">Category Filter:</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-gray-400 shrink-0">Category Filter:</span>
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#714B67] w-full sm:w-52"
+              className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 w-full sm:w-52 dark:[color-scheme:dark]"
             >
               <option value="All">All Categories ({vendors.length})</option>
               {Object.keys(categoryCounts).map((catName, idx) => (
@@ -1550,7 +1550,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
               triggerToast("All filters cleared successfully!");
             }}
             disabled={!searchQuery && categoryFilter === "All" && agreementFilter === "All"}
-            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 disabled:opacity-40 disabled:hover:bg-rose-50 rounded-lg text-xs font-bold transition-all border border-rose-200 flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="px-3.5 py-2 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 disabled:opacity-40 disabled:hover:bg-rose-50 dark:disabled:hover:bg-rose-950/50 rounded-lg text-xs font-bold transition-all border dark:border-gray-700 border-rose-200 flex items-center gap-1.5 cursor-pointer shrink-0"
             title="Clear all active search and category filters"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Clear Filters
@@ -1559,11 +1559,11 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
       </div>
 
       {/* Structured Vendors Data Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500 font-mono">
+              <tr className="bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-gray-400 font-mono">
                 <th className="py-3.5 px-4 text-center w-14">ID</th>
                 <th className="py-3.5 px-4">Vendor Shop / Company Name</th>
                 <th className="py-3.5 px-4">Vendor Person</th>
@@ -1576,10 +1576,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 text-xs">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold animate-pulse">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 dark:text-gray-400 font-bold animate-pulse">
                     Loading vendors master data...
                   </td>
                 </tr>
@@ -1587,8 +1587,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                 <tr>
                   <td colSpan={9} className="py-12 text-center">
                     <div className="max-w-xs mx-auto space-y-2">
-                      <p className="text-sm font-black text-slate-700">No Vendors Found</p>
-                      <p className="text-xs text-slate-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
+                      <p className="text-sm font-black text-slate-700 dark:text-gray-100">No Vendors Found</p>
+                      <p className="text-xs text-slate-400 dark:text-gray-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
                       <button
                         onClick={() => setShowAddVendorModal(true)}
                         className="mt-2 px-4 py-2 bg-[#714B67] text-white text-xs font-bold rounded-lg hover:bg-[#5F3F56] transition-all inline-flex items-center gap-1.5"
@@ -1610,45 +1610,45 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                   const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
 
                   return (
-                    <tr key={vendor.id || idx} className="hover:bg-slate-50/70 transition-all group">
+                    <tr key={vendor.id || idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-all group">
 
                       {/* 1. ID Numbering */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className="inline-block bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[11px]">
+                        <span className="inline-block bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 px-2 py-0.5 rounded font-mono font-black text-[11px]">
                           {vCode}
                         </span>
                       </td>
 
                       {/* 2. Shop / Company Name */}
-                      <td className="py-3.5 px-4 font-black text-slate-800 group-hover:text-[#714B67] transition-colors">
+                      <td className="py-3.5 px-4 font-black text-slate-800 dark:text-gray-100 group-hover:text-[#714B67] dark:group-hover:text-purple-300 transition-colors">
                         {shopName}
                       </td>
 
                       {/* 3. Vendor Person */}
-                      <td className="py-3.5 px-4 font-bold text-slate-700">
+                      <td className="py-3.5 px-4 font-bold text-slate-700 dark:text-gray-100">
                         {personName}
                       </td>
 
                       {/* 4. Category */}
                       <td className="py-3.5 px-4">
-                        <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
+                        <span className="bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
                           {category}
                         </span>
                       </td>
 
                       {/* 5. Location */}
-                      <td className="py-3.5 px-4 text-slate-600 font-semibold">
+                      <td className="py-3.5 px-4 text-slate-600 dark:text-gray-300 font-semibold">
                         {location}
                       </td>
 
                       {/* 6. Contact Details */}
                       <td className="py-3.5 px-4 font-mono space-y-0.5">
-                        <div className="text-slate-800 font-bold text-[11px]">📞 {mobile}</div>
-                        {email && <div className="text-slate-500 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
+                        <div className="text-slate-800 dark:text-gray-100 font-bold text-[11px]">📞 {mobile}</div>
+                        {email && <div className="text-slate-500 dark:text-gray-400 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
                       </td>
 
                       {/* 7. Services Provided */}
-                      <td className="py-3.5 px-4 text-slate-700 font-medium max-w-[200px] truncate">
+                      <td className="py-3.5 px-4 text-slate-700 dark:text-gray-100 font-medium max-w-[200px] truncate">
                         {serviceType}
                       </td>
 
@@ -1659,12 +1659,12 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                             href={vendor.agreementUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 px-2.5 py-1 rounded-md border dark:border-gray-700 border-indigo-200 transition-all"
                           >
                             📄 View File
                           </a>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-medium">No File</span>
+                          <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">No File</span>
                         )}
                       </td>
 
@@ -1674,7 +1674,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(vendor)}
-                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
+                            className="p-1.5 text-slate-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg border border-slate-200 dark:border-gray-700 transition-all"
                             title="Edit Vendor"
                           >
                             ✏️
@@ -1683,7 +1683,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                           <button
                             type="button"
                             onClick={() => handleDeleteVendor(vendor.id, shopName)}
-                            className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
+                            className="p-1.5 text-slate-600 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg border border-slate-200 dark:border-gray-700 transition-all"
                             title="Delete Vendor"
                           >
                             🗑️
@@ -1703,20 +1703,20 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
       {/* Category Overview Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-fadeIn">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-purple-50/60">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-gray-700 animate-fadeIn">
+            <div className="p-5 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-purple-50/60 dark:bg-purple-950/50">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-purple-600 text-white">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-850">Vendor Categories</h3>
-                  <p className="text-xs text-slate-500 font-medium">Click any category to filter vendors</p>
+                  <h3 className="text-base font-black text-slate-850 dark:text-gray-100">Vendor Categories</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">Click any category to filter vendors</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold transition-all cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 font-bold transition-all cursor-pointer"
               >
                 ✕
               </button>
@@ -1730,17 +1730,17 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                 }}
                 className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${categoryFilter === "All"
                     ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                    : "bg-slate-50 hover:bg-purple-50/50 text-slate-700 border-slate-200"
+                    : "bg-slate-50 dark:bg-gray-800 hover:bg-purple-50/50 dark:hover:bg-purple-950/50 text-slate-700 dark:text-gray-100 border-slate-200 dark:border-gray-700"
                   }`}
               >
                 <span>All Categories</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${categoryFilter === "All" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${categoryFilter === "All" ? "bg-white/20 dark:bg-gray-900 text-white" : "bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-100"}`}>
                   {vendors.length} Vendors
                 </span>
               </button>
 
               {Object.keys(categoryCounts).length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs font-bold">No active vendor categories found</div>
+                <div className="text-center py-6 text-slate-400 dark:text-gray-400 text-xs font-bold">No active vendor categories found</div>
               ) : (
                 Object.keys(categoryCounts).map((catName, idx) => {
                   const count = categoryCounts[catName];
@@ -1755,14 +1755,14 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                       }}
                       className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${isSelected
                           ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                          : "bg-white hover:bg-purple-50/50 text-slate-800 border-slate-200 hover:border-purple-300"
+                          : "bg-white dark:bg-gray-900 hover:bg-purple-50/50 dark:hover:bg-purple-950/50 text-slate-800 dark:text-gray-100 border-slate-200 dark:border-gray-700 hover:border-purple-300"
                         }`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-white" : "bg-purple-500"}`}></span>
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-white dark:bg-gray-900" : "bg-purple-500"}`}></span>
                         {catName}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black font-mono ${isSelected ? "bg-white/20 text-white" : "bg-purple-50 text-purple-700"}`}>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black font-mono ${isSelected ? "bg-white/20 dark:bg-gray-900 text-white" : "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300"}`}>
                         {count} {count === 1 ? "Vendor" : "Vendors"}
                       </span>
                     </button>
@@ -1771,10 +1771,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
               )}
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100 text-right">
+            <div className="p-4 bg-slate-50 dark:bg-gray-800 border-t border-slate-100 dark:border-gray-700 text-right">
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                className="px-4 py-2 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
                 Close Overview
               </button>
@@ -1786,13 +1786,13 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
       {/* Direct Add Vendor Modal */}
       {showAddVendorModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-[#714B67]/5 rounded-t-2xl">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-gray-700">
+            <div className="p-6 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-[#714B67]/5 rounded-t-2xl">
               <div>
-                <h2 className="text-lg font-black text-[#714B67] tracking-tight">+ Register New Vendor</h2>
-                <p className="text-xs text-slate-500 font-bold mt-0.5">Add a new vendor into the master database</p>
+                <h2 className="text-lg font-black text-[#714B67] dark:text-purple-300 tracking-tight">+ Register New Vendor</h2>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-bold mt-0.5">Add a new vendor into the master database</p>
               </div>
-              <button onClick={() => setShowAddVendorModal(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 transition-all text-slate-500 hover:text-rose-600 font-bold">
+              <button onClick={() => setShowAddVendorModal(false)} className="w-8 h-8 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all text-slate-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 font-bold">
                 ✕
               </button>
             </div>
@@ -1803,9 +1803,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 1. Vendor Name */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Name</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Name</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={addVendorForm.vendorName}
                       onChange={e => setAddVendorForm({ ...addVendorForm, vendorName: e.target.value })}
                       placeholder="e.g. Rahul Sharma"
@@ -1814,10 +1814,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 2. Vendor Shop Name / Company Name */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Shop Name / Company Name *</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Shop Name / Company Name *</label>
                     <input
                       required
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={addVendorForm.shopName}
                       onChange={e => setAddVendorForm({ ...addVendorForm, shopName: e.target.value })}
                       placeholder="e.g. Sharma Electronics & Hardware"
@@ -1826,9 +1826,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 3. Location */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Shop / Office Location (City / Address)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Shop / Office Location (City / Address)</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={addVendorForm.location}
                       onChange={e => setAddVendorForm({ ...addVendorForm, location: e.target.value })}
                       placeholder="e.g. Connaught Place, New Delhi / Indore"
@@ -1836,13 +1836,13 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                   </div>
 
                   {/* 4. Category Master Dropdown + Inline Add Option */}
-                  <div className="md:col-span-2 bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-2">
+                  <div className="md:col-span-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3 rounded-xl space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Category *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 tracking-wider">Category *</label>
                       <button
                         type="button"
                         onClick={() => setAddingNewCategory(!addingNewCategory)}
-                        className="text-[10px] font-bold text-[#714B67] hover:underline flex items-center gap-1"
+                        className="text-[10px] font-bold text-[#714B67] dark:text-purple-300 hover:underline flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" /> {addingNewCategory ? "Cancel Add Category" : "+ Add New Category"}
                       </button>
@@ -1850,7 +1850,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                     {!addingNewCategory ? (
                       <select
-                        className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                         value={addVendorForm.categorySelect}
                         onChange={e => setAddVendorForm({ ...addVendorForm, categorySelect: e.target.value })}
                       >
@@ -1863,7 +1863,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                         <input
                           type="text"
                           required
-                          className="flex-1 bg-white border border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                          className="flex-1 bg-white dark:bg-gray-900 border border-[#714B67] dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                           placeholder="Type New Category Name (Saves directly to DB Master)..."
                           value={newCategoryInput}
                           onChange={e => setNewCategoryInput(e.target.value)}
@@ -1882,10 +1882,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 5. Phone Number */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Phone Number *</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Phone Number *</label>
                     <input
                       required
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none font-mono"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none font-mono dark:[color-scheme:dark]"
                       value={addVendorForm.mobile}
                       onChange={e => setAddVendorForm({ ...addVendorForm, mobile: e.target.value })}
                       placeholder="+91 9876543210"
@@ -1894,10 +1894,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 6. Email Address */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Email Address (Optional)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Email Address (Optional)</label>
                     <input
                       type="email"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none font-mono"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none font-mono dark:[color-scheme:dark]"
                       value={addVendorForm.email}
                       onChange={e => setAddVendorForm({ ...addVendorForm, email: e.target.value })}
                       placeholder="vendor@company.com"
@@ -1906,9 +1906,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 7. Service Details / Vendor Work */}
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Work (Services Provided)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Work (Services Provided)</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={addVendorForm.serviceType}
                       onChange={e => setAddVendorForm({ ...addVendorForm, serviceType: e.target.value })}
                       placeholder="e.g. Broadband Connection, Computer Repair, AC AMC"
@@ -1917,16 +1917,16 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 8. Agreement Upload */}
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Agreement Document Upload (PDF / Image)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Agreement Document Upload (PDF / Image)</label>
                     {addVendorForm.agreementUrl ? (
-                      <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 p-2.5 rounded-lg">
-                        <a href={addVendorForm.agreementUrl} target="_blank" rel="noreferrer" className="text-indigo-700 text-xs font-bold underline truncate flex-1">View Uploaded Document</a>
-                        <button type="button" onClick={() => setAddVendorForm({ ...addVendorForm, agreementUrl: "" })} className="text-rose-600 text-xs font-black uppercase">Remove</button>
+                      <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 p-2.5 rounded-lg">
+                        <a href={addVendorForm.agreementUrl} target="_blank" rel="noreferrer" className="text-indigo-700 dark:text-indigo-300 text-xs font-bold underline truncate flex-1">View Uploaded Document</a>
+                        <button type="button" onClick={() => setAddVendorForm({ ...addVendorForm, agreementUrl: "" })} className="text-rose-600 dark:text-rose-300 text-xs font-black uppercase">Remove</button>
                       </div>
                     ) : (
                       <div className="relative">
-                        <input type="file" accept="image/*,.pdf" onChange={e => handleFileUpload(e, "add")} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        <div className={`w-full bg-slate-50 border border-slate-300 border-dashed rounded-lg p-3 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-indigo-500 border-indigo-400 bg-indigo-50' : 'text-slate-500 hover:bg-slate-100'}`}>
+                        <input type="file" accept="image/*,.pdf" onChange={e => handleFileUpload(e, "add")} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
+                        <div className={`w-full bg-slate-50 border border-slate-300 dark:border-gray-700 border-dashed rounded-lg p-3 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-indigo-500 border-indigo-400 bg-indigo-50 dark:bg-indigo-950/50' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
                           {uploadingDoc ? "Uploading Document..." : "Click to Upload Contract PDF / SLA Image"}
                         </div>
                       </div>
@@ -1935,8 +1935,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowAddVendorModal(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
+                <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowAddVendorModal(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all">Cancel</button>
                   <button type="submit" disabled={submitting || uploadingDoc} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-[#714B67] hover:bg-[#5F3F56] shadow-md transition-all flex items-center gap-2 disabled:opacity-50">
                     <CheckCircle className="w-4 h-4" /> Save Vendor
                   </button>
@@ -1950,13 +1950,13 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
       {/* Edit Vendor Modal */}
       {showEditVendorModal && editingVendor && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-[#714B67]/5 rounded-t-2xl">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-gray-700">
+            <div className="p-6 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-[#714B67]/5 rounded-t-2xl">
               <div>
-                <h2 className="text-lg font-black text-[#714B67] tracking-tight">✏️ Edit Vendor Details</h2>
-                <p className="text-xs text-slate-500 font-bold mt-0.5">Updating master record for: {editingVendor.shopName || editingVendor.vendorName}</p>
+                <h2 className="text-lg font-black text-[#714B67] dark:text-purple-300 tracking-tight">✏️ Edit Vendor Details</h2>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-bold mt-0.5">Updating master record for: {editingVendor.shopName || editingVendor.vendorName}</p>
               </div>
-              <button onClick={() => setShowEditVendorModal(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 transition-all text-slate-500 hover:text-rose-600 font-bold">
+              <button onClick={() => setShowEditVendorModal(false)} className="w-8 h-8 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all text-slate-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 font-bold">
                 ✕
               </button>
             </div>
@@ -1967,9 +1967,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 1. Vendor Name */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Name</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Name</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={editVendorForm.vendorName}
                       onChange={e => setEditVendorForm({ ...editVendorForm, vendorName: e.target.value })}
                       placeholder="e.g. Rahul Sharma"
@@ -1978,10 +1978,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 2. Vendor Shop Name / Company Name */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Shop Name / Company Name *</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Shop Name / Company Name *</label>
                     <input
                       required
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={editVendorForm.shopName}
                       onChange={e => setEditVendorForm({ ...editVendorForm, shopName: e.target.value })}
                       placeholder="e.g. Sharma Electronics & Hardware"
@@ -1990,9 +1990,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 3. Location */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Shop / Office Location (City / Address)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Shop / Office Location (City / Address)</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={editVendorForm.location}
                       onChange={e => setEditVendorForm({ ...editVendorForm, location: e.target.value })}
                       placeholder="e.g. Connaught Place, New Delhi / Indore"
@@ -2000,13 +2000,13 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                   </div>
 
                   {/* 4. Category Master Dropdown + Inline Add Option */}
-                  <div className="md:col-span-2 bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-2">
+                  <div className="md:col-span-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3 rounded-xl space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Category *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 tracking-wider">Category *</label>
                       <button
                         type="button"
                         onClick={() => setAddingNewCategory(!addingNewCategory)}
-                        className="text-[10px] font-bold text-[#714B67] hover:underline flex items-center gap-1"
+                        className="text-[10px] font-bold text-[#714B67] dark:text-purple-300 hover:underline flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" /> {addingNewCategory ? "Cancel Add Category" : "+ Add New Category"}
                       </button>
@@ -2014,7 +2014,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                     {!addingNewCategory ? (
                       <select
-                        className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                         value={editVendorForm.categorySelect}
                         onChange={e => setEditVendorForm({ ...editVendorForm, categorySelect: e.target.value })}
                       >
@@ -2027,7 +2027,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                         <input
                           type="text"
                           required
-                          className="flex-1 bg-white border border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                          className="flex-1 bg-white dark:bg-gray-900 border border-[#714B67] dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                           placeholder="Type New Category Name (Saves directly to DB Master)..."
                           value={newCategoryInput}
                           onChange={e => setNewCategoryInput(e.target.value)}
@@ -2046,10 +2046,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 5. Phone Number */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Phone Number *</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Phone Number *</label>
                     <input
                       required
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none font-mono"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none font-mono dark:[color-scheme:dark]"
                       value={editVendorForm.mobile}
                       onChange={e => setEditVendorForm({ ...editVendorForm, mobile: e.target.value })}
                       placeholder="+91 9876543210"
@@ -2058,10 +2058,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 6. Email Address */}
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Email Address (Optional)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Email Address (Optional)</label>
                     <input
                       type="email"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none font-mono"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none font-mono dark:[color-scheme:dark]"
                       value={editVendorForm.email}
                       onChange={e => setEditVendorForm({ ...editVendorForm, email: e.target.value })}
                       placeholder="vendor@company.com"
@@ -2070,9 +2070,9 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 7. Service Details / Vendor Work */}
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Vendor Work (Services Provided)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Vendor Work (Services Provided)</label>
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                       value={editVendorForm.serviceType}
                       onChange={e => setEditVendorForm({ ...editVendorForm, serviceType: e.target.value })}
                       placeholder="e.g. Broadband Connection, Computer Repair, AC AMC"
@@ -2081,16 +2081,16 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                   {/* 8. Agreement Upload */}
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider block mb-1">Agreement Document Upload (PDF / Image)</label>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider block mb-1">Agreement Document Upload (PDF / Image)</label>
                     {editVendorForm.agreementUrl ? (
-                      <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 p-2.5 rounded-lg">
-                        <a href={editVendorForm.agreementUrl} target="_blank" rel="noreferrer" className="text-indigo-700 text-xs font-bold underline truncate flex-1">View Uploaded Document</a>
-                        <button type="button" onClick={() => setEditVendorForm({ ...editVendorForm, agreementUrl: "" })} className="text-rose-600 text-xs font-black uppercase">Remove</button>
+                      <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 p-2.5 rounded-lg">
+                        <a href={editVendorForm.agreementUrl} target="_blank" rel="noreferrer" className="text-indigo-700 dark:text-indigo-300 text-xs font-bold underline truncate flex-1">View Uploaded Document</a>
+                        <button type="button" onClick={() => setEditVendorForm({ ...editVendorForm, agreementUrl: "" })} className="text-rose-600 dark:text-rose-300 text-xs font-black uppercase">Remove</button>
                       </div>
                     ) : (
                       <div className="relative">
-                        <input type="file" accept="image/*,.pdf" onChange={e => handleFileUpload(e, "edit")} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        <div className={`w-full bg-slate-50 border border-slate-300 border-dashed rounded-lg p-3 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-indigo-500 border-indigo-400 bg-indigo-50' : 'text-slate-500 hover:bg-slate-100'}`}>
+                        <input type="file" accept="image/*,.pdf" onChange={e => handleFileUpload(e, "edit")} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
+                        <div className={`w-full bg-slate-50 border border-slate-300 dark:border-gray-700 border-dashed rounded-lg p-3 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-indigo-500 border-indigo-400 bg-indigo-50 dark:bg-indigo-950/50' : 'text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
                           {uploadingDoc ? "Uploading Document..." : "Click to Upload Contract PDF / SLA Image"}
                         </div>
                       </div>
@@ -2099,8 +2099,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowEditVendorModal(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
+                <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowEditVendorModal(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all">Cancel</button>
                   <button type="submit" disabled={submitting || uploadingDoc} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-[#714B67] hover:bg-[#5F3F56] shadow-md transition-all flex items-center gap-2 disabled:opacity-50">
                     <CheckCircle className="w-4 h-4" /> Update Vendor
                   </button>
@@ -2582,11 +2582,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
   const territoriesCount = Array.from(new Set(franchises.map(f => (f.territory || "").trim()).filter(Boolean))).length;
 
   return (
-    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-800">Franchise & Territory Partners</h1>
-          <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">Directory of registered franchise partners & territory agreements</p>
+          <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-gray-100">Franchise & Territory Partners</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 sm:mt-1">Directory of registered franchise partners & territory agreements</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
@@ -2607,7 +2607,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <button
             onClick={loadFranchises}
             disabled={loading}
-            className="p-2 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0 shadow-2xs cursor-pointer"
+            className="p-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0 shadow-2xs cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -2618,65 +2618,65 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
         <div
           onClick={() => { setStatusFilter("All"); setExpiryFilter("All"); setRiskFilter("All"); }}
-          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "All" && expiryFilter === "All" && riskFilter === "All" ? "border-slate-400 ring-2 ring-slate-400/20 bg-slate-50/50" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "All" && expiryFilter === "All" && riskFilter === "All" ? "border-slate-400 ring-2 ring-slate-400/20 bg-slate-50/50 dark:bg-slate-950/50" : "border-slate-200 dark:border-gray-700"
             }`}
         >
-          <div className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 font-mono truncate">Total Partners</div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalPartnersCount}</div>
-          <div className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 font-medium truncate">Click to view all</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono truncate">Total Partners</div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-gray-100 mt-1">{totalPartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-gray-400 mt-0.5 font-medium truncate">Click to view all</div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Active"); setExpiryFilter("All"); }}
-          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/50" : "border-slate-200 dark:border-gray-700"
             }`}
         >
-          <div className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-600 font-mono truncate">Active Partners</div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">{activePartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-300 font-mono truncate">Active Partners</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">{activePartnersCount}</div>
           <div className="text-[9px] sm:text-[10px] text-emerald-600/80 mt-0.5 font-medium truncate">Verified Accounts</div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Pending"); setExpiryFilter("All"); }}
-          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Pending" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Pending" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30 dark:bg-amber-950/50" : "border-slate-200 dark:border-gray-700"
             }`}
         >
-          <div className="text-[9px] sm:text-[10px] font-black uppercase text-amber-600 font-mono truncate">Pending Approval</div>
-          <div className="text-xl sm:text-2xl font-black text-amber-700 mt-1">{pendingPartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-amber-600 dark:text-amber-300 font-mono truncate">Pending Approval</div>
+          <div className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 mt-1">{pendingPartnersCount}</div>
           <div className="text-[9px] sm:text-[10px] text-amber-600/80 mt-0.5 font-medium truncate">Awaiting Clearance</div>
         </div>
 
         <div
           onClick={() => { setExpiryFilter("ExpiringSoon"); setStatusFilter("All"); }}
-          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${expiryFilter === "ExpiringSoon" || expiryFilter === "Expired" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${expiryFilter === "ExpiringSoon" || expiryFilter === "Expired" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30 dark:bg-rose-950/50" : "border-slate-200 dark:border-gray-700"
             }`}
         >
-          <div className="text-[9px] sm:text-[10px] font-black uppercase text-rose-600 font-mono flex items-center gap-1 truncate">
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-rose-600 dark:text-rose-300 font-mono flex items-center gap-1 truncate">
             <Clock className="w-3 h-3 shrink-0" /> Expiry Alert
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1">{expiringOrExpiredCount}</div>
+          <div className="text-xl sm:text-2xl font-black text-rose-700 dark:text-rose-300 mt-1">{expiringOrExpiredCount}</div>
           <div className="text-[9px] sm:text-[10px] text-rose-600/80 mt-0.5 font-medium truncate">Expiring / Expired</div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-3.5 shadow-xs col-span-2 sm:col-span-1 lg:col-span-1">
-          <div className="text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 font-mono truncate">Territories</div>
-          <div className="text-xl sm:text-2xl font-black text-indigo-700 mt-1">{territoriesCount}</div>
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-3.5 shadow-xs col-span-2 sm:col-span-1 lg:col-span-1">
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-300 font-mono truncate">Territories</div>
+          <div className="text-xl sm:text-2xl font-black text-indigo-700 dark:text-indigo-300 mt-1">{territoriesCount}</div>
           <div className="text-[9px] sm:text-[10px] text-indigo-600/80 mt-0.5 font-medium truncate">Cities / Regions</div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
+      <div className="bg-slate-50/70 dark:bg-slate-950/50 border dark:border-gray-700 border-slate-200/80 rounded-xl p-3 flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 flex-1">
           {/* Search Box */}
           <div className="relative sm:col-span-2 md:col-span-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search Firm, Contact, Territory..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800 w-full shadow-2xs"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 w-full shadow-2xs dark:[color-scheme:dark]"
             />
           </div>
 
@@ -2684,7 +2684,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
+            className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 cursor-pointer shadow-2xs w-full dark:[color-scheme:dark]"
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active Only</option>
@@ -2695,7 +2695,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={expiryFilter}
             onChange={e => setExpiryFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
+            className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 cursor-pointer shadow-2xs w-full dark:[color-scheme:dark]"
           >
             <option value="All">All Agreements</option>
             <option value="ExpiringSoon">⏳ Expiring Soon (&lt; 30d)</option>
@@ -2707,7 +2707,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={riskFilter}
             onChange={e => setRiskFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
+            className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-700 dark:text-gray-100 cursor-pointer shadow-2xs w-full dark:[color-scheme:dark]"
           >
             <option value="All">All Risk Levels</option>
             <option value="Low">Low Risk</option>
@@ -2725,7 +2725,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 setRiskFilter("All");
                 setExpiryFilter("All");
               }}
-              className="text-xs text-rose-600 font-bold hover:underline px-2 py-1"
+              className="text-xs text-rose-600 dark:text-rose-300 font-bold hover:underline px-2 py-1"
             >
               Clear Filters
             </button>
@@ -2734,11 +2734,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
       </div>
 
       {/* Main Full-Width Data Table */}
-      <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[860px]">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-600 font-mono">
+              <tr className="bg-slate-50/80 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 text-[10px] uppercase font-black tracking-wider text-slate-600 dark:text-gray-300 font-mono">
                 <th className="py-3 px-3.5 sm:px-4">Business / Firm Name</th>
                 <th className="py-3 px-3.5 sm:px-4">Contact Person</th>
                 <th className="py-3 px-3.5 sm:px-4">Email & Mobile</th>
@@ -2751,16 +2751,16 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 <th className="py-3 px-3.5 sm:px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-150 text-xs">
+            <tbody className="divide-y dark:divide-gray-700 divide-slate-150 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-slate-400 font-bold text-xs animate-pulse">
+                  <td colSpan={10} className="text-center py-12 text-slate-400 dark:text-gray-400 font-bold text-xs animate-pulse">
                     Loading franchise partners...
                   </td>
                 </tr>
               ) : filteredFranchises.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-slate-400 font-bold text-xs">
+                  <td colSpan={10} className="text-center py-12 text-slate-400 dark:text-gray-400 font-bold text-xs">
                     No franchise partners found matching selected filters.
                   </td>
                 </tr>
@@ -2772,63 +2772,63 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     <tr
                       key={franchise.id || i}
                       onClick={() => handleSelectFranchise(franchise)}
-                      className={`cursor-pointer transition-all ${isSelected ? "bg-[#714B67]/5 font-medium" : "hover:bg-slate-50/80"
+                      className={`cursor-pointer transition-all ${isSelected ? "bg-[#714B67]/5 font-medium" : "hover:bg-slate-50/80 dark:hover:bg-slate-950/50"
                         }`}
                     >
                       {/* 1. Business / Firm Name */}
-                      <td className="py-3 px-3.5 sm:px-4 font-bold text-slate-900">
+                      <td className="py-3 px-3.5 sm:px-4 font-bold text-slate-900 dark:text-gray-100">
                         {franchise.partnerName || franchise.user?.name || "Unknown Partner"}
                         {franchise.address && (
-                          <span className="block text-[10px] font-normal text-slate-500 truncate max-w-[180px] sm:max-w-[200px]">
+                          <span className="block text-[10px] font-normal text-slate-500 dark:text-gray-400 truncate max-w-[180px] sm:max-w-[200px]">
                             {franchise.address}
                           </span>
                         )}
                       </td>
 
                       {/* 2. Contact Person */}
-                      <td className="py-3 px-3.5 sm:px-4 text-slate-700 font-semibold">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-700 dark:text-gray-100 font-semibold">
                         {franchise.contactPerson || "N/A"}
                       </td>
 
                       {/* 3. Email & Mobile */}
-                      <td className="py-3 px-3.5 sm:px-4 text-slate-600">
-                        <span className="block font-medium text-slate-800">{franchise.email || "N/A"}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{franchise.mobile || "N/A"}</span>
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-600 dark:text-gray-300">
+                        <span className="block font-medium text-slate-800 dark:text-gray-100">{franchise.email || "N/A"}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">{franchise.mobile || "N/A"}</span>
                       </td>
 
                       {/* 4. Territory & Location */}
-                      <td className="py-3 px-3.5 sm:px-4 text-slate-800 font-semibold">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-800 dark:text-gray-100 font-semibold">
                         {franchise.territory || "N/A"}
                         {franchise.state && (
-                          <span className="block text-[10px] font-mono text-slate-400 uppercase">
+                          <span className="block text-[10px] font-mono text-slate-400 dark:text-gray-400 uppercase">
                             {franchise.state} {franchise.pincode ? `(${franchise.pincode})` : ""}
                           </span>
                         )}
                       </td>
 
                       {/* 5. Brand / Project */}
-                      <td className="py-3 px-3.5 sm:px-4 font-bold text-indigo-700">
+                      <td className="py-3 px-3.5 sm:px-4 font-bold text-indigo-700 dark:text-indigo-300">
                         {franchise.brandProject || "N/A"}
                       </td>
 
                       {/* 6. Agreement & Expiry */}
-                      <td className="py-3 px-3.5 sm:px-4 text-slate-800">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-800 dark:text-gray-100">
                         {(() => {
                           const exp = getAgreementExpiryInfo(franchise.agreementEndDate);
                           return (
                             <div>
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border inline-flex items-center gap-1 ${exp.color === "rose" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                                  exp.color === "amber" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                    exp.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border inline-flex items-center gap-1 ${exp.color === "rose" ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200" :
+                                  exp.color === "amber" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200" :
+                                    exp.color === "emerald" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200" : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700"
                                 }`}>
                                 <Clock className="w-2.5 h-2.5 shrink-0" /> {exp.label}
                               </span>
                               {franchise.agreementEndDate ? (
-                                <span className="block text-[10px] font-mono text-slate-400 mt-0.5">
+                                <span className="block text-[10px] font-mono text-slate-400 dark:text-gray-400 mt-0.5">
                                   End: {franchise.agreementEndDate}
                                 </span>
                               ) : (
-                                <span className="block text-[10px] text-slate-400 italic mt-0.5">No End Date</span>
+                                <span className="block text-[10px] text-slate-400 dark:text-gray-400 italic mt-0.5">No End Date</span>
                               )}
                             </div>
                           );
@@ -2843,7 +2843,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                               href={franchise.agreementUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded text-[10px] font-bold border border-indigo-200 flex items-center gap-1"
+                              className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 rounded text-[10px] font-bold border dark:border-gray-700 border-indigo-200 flex items-center gap-1"
                               title="View Agreement PDF"
                             >
                               <FileText className="w-3 h-3" /> Agreement
@@ -2854,21 +2854,21 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                               href={franchise.kycDocUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded text-[10px] font-bold border border-emerald-200 flex items-center gap-1"
+                              className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 rounded text-[10px] font-bold border dark:border-gray-700 border-emerald-200 flex items-center gap-1"
                               title="View KYC Document"
                             >
                               <Paperclip className="w-3 h-3" /> KYC
                             </a>
                           ) : null}
                           {!franchise.agreementUrl && !franchise.kycDocUrl && (
-                            <span className="text-[10px] text-slate-400 italic">None</span>
+                            <span className="text-[10px] text-slate-400 dark:text-gray-400 italic">None</span>
                           )}
                         </div>
                       </td>
 
                       {/* 8. Risk Level */}
                       <td className="py-3 px-3.5 sm:px-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${franchise.riskLevel === "High" ? "bg-rose-50 text-rose-700 border-rose-200" : franchise.riskLevel === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border dark:border-gray-700 ${franchise.riskLevel === "High" ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200" : franchise.riskLevel === "Medium" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
                           }`}>
                           {franchise.riskLevel || "Low"}
                         </span>
@@ -2878,7 +2878,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       <td className="py-3 px-3.5 sm:px-4">
                         <button
                           onClick={(e) => handleToggleStatus(franchise, e)}
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border transition-all cursor-pointer ${franchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border dark:border-gray-700 transition-all cursor-pointer ${franchise.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/50" : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50"
                             }`}
                           title="Click to toggle status (Active / Pending)"
                         >
@@ -2895,9 +2895,9 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                               return (
                                 <button
                                   onClick={(e) => handleSendRenewalNotice(franchise, e)}
-                                  className={`px-2 py-1 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1 cursor-pointer ${exp.status === "Expired"
-                                      ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                                      : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 animate-pulse"
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-black border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${exp.status === "Expired"
+                                      ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 hover:bg-rose-100 dark:hover:bg-rose-950/50"
+                                      : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50 animate-pulse"
                                     }`}
                                   title={`Agreement ${exp.status} (${exp.label}). Click to copy reminder notice.`}
                                 >
@@ -2910,14 +2910,14 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                           })()}
                           <button
                             onClick={(e) => handleEditPartner(franchise, e)}
-                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-200 flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold transition-all border dark:border-gray-700 border-indigo-200 flex items-center gap-1 cursor-pointer"
                             title="Edit Partner & Agreement Terms"
                           >
                             <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={(e) => handleDeletePartner(franchise.id, franchise.partnerName, e)}
-                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition-all border border-rose-200 flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-bold transition-all border dark:border-gray-700 border-rose-200 flex items-center gap-1 cursor-pointer"
                             title="Delete Partner"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -2935,34 +2935,34 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
 
       {/* Expanded Selected Partner Details (Renders Below the Table) */}
       {selectedFranchise && (
-        <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-md animate-fadeIn space-y-4 sm:space-y-6 border-t-4 border-t-[#714B67]">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-md animate-fadeIn space-y-4 sm:space-y-6 border-t-4 border-t-[#714B67]">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start pb-3.5 sm:pb-4 border-b border-slate-200 gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start pb-3.5 sm:pb-4 border-b border-slate-200 dark:border-gray-700 gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-[#714B67]/10 text-[#714B67] shrink-0"><UserPlus className="w-5 h-5" /></span>
+                <span className="p-2 rounded-xl bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 shrink-0"><UserPlus className="w-5 h-5" /></span>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-gray-100">
                     {selectedFranchise.partnerName || "Unknown Partner"}
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Registered on {new Date(selectedFranchise.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">Registered on {new Date(selectedFranchise.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
               <button
                 onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
-                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <Send className="w-3.5 h-3.5" /> Send Renewal Reminder
               </button>
-              <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black border ${selectedFranchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+              <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black border dark:border-gray-700 ${selectedFranchise.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200" : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
                 }`}>
                 Status: {selectedFranchise.status || "Pending"}
               </span>
               <button
                 onClick={() => setSelectedFranchise(null)}
-                className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all cursor-pointer"
               >
                 ✕ Close Details
               </button>
@@ -2974,17 +2974,17 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             const exp = getAgreementExpiryInfo(selectedFranchise.agreementEndDate);
             if (exp.status === "Expired" || exp.status === "Expiring Soon") {
               return (
-                <div className={`p-3 sm:p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 text-xs font-semibold ${exp.status === "Expired" ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-amber-50 border-amber-200 text-amber-800"
+                <div className={`p-3 sm:p-3.5 rounded-xl border dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 text-xs font-semibold ${exp.status === "Expired" ? "bg-rose-50 dark:bg-rose-950/50 border-rose-200 text-rose-800 dark:text-rose-300" : "bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-800 dark:text-amber-300"
                   }`}>
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-300" />
                     <span>
                       <strong>Agreement Status Alert:</strong> Franchise contract {exp.status === "Expired" ? `expired ${Math.abs(exp.daysLeft!)} days ago` : `expires in ${exp.daysLeft} days`} ({selectedFranchise.agreementEndDate || 'No Date'}). Please proceed with renewal.
                     </span>
                   </div>
                   <button
                     onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
-                    className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 border rounded-lg text-xs font-bold shrink-0 transition-all shadow-2xs cursor-pointer w-full sm:w-auto"
+                    className="px-3 py-1 bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 border dark:border-gray-700 rounded-lg text-xs font-bold shrink-0 transition-all shadow-2xs cursor-pointer w-full sm:w-auto"
                   >
                     Copy Reminder Draft
                   </button>
@@ -2998,125 +2998,125 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
             {/* Section 1: Basic Information & Address */}
-            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Basic Information & Address
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Firm / Business Name</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.partnerName || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Firm / Business Name</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.partnerName || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Contact Person Name</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.contactPerson || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Contact Person Name</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.contactPerson || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Official Email</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.email || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Official Email</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.email || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Mobile Number</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.mobile || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Mobile Number</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.mobile || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">WhatsApp / Alternate</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.alternateMobile || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">WhatsApp / Alternate</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.alternateMobile || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Pincode</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.pincode || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Pincode</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.pincode || "N/A"}</span>
                 </div>
                 <div className="sm:col-span-2">
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Full Office Address</span>
-                  <span className="font-semibold text-slate-700">{selectedFranchise.address || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Full Office Address</span>
+                  <span className="font-semibold text-slate-700 dark:text-gray-100">{selectedFranchise.address || "N/A"}</span>
                 </div>
               </div>
             </div>
 
             {/* Section 2: Commercial & Business Terms */}
-            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Commercial & Business Terms
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Brand / Project</span>
-                  <span className="font-bold text-indigo-700">{selectedFranchise.brandProject || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Brand / Project</span>
+                  <span className="font-bold text-indigo-700 dark:text-indigo-300">{selectedFranchise.brandProject || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Revenue Share %</span>
-                  <span className="font-bold text-emerald-700">{selectedFranchise.revenueShare || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Revenue Share %</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300">{selectedFranchise.revenueShare || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Franchise Fee / Deposit (₹)</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.franchiseFee ? `₹ ${selectedFranchise.franchiseFee}` : "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Franchise Fee / Deposit (₹)</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.franchiseFee ? `₹ ${selectedFranchise.franchiseFee}` : "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Agreement Start Date</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.agreementStartDate || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Agreement Start Date</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.agreementStartDate || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Agreement End Date</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.agreementEndDate || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Agreement End Date</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.agreementEndDate || "N/A"}</span>
                 </div>
               </div>
             </div>
 
             {/* Section 3: Legal & KYC Documents */}
-            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Legal & KYC Documents
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">GSTIN Number</span>
-                  <span className="font-mono font-bold text-slate-900">{selectedFranchise.gstin || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">GSTIN Number</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.gstin || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">PAN Card Number</span>
-                  <span className="font-mono font-bold text-slate-900">{selectedFranchise.pan || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">PAN Card Number</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.pan || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block mb-1">Franchise Agreement Document</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block mb-1">Franchise Agreement Document</span>
                   {selectedFranchise.agreementUrl ? (
                     <a href={selectedFranchise.agreementUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#714B67] text-white font-bold text-[11px] hover:bg-[#5F3F56] transition-all shadow-2xs">
                       <FileText className="w-3.5 h-3.5" /> View Agreement File
                     </a>
                   ) : (
-                    <span className="text-slate-400 italic text-[11px]">No agreement uploaded</span>
+                    <span className="text-slate-400 dark:text-gray-400 italic text-[11px]">No agreement uploaded</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block mb-1">KYC Document</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block mb-1">KYC Document</span>
                   {selectedFranchise.kycDocUrl ? (
                     <a href={selectedFranchise.kycDocUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-all shadow-2xs">
                       <FileText className="w-3.5 h-3.5" /> View KYC Document
                     </a>
                   ) : (
-                    <span className="text-slate-400 italic text-[11px]">No KYC uploaded</span>
+                    <span className="text-slate-400 dark:text-gray-400 italic text-[11px]">No KYC uploaded</span>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Section 4: Operations & Governance */}
-            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Operations & Governance
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Reporting Manager</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.reportingPerson || "N/A"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Reporting Manager</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.reportingPerson || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Risk Level</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.riskLevel || "Low"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Risk Level</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.riskLevel || "Low"}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-500 block">Account Status</span>
-                  <span className="font-bold text-slate-900">{selectedFranchise.status || "Pending"}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 block">Account Status</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100">{selectedFranchise.status || "Pending"}</span>
                 </div>
               </div>
             </div>
@@ -3128,21 +3128,21 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
       {/* Single Unified Register Franchise Partner Modal */}
       {showForm11 && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col my-auto border border-slate-200">
+          <div className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col my-auto border border-slate-200 dark:border-gray-700">
             {/* Modal Header */}
-            <div className="p-3.5 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-[#714B67]/10 rounded-t-xl sm:rounded-t-2xl gap-2">
+            <div className="p-3.5 sm:p-5 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-[#714B67]/10 rounded-t-xl sm:rounded-t-2xl gap-2">
               <div>
-                <h2 className="text-base sm:text-lg font-black text-[#714B67] tracking-tight flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-[#714B67] dark:text-purple-300 tracking-tight flex items-center gap-2">
                   <span className="p-1.5 rounded-lg bg-[#714B67] text-white shrink-0">
                     {editingPartnerId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </span>
                   <span>{editingPartnerId ? "Edit Franchise Partner" : "Add Franchise Partner"}</span>
                 </h2>
-                <p className="text-[11px] sm:text-xs text-slate-600 font-bold mt-0.5">
+                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-gray-300 font-bold mt-0.5">
                   {editingPartnerId ? "Update existing franchise partner profile & agreement terms" : "Officially onboard and register a new franchise partner"}
                 </p>
               </div>
-              <button onClick={() => setShowForm11(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 hover:border-rose-200 transition-all text-slate-400 hover:text-rose-600 cursor-pointer shrink-0">
+              <button onClick={() => setShowForm11(false)} className="w-8 h-8 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:border-rose-200 transition-all text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 cursor-pointer shrink-0">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
@@ -3152,8 +3152,8 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
               <form onSubmit={handleForm11Submit} className="space-y-4 sm:space-y-6">
 
                 {/* Section 1: Basic Partner Details */}
-                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 1. Basic Partner Details & Territory
                   </h3>
 
@@ -3162,8 +3162,8 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     const conflict = getTerritoryConflict(form11.territory, form11.pincode, editingPartnerId);
                     if (conflict) {
                       return (
-                        <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800 font-semibold flex items-center gap-2 animate-fadeIn">
-                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 rounded-lg text-xs text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-2 animate-fadeIn">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-300" />
                           <span>
                             <strong>Territory Conflict Alert:</strong> Territory/Pincode matches active partner <strong>"{conflict.partnerName}"</strong> ({conflict.territory || conflict.pincode}). Please verify territory exclusivity before saving.
                           </span>
@@ -3175,114 +3175,114 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Business / Firm Name *</label>
-                      <input required className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.partnerName} onChange={e => setForm11({ ...form11, partnerName: e.target.value })} placeholder="e.g. Acme Corp LLP" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Business / Firm Name *</label>
+                      <input required className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.partnerName} onChange={e => setForm11({ ...form11, partnerName: e.target.value })} placeholder="e.g. Acme Corp LLP" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Contact Person Name</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.contactPerson} onChange={e => setForm11({ ...form11, contactPerson: e.target.value })} placeholder="Owner / Signatory Name" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Contact Person Name</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.contactPerson} onChange={e => setForm11({ ...form11, contactPerson: e.target.value })} placeholder="Owner / Signatory Name" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Official Email</label>
-                      <input type="email" className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.email} onChange={e => setForm11({ ...form11, email: e.target.value })} placeholder="partner@domain.com" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Official Email</label>
+                      <input type="email" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.email} onChange={e => setForm11({ ...form11, email: e.target.value })} placeholder="partner@domain.com" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Mobile Number</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.mobile} onChange={e => setForm11({ ...form11, mobile: e.target.value })} placeholder="+91 XXXXX XXXXX" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Mobile Number</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.mobile} onChange={e => setForm11({ ...form11, mobile: e.target.value })} placeholder="+91 XXXXX XXXXX" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Alternate / WhatsApp Number</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.alternateMobile} onChange={e => setForm11({ ...form11, alternateMobile: e.target.value })} placeholder="WhatsApp Number" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Alternate / WhatsApp Number</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.alternateMobile} onChange={e => setForm11({ ...form11, alternateMobile: e.target.value })} placeholder="WhatsApp Number" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Territory / Allotted City *</label>
-                      <input required className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.territory} onChange={e => setForm11({ ...form11, territory: e.target.value })} placeholder="e.g. Jaipur North" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Territory / Allotted City *</label>
+                      <input required className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.territory} onChange={e => setForm11({ ...form11, territory: e.target.value })} placeholder="e.g. Jaipur North" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">State / Zone</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.state} onChange={e => setForm11({ ...form11, state: e.target.value })} placeholder="e.g. Rajasthan" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">State / Zone</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.state} onChange={e => setForm11({ ...form11, state: e.target.value })} placeholder="e.g. Rajasthan" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Pincode / Postal Code</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.pincode} onChange={e => setForm11({ ...form11, pincode: e.target.value })} placeholder="e.g. 302020" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Pincode / Postal Code</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.pincode} onChange={e => setForm11({ ...form11, pincode: e.target.value })} placeholder="e.g. 302020" />
                     </div>
                     <div className="sm:col-span-2 md:col-span-3">
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Full Office Address</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.address} onChange={e => setForm11({ ...form11, address: e.target.value })} placeholder="Plot / Suite No, Street Name, City, State" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Full Office Address</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.address} onChange={e => setForm11({ ...form11, address: e.target.value })} placeholder="Plot / Suite No, Street Name, City, State" />
                     </div>
                   </div>
                 </div>
 
                 {/* Section 2: Commercial & Business Terms */}
-                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 2. Commercial & Business Terms
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Brand / Project</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.brandProject} onChange={e => setForm11({ ...form11, brandProject: e.target.value })} placeholder="Brand / Project Name" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Brand / Project</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.brandProject} onChange={e => setForm11({ ...form11, brandProject: e.target.value })} placeholder="Brand / Project Name" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Revenue Share %</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.revenueShare} onChange={e => setForm11({ ...form11, revenueShare: e.target.value })} placeholder="e.g. 20% Net Split" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Revenue Share %</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.revenueShare} onChange={e => setForm11({ ...form11, revenueShare: e.target.value })} placeholder="e.g. 20% Net Split" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Franchise Fee / Deposit (₹)</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.franchiseFee} onChange={e => setForm11({ ...form11, franchiseFee: e.target.value })} placeholder="e.g. ₹ 5,00,000" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Franchise Fee / Deposit (₹)</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.franchiseFee} onChange={e => setForm11({ ...form11, franchiseFee: e.target.value })} placeholder="e.g. ₹ 5,00,000" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Agreement Start Date</label>
-                      <input type="date" className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.agreementStartDate} onChange={e => setForm11({ ...form11, agreementStartDate: e.target.value })} />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Agreement Start Date</label>
+                      <input type="date" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.agreementStartDate} onChange={e => setForm11({ ...form11, agreementStartDate: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Agreement End Date</label>
-                      <input type="date" className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.agreementEndDate} onChange={e => setForm11({ ...form11, agreementEndDate: e.target.value })} />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Agreement End Date</label>
+                      <input type="date" className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.agreementEndDate} onChange={e => setForm11({ ...form11, agreementEndDate: e.target.value })} />
                     </div>
                   </div>
                 </div>
 
                 {/* Section 3: Legal & KYC Documents */}
-                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 3. Legal & KYC Documents
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">GSTIN Number</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none font-mono" value={form11.gstin} onChange={e => setForm11({ ...form11, gstin: e.target.value.toUpperCase() })} placeholder="22AAAAA0000A1Z5" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">GSTIN Number</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none font-mono dark:[color-scheme:dark]" value={form11.gstin} onChange={e => setForm11({ ...form11, gstin: e.target.value.toUpperCase() })} placeholder="22AAAAA0000A1Z5" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">PAN Card Number</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none font-mono" value={form11.pan} onChange={e => setForm11({ ...form11, pan: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">PAN Card Number</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none font-mono dark:[color-scheme:dark]" value={form11.pan} onChange={e => setForm11({ ...form11, pan: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Franchise Agreement Upload</label>
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Franchise Agreement Upload</label>
                       {form11.agreementUrl ? (
-                        <div className="flex items-center justify-between p-2 bg-[#714B67]/10 border border-[#714B67]/30 rounded-lg mt-1 gap-2">
-                          <a href={form11.agreementUrl} target="_blank" rel="noreferrer" className="text-[#714B67] text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View Agreement File</a>
-                          <button type="button" onClick={() => setForm11({ ...form11, agreementUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50 shrink-0">Remove</button>
+                        <div className="flex items-center justify-between p-2 bg-[#714B67]/10 border dark:border-gray-700 border-[#714B67]/30 rounded-lg mt-1 gap-2">
+                          <a href={form11.agreementUrl} target="_blank" rel="noreferrer" className="text-[#714B67] dark:text-purple-300 text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View Agreement File</a>
+                          <button type="button" onClick={() => setForm11({ ...form11, agreementUrl: "" })} className="text-rose-600 dark:text-rose-300 text-[10px] font-black uppercase bg-white dark:bg-gray-900 px-2 py-0.5 rounded border dark:border-gray-700 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/50 shrink-0">Remove</button>
                         </div>
                       ) : (
                         <div className="relative mt-1">
-                          <input type="file" accept="image/*,.pdf" onChange={handleFileUpload} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                          <div className={`w-full bg-white border border-slate-300 border-dashed rounded-lg p-2 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-[#714B67] border-[#714B67] bg-[#714B67]/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+                          <input type="file" accept="image/*,.pdf" onChange={handleFileUpload} disabled={uploadingDoc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
+                          <div className={`w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 border-dashed rounded-lg p-2 text-xs font-bold text-center transition-all ${uploadingDoc ? 'text-[#714B67] dark:text-purple-300 border-[#714B67] bg-[#714B67]/10' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
                             {uploadingDoc ? "Uploading Agreement..." : "📎 Click to Upload Agreement PDF/Scan"}
                           </div>
                         </div>
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">KYC Document Upload</label>
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">KYC Document Upload</label>
                       {form11.kycDocUrl ? (
-                        <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg mt-1 gap-2">
-                          <a href={form11.kycDocUrl} target="_blank" rel="noreferrer" className="text-emerald-700 text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View KYC Document</a>
-                          <button type="button" onClick={() => setForm11({ ...form11, kycDocUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50 shrink-0">Remove</button>
+                        <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-lg mt-1 gap-2">
+                          <a href={form11.kycDocUrl} target="_blank" rel="noreferrer" className="text-emerald-700 dark:text-emerald-300 text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View KYC Document</a>
+                          <button type="button" onClick={() => setForm11({ ...form11, kycDocUrl: "" })} className="text-rose-600 dark:text-rose-300 text-[10px] font-black uppercase bg-white dark:bg-gray-900 px-2 py-0.5 rounded border dark:border-gray-700 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/50 shrink-0">Remove</button>
                         </div>
                       ) : (
                         <div className="relative mt-1">
-                          <input type="file" accept="image/*,.pdf" onChange={handleKycUpload} disabled={uploadingKyc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                          <div className={`w-full bg-white border border-slate-300 border-dashed rounded-lg p-2 text-xs font-bold text-center transition-all ${uploadingKyc ? 'text-emerald-600 border-emerald-400 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`}>
+                          <input type="file" accept="image/*,.pdf" onChange={handleKycUpload} disabled={uploadingKyc} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
+                          <div className={`w-full bg-white border border-slate-300 dark:border-gray-700 border-dashed rounded-lg p-2 text-xs font-bold text-center transition-all ${uploadingKyc ? 'text-emerald-600 dark:text-emerald-300 border-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-800'}`}>
                             {uploadingKyc ? "Uploading KYC..." : "📎 Click to Upload KYC Doc (Aadhaar/PAN/Reg)"}
                           </div>
                         </div>
@@ -3292,26 +3292,26 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Section 4: Operations & Governance */}
-                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 dark:bg-slate-950/50 rounded-xl border dark:border-gray-700 border-slate-200/80 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] dark:text-purple-300 flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 4. Operations & Governance
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Reporting Manager / Contact</label>
-                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.reportingPerson} onChange={e => setForm11({ ...form11, reportingPerson: e.target.value })} placeholder="Internal Account Manager Name" />
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Reporting Manager / Contact</label>
+                      <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.reportingPerson} onChange={e => setForm11({ ...form11, reportingPerson: e.target.value })} placeholder="Internal Account Manager Name" />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Risk Assessment Level</label>
-                      <select className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.riskLevel} onChange={e => setForm11({ ...form11, riskLevel: e.target.value })}>
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Risk Assessment Level</label>
+                      <select className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.riskLevel} onChange={e => setForm11({ ...form11, riskLevel: e.target.value })}>
                         <option value="Low">Low Risk</option>
                         <option value="Medium">Medium Risk</option>
                         <option value="High">High Risk</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Account Status</label>
-                      <select className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.status} onChange={e => setForm11({ ...form11, status: e.target.value })}>
+                      <label className="text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider">Account Status</label>
+                      <select className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none dark:[color-scheme:dark]" value={form11.status} onChange={e => setForm11({ ...form11, status: e.target.value })}>
                         <option value="Pending">Pending Approval</option>
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
@@ -3321,8 +3321,8 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Footer Controls */}
-                <div className="pt-3 sm:pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white py-2">
-                  <button type="button" onClick={() => setShowForm11(false)} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
+                <div className="pt-3 sm:pt-4 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white dark:bg-gray-900 py-2">
+                  <button type="button" onClick={() => setShowForm11(false)} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all border border-slate-200 dark:border-gray-700">
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting || uploadingDoc || uploadingKyc} className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-black uppercase text-white bg-[#714B67] hover:bg-[#5F3F56] shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer">

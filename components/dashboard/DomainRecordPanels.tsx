@@ -378,21 +378,21 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
   };
 
   return (
-    <div className="space-y-6 font-sans text-slate-800 pb-12">
+    <div className="space-y-6 font-sans text-slate-800 dark:text-gray-100 pb-12">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border border-[#E8E4DF] dark:border-gray-700 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <Globe className="w-6 h-6 text-indigo-600" />
-            <h1 className="text-xl font-black text-slate-900 tracking-wide">Domain & Infrastructure Registry</h1>
+            <Globe className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
+            <h1 className="text-xl font-black text-slate-900 dark:text-gray-100 tracking-wide">Domain & Infrastructure Registry</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-end md:self-auto">
           <button
             onClick={fetchRecords}
-            className="p-2 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] text-[#5D5B57] hover:text-[#1C1C1A] rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
+            className="p-2 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
             title="Refresh List"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
@@ -415,33 +415,33 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
             </button>
 
             {showAddMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E4DF] rounded-xl shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95">
-                <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-400 border-b border-[#E8E4DF]">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95">
+                <div className="px-3 py-1.5 text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 border-b border-[#E8E4DF] dark:border-gray-700">
                   Select Record Category
                 </div>
                 <button
                   onClick={() => handleOpenAddModal("Domain Record")}
-                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 transition-all"
+                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-2 transition-all"
                 >
-                  <Globe className="w-4 h-4 text-indigo-600" /> Domain Record
+                  <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> Domain Record
                 </button>
                 <button
                   onClick={() => handleOpenAddModal("Cloud Platform")}
-                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-600 flex items-center gap-2 transition-all"
+                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-sky-50 dark:hover:bg-sky-950/50 hover:text-sky-600 dark:hover:text-sky-300 flex items-center gap-2 transition-all"
                 >
-                  <Cloud className="w-4 h-4 text-sky-600" /> Cloud Platform
+                  <Cloud className="w-4 h-4 text-sky-600 dark:text-sky-300" /> Cloud Platform
                 </button>
                 <button
                   onClick={() => handleOpenAddModal("Gmail")}
-                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-rose-50 hover:text-rose-600 flex items-center gap-2 transition-all"
+                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-300 flex items-center gap-2 transition-all"
                 >
-                  <Mail className="w-4 h-4 text-rose-600" /> Gmail / Email Account
+                  <Mail className="w-4 h-4 text-rose-600 dark:text-rose-300" /> Gmail / Email Account
                 </button>
                 <button
                   onClick={() => handleOpenAddModal("GitHub Repo")}
-                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 flex items-center gap-2 transition-all"
+                  className="w-full px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-600 dark:hover:text-purple-300 flex items-center gap-2 transition-all"
                 >
-                  <GitBranch className="w-4 h-4 text-purple-600" /> GitHub Repo
+                  <GitBranch className="w-4 h-4 text-purple-600 dark:text-purple-300" /> GitHub Repo
                 </button>
               </div>
             )}
@@ -454,73 +454,73 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
         <div
           onClick={() => setActiveCategoryTab("all")}
           className={cn(
-            "p-4 rounded-2xl border transition-all cursor-pointer bg-white shadow-xs",
-            activeCategoryTab === "all" ? "border-indigo-600 ring-2 ring-indigo-100" : "border-[#E8E4DF] hover:border-slate-300"
+            "p-4 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer bg-white dark:bg-gray-900 shadow-xs",
+            activeCategoryTab === "all" ? "border-indigo-600 ring-2 ring-indigo-100" : "border-[#E8E4DF] dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700"
           )}
         >
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Total Asset Records</span>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{records.length}</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 block">Total Asset Records</span>
+          <span className="text-xl font-black text-slate-900 dark:text-gray-100 mt-1 block">{records.length}</span>
         </div>
 
         <div
           onClick={() => setActiveCategoryTab("Domain Record")}
           className={cn(
-            "p-4 rounded-2xl border transition-all cursor-pointer bg-white shadow-xs",
-            activeCategoryTab === "Domain Record" ? "border-indigo-600 ring-2 ring-indigo-100" : "border-[#E8E4DF] hover:border-slate-300"
+            "p-4 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer bg-white dark:bg-gray-900 shadow-xs",
+            activeCategoryTab === "Domain Record" ? "border-indigo-600 ring-2 ring-indigo-100" : "border-[#E8E4DF] dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700"
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Domains</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300">Domains</span>
             <Globe className="w-4 h-4 text-indigo-500" />
           </div>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{domainCount}</span>
+          <span className="text-xl font-black text-slate-900 dark:text-gray-100 mt-1 block">{domainCount}</span>
         </div>
 
         <div
           onClick={() => setActiveCategoryTab("Cloud Platform")}
           className={cn(
-            "p-4 rounded-2xl border transition-all cursor-pointer bg-white shadow-xs",
-            activeCategoryTab === "Cloud Platform" ? "border-sky-600 ring-2 ring-sky-100" : "border-[#E8E4DF] hover:border-slate-300"
+            "p-4 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer bg-white dark:bg-gray-900 shadow-xs",
+            activeCategoryTab === "Cloud Platform" ? "border-sky-600 ring-2 ring-sky-100" : "border-[#E8E4DF] dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700"
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">Cloud Platforms</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-300">Cloud Platforms</span>
             <Cloud className="w-4 h-4 text-sky-500" />
           </div>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{cloudCount}</span>
+          <span className="text-xl font-black text-slate-900 dark:text-gray-100 mt-1 block">{cloudCount}</span>
         </div>
 
         <div
           onClick={() => setActiveCategoryTab("Gmail")}
           className={cn(
-            "p-4 rounded-2xl border transition-all cursor-pointer bg-white shadow-xs",
-            activeCategoryTab === "Gmail" ? "border-rose-600 ring-2 ring-rose-100" : "border-[#E8E4DF] hover:border-slate-300"
+            "p-4 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer bg-white dark:bg-gray-900 shadow-xs",
+            activeCategoryTab === "Gmail" ? "border-rose-600 ring-2 ring-rose-100" : "border-[#E8E4DF] dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700"
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">Gmail Accounts</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-300">Gmail Accounts</span>
             <Mail className="w-4 h-4 text-rose-500" />
           </div>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{gmailCount}</span>
+          <span className="text-xl font-black text-slate-900 dark:text-gray-100 mt-1 block">{gmailCount}</span>
         </div>
 
         <div
           onClick={() => setActiveCategoryTab("GitHub Repo")}
           className={cn(
-            "p-4 rounded-2xl border transition-all cursor-pointer bg-white shadow-xs",
-            activeCategoryTab === "GitHub Repo" ? "border-purple-600 ring-2 ring-purple-100" : "border-[#E8E4DF] hover:border-slate-300"
+            "p-4 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer bg-white dark:bg-gray-900 shadow-xs",
+            activeCategoryTab === "GitHub Repo" ? "border-purple-600 ring-2 ring-purple-100" : "border-[#E8E4DF] dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700"
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-purple-600">GitHub Repos</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-300">GitHub Repos</span>
             <GitBranch className="w-4 h-4 text-purple-500" />
           </div>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{githubCount}</span>
+          <span className="text-xl font-black text-slate-900 dark:text-gray-100 mt-1 block">{githubCount}</span>
         </div>
       </div>
 
       {/* Filter & Search Controls */}
-      <div className="bg-white p-4 rounded-2xl border border-[#E8E4DF] flex flex-col md:flex-row items-center justify-between gap-4 shadow-xs">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-[#E8E4DF] dark:border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Category Tabs */}
           {[
@@ -537,7 +537,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                 "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
                 activeCategoryTab === tab.id
                   ? "bg-slate-900 text-white shadow-xs"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-800"
               )}
             >
               {tab.label}
@@ -550,7 +550,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
           <select
             value={selectedStatusFilter}
             onChange={e => setSelectedStatusFilter(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none"
+            className="px-3 py-1.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-gray-100 outline-none dark:[color-scheme:dark]"
           >
             <option value="all">All Statuses</option>
             <option value="In Use">In Use</option>
@@ -562,13 +562,13 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
           {/* Search Box */}
           <div className="relative flex-1 md:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search records, domain, email..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-indigo-500 transition-all"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-medium text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 transition-all dark:[color-scheme:dark]"
             />
           </div>
 
@@ -576,16 +576,16 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
           <div className="relative">
             <button
               onClick={() => setShowColumnToggleMenu(!showColumnToggleMenu)}
-              className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shadow-2xs"
+              className="p-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shadow-2xs"
               title="Toggle Columns"
             >
-              <SlidersHorizontal className="w-4 h-4 text-slate-600" />
+              <SlidersHorizontal className="w-4 h-4 text-slate-600 dark:text-gray-300" />
             </button>
 
             {showColumnToggleMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E4DF] rounded-2xl shadow-xl z-50 p-3 overflow-hidden animate-in fade-in zoom-in-95">
-                <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-2 mb-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl shadow-xl z-50 p-3 overflow-hidden animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-[#E8E4DF] dark:border-gray-700 pb-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
                     TOGGLE COLUMNS
                   </span>
                   <button
@@ -605,7 +605,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         actions: true
                       })
                     }
-                    className="text-[10px] text-indigo-600 font-bold hover:underline"
+                    className="text-[10px] text-indigo-600 dark:text-indigo-300 font-bold hover:underline"
                   >
                     Reset All
                   </button>
@@ -627,13 +627,13 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                   ].map(col => (
                     <label
                       key={col.key}
-                      className="flex items-center gap-2.5 px-2 py-1 hover:bg-slate-50 rounded-lg cursor-pointer text-xs font-semibold text-slate-700 transition-colors"
+                      className="flex items-center gap-2.5 px-2 py-1 hover:bg-slate-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer text-xs font-semibold text-slate-700 dark:text-gray-100 transition-colors"
                     >
                       <input
                         type="checkbox"
                         checked={!!visibleColumns[col.key]}
                         onChange={() => toggleColumn(col.key)}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+                        className="w-4 h-4 rounded border-slate-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500 accent-indigo-600 cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
                       />
                       <span>{col.label}</span>
                     </label>
@@ -649,11 +649,11 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
       {(() => {
         const activeColumnCount = Object.values(visibleColumns).filter(Boolean).length || 1;
         return (
-          <div className="bg-white rounded-2xl border border-[#E8E4DF] shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-[#E8E4DF] dark:border-gray-700 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-[#E8E4DF] text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  <tr className="bg-slate-50 dark:bg-gray-800 border-b border-[#E8E4DF] dark:border-gray-700 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
                     {visibleColumns.id && <th className="py-3 px-4">Record ID</th>}
                     {visibleColumns.category && <th className="py-3 px-4">Category</th>}
                     {visibleColumns.name && <th className="py-3 px-4">Name / Domain</th>}
@@ -668,17 +668,17 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     {visibleColumns.actions && <th className="py-3 px-4 text-right">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-gray-700 text-xs font-medium text-slate-700 dark:text-gray-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={activeColumnCount} className="py-8 text-center text-slate-400">
+                      <td colSpan={activeColumnCount} className="py-8 text-center text-slate-400 dark:text-gray-400">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
                         Loading infrastructure records...
                       </td>
                     </tr>
                   ) : filteredRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={activeColumnCount} className="py-8 text-center text-slate-400">
+                      <td colSpan={activeColumnCount} className="py-8 text-center text-slate-400 dark:text-gray-400">
                         <Globe className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                         No records found matching filter criteria.
                       </td>
@@ -687,11 +687,11 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     filteredRecords.map(item => {
                       const isPassVisible = visiblePasswords[item.id];
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                        <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors">
 
                           {/* ID Badge */}
                           {visibleColumns.id && (
-                            <td className="py-3 px-4 font-mono font-bold text-indigo-900 whitespace-nowrap">
+                            <td className="py-3 px-4 font-mono font-bold text-indigo-900 dark:text-indigo-300 whitespace-nowrap">
                               {item.id}
                             </td>
                           )}
@@ -701,10 +701,10 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             <td className="py-3 px-4 whitespace-nowrap">
                               <span className={cn(
                                 "px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1",
-                                item.recordType === "Domain Record" && "bg-indigo-100 text-indigo-800",
-                                item.recordType === "Cloud Platform" && "bg-sky-100 text-sky-800",
-                                item.recordType === "Gmail" && "bg-rose-100 text-rose-800",
-                                item.recordType === "GitHub Repo" && "bg-purple-100 text-purple-800"
+                                item.recordType === "Domain Record" && "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300",
+                                item.recordType === "Cloud Platform" && "bg-sky-100 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300",
+                                item.recordType === "Gmail" && "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300",
+                                item.recordType === "GitHub Repo" && "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300"
                               )}>
                                 {item.recordType === "Domain Record" && <Globe className="w-3 h-3" />}
                                 {item.recordType === "Cloud Platform" && <Cloud className="w-3 h-3" />}
@@ -717,11 +717,11 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                           {/* Name / Domain */}
                           {visibleColumns.name && (
-                            <td className="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">
+                            <td className="py-3 px-4 font-bold text-slate-900 dark:text-gray-100 max-w-xs truncate">
                               <div className="flex items-center gap-1.5">
                                 <span>{item.name}</span>
                                 {item.url && (
-                                  <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-700">
+                                  <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300">
                                     <ExternalLink className="w-3 h-3" />
                                   </a>
                                 )}
@@ -731,7 +731,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                           {/* Platform */}
                           {visibleColumns.platform && (
-                            <td className="py-3 px-4 text-slate-600 font-semibold">
+                            <td className="py-3 px-4 text-slate-600 dark:text-gray-300 font-semibold">
                               {item.platform || "—"}
                             </td>
                           )}
@@ -741,11 +741,11 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             <td className="py-3 px-4 whitespace-nowrap">
                               <span className={cn(
                                 "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase",
-                                item.status === "Available" && "bg-emerald-100 text-emerald-800",
-                                item.status === "In Use" && "bg-blue-100 text-blue-800",
-                                item.status === "Transferred" && "bg-amber-100 text-amber-800",
-                                item.status === "Archived" && "bg-slate-200 text-slate-700",
-                                item.status === "Suspended" && "bg-rose-100 text-rose-800"
+                                item.status === "Available" && "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300",
+                                item.status === "In Use" && "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300",
+                                item.status === "Transferred" && "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300",
+                                item.status === "Archived" && "bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-100",
+                                item.status === "Suspended" && "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300"
                               )}>
                                 {item.status}
                               </span>
@@ -757,14 +757,14 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             <td className="py-3 px-4">
                               <div className="space-y-0.5 text-[11px]">
                                 {item.attachedEmail && (
-                                  <div className="font-mono text-slate-800 flex items-center gap-1 truncate max-w-xs">
-                                    <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <div className="font-mono text-slate-800 dark:text-gray-100 flex items-center gap-1 truncate max-w-xs">
+                                    <Mail className="w-3 h-3 text-slate-400 dark:text-gray-400 shrink-0" />
                                     <span>{item.attachedEmail}</span>
                                   </div>
                                 )}
                                 {item.userId && (
-                                  <div className="text-slate-500 text-[10px] font-mono">
-                                    User: <span className="font-bold text-slate-700">{item.userId}</span>
+                                  <div className="text-slate-500 dark:text-gray-400 text-[10px] font-mono">
+                                    User: <span className="font-bold text-slate-700 dark:text-gray-100">{item.userId}</span>
                                   </div>
                                 )}
                               </div>
@@ -776,35 +776,35 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             <td className="py-3 px-4">
                               {item.password ? (
                                 <div className="flex items-center gap-1.5 font-mono text-xs">
-                                  <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200 font-bold">
+                                  <span className="bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 px-2 py-0.5 rounded border border-slate-200 dark:border-gray-700 font-bold">
                                     {isPassVisible ? item.password : "••••••••••••"}
                                   </span>
                                   <button
                                     onClick={() => togglePasswordVisibility(item.id)}
-                                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                                    className="p-1 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 transition-colors"
                                     title={isPassVisible ? "Hide password" : "Show password"}
                                   >
                                     {isPassVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                   </button>
                                   <button
                                     onClick={() => copyToClipboard(item.password, `pass-${item.id}`)}
-                                    className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                    className="p-1 text-slate-400 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors"
                                     title="Copy password"
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-slate-400 text-[10px]">No Password</span>
+                                <span className="text-slate-400 dark:text-gray-400 text-[10px]">No Password</span>
                               )}
                             </td>
                           )}
 
                           {/* Dates (Purchase / Expiry / Renewal) */}
                           {visibleColumns.dates && (
-                            <td className="py-3 px-4 text-[10px] space-y-0.5 whitespace-nowrap font-mono text-slate-500">
+                            <td className="py-3 px-4 text-[10px] space-y-0.5 whitespace-nowrap font-mono text-slate-500 dark:text-gray-400">
                               {item.expiryDate && (
-                                <div className="text-rose-600 font-bold">Exp: {item.expiryDate}</div>
+                                <div className="text-rose-600 dark:text-rose-300 font-bold">Exp: {item.expiryDate}</div>
                               )}
                               {item.renewalDate && (
                                 <div>Ren: {item.renewalDate}</div>
@@ -817,7 +817,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                           {/* Cost (INR) */}
                           {visibleColumns.cost && (
-                            <td className="py-3 px-4 whitespace-nowrap font-bold text-slate-800">
+                            <td className="py-3 px-4 whitespace-nowrap font-bold text-slate-800 dark:text-gray-100">
                               {item.cost ? `₹ ${item.cost}` : "—"}
                             </td>
                           )}
@@ -826,19 +826,19 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                           {visibleColumns.url && (
                             <td className="py-3 px-4 max-w-xs truncate">
                               {item.url ? (
-                                <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-mono text-[11px] flex items-center gap-1">
+                                <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-300 hover:underline font-mono text-[11px] flex items-center gap-1">
                                   <span>{item.url}</span>
                                   <ExternalLink className="w-3 h-3 text-indigo-400 shrink-0" />
                                 </a>
                               ) : (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-slate-400 dark:text-gray-400">—</span>
                               )}
                             </td>
                           )}
 
                           {/* Remarks */}
                           {visibleColumns.remarks && (
-                            <td className="py-3 px-4 max-w-xs truncate text-slate-600 text-[11px]" title={item.remarks || ""}>
+                            <td className="py-3 px-4 max-w-xs truncate text-slate-600 dark:text-gray-300 text-[11px]" title={item.remarks || ""}>
                               {item.remarks || "—"}
                             </td>
                           )}
@@ -849,21 +849,21 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => handleOpenViewModal(item)}
-                                  className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                                   title="View Full Specifications"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleOpenEditModal(item)}
-                                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
                                   title="Edit Record"
                                 >
                                   <Edit3 className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => setDeleteConfirm({ show: true, id: item.id, name: item.name })}
-                                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
                                   title="Delete Record"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -886,16 +886,16 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
       {/* CREATE / EDIT / VIEW MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
 
             {/* Modal Header */}
-            <div className="p-4 border-b border-[#E8E4DF] flex items-center justify-between bg-slate-50">
+            <div className="p-4 border-b border-[#E8E4DF] dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-gray-800">
               <div className="flex items-center gap-2">
-                {selectedCategory === "Domain Record" && <Globe className="w-5 h-5 text-indigo-600" />}
-                {selectedCategory === "Cloud Platform" && <Cloud className="w-5 h-5 text-sky-600" />}
-                {selectedCategory === "Gmail" && <Mail className="w-5 h-5 text-rose-600" />}
-                {selectedCategory === "GitHub Repo" && <GitBranch className="w-5 h-5 text-purple-600" />}
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                {selectedCategory === "Domain Record" && <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />}
+                {selectedCategory === "Cloud Platform" && <Cloud className="w-5 h-5 text-sky-600 dark:text-sky-300" />}
+                {selectedCategory === "Gmail" && <Mail className="w-5 h-5 text-rose-600 dark:text-rose-300" />}
+                {selectedCategory === "GitHub Repo" && <GitBranch className="w-5 h-5 text-purple-600 dark:text-purple-300" />}
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 uppercase tracking-wide">
                   {modalMode === "add" && `New ${selectedCategory}`}
                   {modalMode === "edit" && `Edit ${selectedCategory} (${currentRecord?.id})`}
                   {modalMode === "view" && `${selectedCategory} Dossier (${currentRecord?.id})`}
@@ -903,7 +903,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 rounded-lg"
               >
                 ✕
               </button>
@@ -921,12 +921,12 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                     return (
                       <div className="space-y-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <div className="bg-slate-50 dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 space-y-3">
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[10px] font-black uppercase text-indigo-600">{currentRecord.recordType}</span>
-                              <h2 className="text-lg font-black text-slate-900">{currentRecord.name}</h2>
-                              <p className="text-xs text-slate-500 font-semibold">{currentRecord.platform || "Platform N/A"}</p>
+                              <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-300">{currentRecord.recordType}</span>
+                              <h2 className="text-lg font-black text-slate-900 dark:text-gray-100">{currentRecord.name}</h2>
+                              <p className="text-xs text-slate-500 dark:text-gray-400 font-semibold">{currentRecord.platform || "Platform N/A"}</p>
                             </div>
                             <span className="px-2.5 py-1 bg-slate-900 text-white font-mono font-bold text-xs rounded-lg">
                               {currentRecord.id}
@@ -934,32 +934,32 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 pt-2 font-semibold">
-                            <div><span className="text-slate-400 text-[10px] block uppercase">Status:</span> {currentRecord.status}</div>
-                            {currentRecord.attachedEmail && <div><span className="text-slate-400 text-[10px] block uppercase">Attached Email:</span> {currentRecord.attachedEmail}</div>}
-                            {extras.recoveryEmail && <div><span className="text-slate-400 text-[10px] block uppercase">Recovery Email:</span> {extras.recoveryEmail}</div>}
-                            {currentRecord.userId && <div><span className="text-slate-400 text-[10px] block uppercase">{currentRecord.recordType === "GitHub Repo" ? "Lead Dev / Maintainer:" : "User ID / Username:"}</span> {currentRecord.userId}</div>}
-                            {extras.assignedUser && <div><span className="text-slate-400 text-[10px] block uppercase">Assigned Custodian:</span> {extras.assignedUser}</div>}
-                            {currentRecord.phoneNumber && <div><span className="text-slate-400 text-[10px] block uppercase">Registered Mobile:</span> {currentRecord.phoneNumber}</div>}
-                            {extras.recoveryNumber && <div><span className="text-slate-400 text-[10px] block uppercase">Recovery Mobile:</span> {extras.recoveryNumber}</div>}
-                            {extras.visibility && <div><span className="text-slate-400 text-[10px] block uppercase">Visibility:</span> {extras.visibility}</div>}
-                            {currentRecord.purchaseDate && <div><span className="text-slate-400 text-[10px] block uppercase">Purchase / Created:</span> {currentRecord.purchaseDate}</div>}
-                            {currentRecord.expiryDate && <div><span className="text-slate-400 text-[10px] block uppercase">Expiry Date:</span> {currentRecord.expiryDate}</div>}
-                            {currentRecord.renewalDate && <div><span className="text-slate-400 text-[10px] block uppercase">Renewal Date:</span> {currentRecord.renewalDate}</div>}
-                            {currentRecord.cost && <div><span className="text-slate-400 text-[10px] block uppercase">Cost / Value:</span> ₹ {currentRecord.cost}</div>}
+                            <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Status:</span> {currentRecord.status}</div>
+                            {currentRecord.attachedEmail && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Attached Email:</span> {currentRecord.attachedEmail}</div>}
+                            {extras.recoveryEmail && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Recovery Email:</span> {extras.recoveryEmail}</div>}
+                            {currentRecord.userId && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">{currentRecord.recordType === "GitHub Repo" ? "Lead Dev / Maintainer:" : "User ID / Username:"}</span> {currentRecord.userId}</div>}
+                            {extras.assignedUser && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Assigned Custodian:</span> {extras.assignedUser}</div>}
+                            {currentRecord.phoneNumber && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Registered Mobile:</span> {currentRecord.phoneNumber}</div>}
+                            {extras.recoveryNumber && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Recovery Mobile:</span> {extras.recoveryNumber}</div>}
+                            {extras.visibility && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Visibility:</span> {extras.visibility}</div>}
+                            {currentRecord.purchaseDate && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Purchase / Created:</span> {currentRecord.purchaseDate}</div>}
+                            {currentRecord.expiryDate && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Expiry Date:</span> {currentRecord.expiryDate}</div>}
+                            {currentRecord.renewalDate && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Renewal Date:</span> {currentRecord.renewalDate}</div>}
+                            {currentRecord.cost && <div><span className="text-slate-400 dark:text-gray-400 text-[10px] block uppercase">Cost / Value:</span> ₹ {currentRecord.cost}</div>}
                           </div>
                         </div>
 
                         {/* Sensitive Credentials Card */}
-                        <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-xl space-y-2">
-                          <h4 className="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
-                            <Key className="w-4 h-4 text-amber-600" /> Access Credentials & Auth Codes
+                        <div className="bg-amber-50/70 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200 p-4 rounded-xl space-y-2">
+                          <h4 className="text-xs font-bold text-amber-900 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                            <Key className="w-4 h-4 text-amber-600 dark:text-amber-300" /> Access Credentials & Auth Codes
                           </h4>
                           <div className="space-y-2 font-mono">
                             {currentRecord.password && (
-                              <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-amber-200">
+                              <div className="flex items-center justify-between bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-amber-200">
                                 <div>
-                                  <span className="text-[9px] text-amber-700 block font-sans font-bold uppercase">Password / Key</span>
-                                  <span className="text-xs font-bold text-slate-800">
+                                  <span className="text-[9px] text-amber-700 dark:text-amber-300 block font-sans font-bold uppercase">Password / Key</span>
+                                  <span className="text-xs font-bold text-slate-800 dark:text-gray-100">
                                     {visiblePasswords[currentRecord.id] ? currentRecord.password : "••••••••••••••••"}
                                   </span>
                                 </div>
@@ -967,7 +967,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                                   <button
                                     type="button"
                                     onClick={() => togglePasswordVisibility(currentRecord.id)}
-                                    className="p-1 text-slate-500 hover:text-slate-700"
+                                    className="p-1 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"
                                   >
                                     {visiblePasswords[currentRecord.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                   </button>
@@ -983,18 +983,18 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             )}
 
                             {currentRecord.authCode && (
-                              <div className="bg-white p-2.5 rounded-lg border border-amber-200 space-y-1">
-                                <span className="text-[9px] text-amber-700 block font-sans font-bold uppercase">Code / EPP Key / 2FA / SSH</span>
-                                <p className="text-xs text-slate-800 break-all font-mono">{currentRecord.authCode}</p>
+                              <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-amber-200 space-y-1">
+                                <span className="text-[9px] text-amber-700 dark:text-amber-300 block font-sans font-bold uppercase">Code / EPP Key / 2FA / SSH</span>
+                                <p className="text-xs text-slate-800 dark:text-gray-100 break-all font-mono">{currentRecord.authCode}</p>
                               </div>
                             )}
                           </div>
                         </div>
 
                         {currentRecord.remarks && (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">Remarks / Instructions</span>
-                            <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{currentRecord.remarks}</p>
+                          <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase">Remarks / Instructions</span>
+                            <p className="text-xs text-slate-700 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">{currentRecord.remarks}</p>
                           </div>
                         )}
                       </div>
@@ -1009,25 +1009,25 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                 {/* FORM 1: 🌐 DOMAIN RECORD FORM */}
                 {selectedCategory === "Domain Record" && (
                   <div className="space-y-4">
-                    <div className="bg-indigo-50/60 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                        <Globe className="w-4 h-4 text-indigo-600" /> Domain Record Registration Form
+                    <div className="bg-indigo-50/60 dark:bg-indigo-950/50 p-3 rounded-xl border dark:border-gray-700 border-indigo-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                        <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> Domain Record Registration Form
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Domain Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. cfiindia.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Domain Name *</label>
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. cfiindia.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Registrar / Platform</label>
-                        <input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} placeholder="e.g. GoDaddy, Hostinger, Namecheap" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Registrar / Platform</label>
+                        <input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} placeholder="e.g. GoDaddy, Hostinger, Namecheap" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]" />
                       </div>
                       {/* Status Dropdown - Domain Record */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500">
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Status Dropdown</label>
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1036,24 +1036,24 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Attached Gmail / Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. owner@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Attached Gmail / Owner Email</label>
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. owner@gmail.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Registrar User ID / Username</label>
-                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. godaddy_admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Registrar User ID / Username</label>
+                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. godaddy_admin" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Registered Phone Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Registered Phone Number</label>
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-indigo-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Purchase Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Purchase Date</label>
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Expiry Date</label>
-                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Expiry Date</label>
+                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Renewal Date Option:
@@ -1084,16 +1084,16 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         return hasRenewalDate ? (
                           <div className="space-y-1 animate-in fade-in">
                             <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold uppercase text-amber-900">Renewal Date</label>
-                              <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                              <label className="text-[10px] font-bold uppercase text-amber-900 dark:text-amber-300">Renewal Date</label>
+                              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 px-1.5 py-0.5 rounded">
                                 {isExpiryWithinThisYear ? "⚠️ Expiring This Year" : "Renewal Info"}
                               </span>
                             </div>
-                            <input type="date" value={form.renewalDate} onChange={e => setForm({ ...form, renewalDate: e.target.value })} className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-semibold text-slate-900 outline-none" />
+                            <input type="date" value={form.renewalDate} onChange={e => setForm({ ...form, renewalDate: e.target.value })} className="w-full px-3 py-2 bg-amber-50/80 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 rounded-xl text-xs font-semibold text-slate-900 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                           </div>
                         ) : (
                           <div className="flex items-end pb-2">
-                            <button type="button" onClick={() => setForm({ ...form, renewalDate: form.expiryDate || new Date().toISOString().slice(0, 10) })} className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline">
+                            <button type="button" onClick={() => setForm({ ...form, renewalDate: form.expiryDate || new Date().toISOString().slice(0, 10) })} className="text-[11px] text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold underline">
                               + Add Renewal Date
                             </button>
                           </div>
@@ -1101,15 +1101,15 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       })()}
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Annual Cost (INR)</label>
-                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 1200" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Annual Cost (INR)</label>
+                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 1200" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
 
-                    <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                    <div className="bg-indigo-50/50 dark:bg-indigo-950/50 p-3 rounded-xl border dark:border-gray-700 border-indigo-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-indigo-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter domain password" className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-indigo-900 dark:text-indigo-300">Password</label>
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter domain password" className="w-full px-3 py-2 bg-white dark:bg-gray-900 border dark:border-gray-700 border-indigo-200 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
                   </div>
@@ -1118,29 +1118,29 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                 {/* FORM 2: ☁️ CLOUD PLATFORM FORM */}
                 {selectedCategory === "Cloud Platform" && (
                   <div className="space-y-4">
-                    <div className="bg-sky-50/60 p-3 rounded-xl border border-sky-100 flex items-center justify-between">
-                      <span className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-                        <Cloud className="w-4 h-4 text-sky-600" /> Cloud Infrastructure Configuration Form
+                    <div className="bg-sky-50/60 dark:bg-sky-950/50 p-3 rounded-xl border dark:border-gray-700 border-sky-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-sky-900 dark:text-sky-300 flex items-center gap-1.5">
+                        <Cloud className="w-4 h-4 text-sky-600 dark:text-sky-300" /> Cloud Infrastructure Configuration Form
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Cloud Platform / Server Name */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Cloud Platform / Server Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. AWS Production EC2" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Cloud Platform / Server Name *</label>
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. AWS Production EC2" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-sky-500 dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Server IP / Host Domain */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Server IP / Host Domain</label>
-                        <input type="text" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="e.g. 192.168.1.100 or app.vercel.app" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Server IP / Host Domain</label>
+                        <input type="text" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="e.g. 192.168.1.100 or app.vercel.app" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-sky-500 dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Status Dropdown */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500">
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Status Dropdown</label>
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none focus:border-sky-500 dark:[color-scheme:dark]">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1151,40 +1151,40 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                       {/* Account Owner Email */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Account Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. devops@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Account Owner Email</label>
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. devops@company.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Linked Mobile Number */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Linked Mobile Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Linked Mobile Number</label>
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Monthly Billing Cost */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Monthly Billing Cost (INR)</label>
-                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 4500" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Monthly Billing Cost (INR)</label>
+                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 4500" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Subscription Date */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Subscription Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Subscription Date</label>
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Expiry Date */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Expiry / Billing Date</label>
-                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Expiry / Billing Date</label>
+                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
 
                     {/* Password Box */}
-                    <div className="bg-sky-50/50 p-3 rounded-xl border border-sky-100">
+                    <div className="bg-sky-50/50 dark:bg-sky-950/50 p-3 rounded-xl border dark:border-gray-700 border-sky-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-sky-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter cloud password" className="w-full px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-sky-900 dark:text-sky-300">Password</label>
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter cloud password" className="w-full px-3 py-2 bg-white dark:bg-gray-900 border dark:border-gray-700 border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
                   </div>
@@ -1193,22 +1193,22 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                 {/* FORM 3: 📧 GMAIL / EMAIL ACCOUNT FORM */}
                 {selectedCategory === "Gmail" && (
                   <div className="space-y-4">
-                    <div className="bg-rose-50/60 p-3 rounded-xl border border-rose-100 flex items-center justify-between">
-                      <span className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                        <Mail className="w-4 h-4 text-rose-600" /> Email Account Credentials & Security Form
+                    <div className="bg-rose-50/60 dark:bg-rose-950/50 p-3 rounded-xl border dark:border-gray-700 border-rose-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+                        <Mail className="w-4 h-4 text-rose-600 dark:text-rose-300" /> Email Account Credentials & Security Form
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Email Address / ID */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Email Address / ID *</label>
-                        <input type="email" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. hr.cfipl@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-rose-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Email Address / ID *</label>
+                        <input type="email" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. hr.cfipl@gmail.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-rose-500 dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Email Suite / Provider Dropdown */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Email Suite / Provider</label>
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Email Suite / Provider</label>
                         <select
                           value={
                             ["Google Workspace", "Personal Gmail", "Microsoft Office 365", "cPanel / Webmail", "Zoho Mail"].includes(form.platform)
@@ -1223,7 +1223,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                               setForm({ ...form, platform: val });
                             }
                           }}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-rose-500"
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none focus:border-rose-500 dark:[color-scheme:dark]"
                         >
                           <option value="">Select Provider...</option>
                           <option value="Google Workspace">Google Workspace</option>
@@ -1240,15 +1240,15 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             value={form.platform === "Other" ? "" : form.platform}
                             onChange={e => setForm({ ...form, platform: e.target.value })}
                             placeholder="Enter custom provider (e.g. ProtonMail)"
-                            className="w-full mt-1.5 px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs font-semibold text-slate-800 outline-none"
+                            className="w-full mt-1.5 px-3 py-2 bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-300 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]"
                           />
                         )}
                       </div>
 
                       {/* Status Dropdown */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-rose-500">
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Status Dropdown</label>
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none focus:border-rose-500 dark:[color-scheme:dark]">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1259,40 +1259,40 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                       {/* Attached Mobile Number */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Attached Mobile Number *</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210 (Registered SIM)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Attached Mobile Number *</label>
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210 (Registered SIM)" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Recovery Email */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Recovery Email</label>
-                        <input type="email" value={form.recoveryEmail} onChange={e => setForm({ ...form, recoveryEmail: e.target.value })} placeholder="e.g. recovery@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Recovery Email</label>
+                        <input type="email" value={form.recoveryEmail} onChange={e => setForm({ ...form, recoveryEmail: e.target.value })} placeholder="e.g. recovery@company.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Recovery Mobile Number */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Recovery Mobile Number</label>
-                        <input type="text" value={form.recoveryNumber} onChange={e => setForm({ ...form, recoveryNumber: e.target.value })} placeholder="e.g. 9123456789 (Backup Phone)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Recovery Mobile Number</label>
+                        <input type="text" value={form.recoveryNumber} onChange={e => setForm({ ...form, recoveryNumber: e.target.value })} placeholder="e.g. 9123456789 (Backup Phone)" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Assigned Staff / Custodian */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Assigned Staff / Employee Custodian</label>
-                        <input type="text" value={form.assignedUser} onChange={e => setForm({ ...form, assignedUser: e.target.value })} placeholder="e.g. Himanshu Akodiya" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Assigned Staff / Employee Custodian</label>
+                        <input type="text" value={form.assignedUser} onChange={e => setForm({ ...form, assignedUser: e.target.value })} placeholder="e.g. Himanshu Akodiya" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
 
                       {/* Account Creation Date */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Account Creation Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Account Creation Date</label>
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
 
                     {/* Email Password Box */}
-                    <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-100">
+                    <div className="bg-rose-50/50 dark:bg-rose-950/50 p-3 rounded-xl border dark:border-gray-700 border-rose-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-rose-900">Email Account Password *</label>
-                        <input type="text" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter Gmail password" className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-rose-900 dark:text-rose-300">Email Account Password *</label>
+                        <input type="text" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter Gmail password" className="w-full px-3 py-2 bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-200 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
                   </div>
@@ -1301,32 +1301,32 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                 {/* FORM 4: 🐙 GITHUB REPO FORM */}
                 {selectedCategory === "GitHub Repo" && (
                   <div className="space-y-4">
-                    <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-100 flex items-center justify-between">
-                      <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
-                        <GitBranch className="w-4 h-4 text-purple-600" /> GitHub & Code Repository Management Form
+                    <div className="bg-purple-50/60 dark:bg-purple-950/50 p-3 rounded-xl border dark:border-gray-700 border-purple-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                        <GitBranch className="w-4 h-4 text-purple-600 dark:text-purple-300" /> GitHub & Code Repository Management Form
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Repository / Project Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. HRMS-Rs9-Group" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Repository / Project Name *</label>
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. HRMS-Rs9-Group" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-purple-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Repository Access URL</label>
-                        <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://github.com/org/repo" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Repository Access URL</label>
+                        <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://github.com/org/repo" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none focus:border-purple-500 dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Visibility / Access Level</label>
-                        <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Visibility / Access Level</label>
+                        <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]">
                           <option value="Private">Private</option>
                           <option value="Public">Public</option>
                           <option value="Internal Team">Internal Team</option>
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Status Dropdown</label>
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1335,50 +1335,50 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Lead Developer / Maintainer</label>
-                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. Senior Tech Lead" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Lead Developer / Maintainer</label>
+                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. Senior Tech Lead" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Account / Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. dev@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Account / Owner Email</label>
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. dev@company.com" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Contact Phone Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Contact Phone Number</label>
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Repo Creation Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Repo Creation Date</label>
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
 
-                    <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                    <div className="bg-purple-50/50 dark:bg-purple-950/50 p-3 rounded-xl border dark:border-gray-700 border-purple-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-purple-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter repository password" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-purple-900 dark:text-purple-300">Password</label>
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter repository password" className="w-full px-3 py-2 bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-gray-100 outline-none dark:[color-scheme:dark]" />
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Shared Remarks Field */}
-                <div className="space-y-1 pt-2 border-t border-slate-100">
-                  <label className="text-[10px] font-bold uppercase text-slate-900">Remarks / Security Notes</label>
+                <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-gray-700">
+                  <label className="text-[10px] font-bold uppercase text-slate-900 dark:text-gray-100">Remarks / Security Notes</label>
                   <textarea
                     rows={2}
                     value={form.remarks}
                     onChange={e => setForm({ ...form, remarks: e.target.value })}
                     placeholder="Add specific instructions, recovery details, or renewal notes..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none resize-none"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-medium text-slate-800 dark:text-gray-100 outline-none resize-none dark:[color-scheme:dark]"
                   />
                 </div>
 
                 {/* Submit Buttons */}
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#E8E4DF]">
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#E8E4DF] dark:border-gray-700">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+                    className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold transition-all"
                   >
                     Cancel
                   </button>
@@ -1401,18 +1401,18 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
       {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
             <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" />
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Delete Record Confirmation</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Are you sure you want to delete <span className="font-bold text-slate-800">{deleteConfirm.name}</span>? This action cannot be undone.
+              <h3 className="text-sm font-bold text-slate-900 dark:text-gray-100">Delete Record Confirmation</h3>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                Are you sure you want to delete <span className="font-bold text-slate-800 dark:text-gray-100">{deleteConfirm.name}</span>? This action cannot be undone.
               </p>
             </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setDeleteConfirm({ show: false })}
-                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+                className="flex-1 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold transition-all"
               >
                 Cancel
               </button>

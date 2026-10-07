@@ -71,6 +71,24 @@
   table tbody tr:hover {
     background-color: #FAF8F5;
   }
+
+  .dark table {
+    border-color: #374151;
+  }
+
+  .dark table th,
+  .dark table td {
+    border-color: #374151 !important;
+  }
+
+  .dark table th {
+    background-color: #1F2937;
+    color: #F3F4F6;
+  }
+
+  .dark table tbody tr:hover {
+    background-color: #1F2937;
+  }
 }
 
 .sidebar-link {

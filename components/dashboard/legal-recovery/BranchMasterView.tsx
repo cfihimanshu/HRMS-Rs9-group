@@ -229,11 +229,11 @@ export default function BranchMasterView({
     <div className="space-y-4 animate-fade-in relative">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl flex-1 flex items-center gap-3">
-          <Search className="w-4 h-4 text-[#9C9890]" />
+        <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 p-4 rounded-xl flex-1 flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#9C9890] dark:text-gray-300" />
           <input
             type="text"
-            className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 placeholder:text-[#9C9890] placeholder:font-normal"
+            className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 dark:text-gray-100 placeholder:text-[#9C9890] dark:placeholder:text-gray-400 placeholder:font-normal"
             placeholder="Search Branches by Name, Bank or Network..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -242,25 +242,25 @@ export default function BranchMasterView({
         <div className="relative flex items-center">
           <button
             onClick={() => setShowFilterOptions(!showFilterOptions)}
-            className={`px-4 py-4 h-full border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${
+            className={`px-4 py-4 h-full border border-[#E8E4DF] dark:border-gray-700 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${
               showFilterOptions || bankFilter
-                ? "bg-[#F5F0EA] text-[#1C1C1A]"
-                : "bg-[#FCFBF9] text-[#5D5B57]"
+                ? "bg-[#F5F0EA] dark:bg-gray-800 text-[#1C1C1A] dark:text-gray-100"
+                : "bg-[#FCFBF9] dark:bg-gray-900 text-[#5D5B57] dark:text-gray-300"
             }`}
           >
             <Filter className="w-3.5 h-3.5" /> {bankFilter ? "Filtered" : "Filter"}
           </button>
 
           {showFilterOptions && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#E8E4DF] rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in p-4 grid gap-4">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in p-4 grid gap-4">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider mb-1 block">
                   Bank
                 </label>
                 <select
                   value={bankFilter}
                   onChange={(e) => setBankFilter(e.target.value)}
-                  className="w-full text-xs p-2.5 border border-[#E8E4DF] rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-400 font-semibold text-slate-700"
+                  className="w-full text-xs p-2.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-slate-50 dark:bg-gray-800 focus:outline-none focus:border-indigo-400 font-semibold text-slate-700 dark:text-gray-100"
                 >
                   <option value="">All Banks</option>
                   {uniqueBanks.map((b) => (
@@ -271,13 +271,13 @@ export default function BranchMasterView({
                 </select>
               </div>
 
-              <div className="flex justify-end mt-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end mt-2 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <button
                   onClick={() => {
                     setBankFilter("");
                     setShowFilterOptions(false);
                   }}
-                  className="text-[10px] text-rose-600 font-bold uppercase tracking-wider hover:underline flex items-center gap-1"
+                  className="text-[10px] text-rose-600 dark:text-rose-300 font-bold uppercase tracking-wider hover:underline flex items-center gap-1"
                 >
                   <RefreshCw className="w-3 h-3" /> Clear Filters
                 </button>
@@ -288,50 +288,50 @@ export default function BranchMasterView({
       </div>
 
       {/* Table */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm overflow-x-auto max-h-[calc(100vh-220px)] min-h-[680px] overflow-y-auto">
+      <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl overflow-hidden shadow-sm overflow-x-auto max-h-[calc(100vh-220px)] min-h-[680px] overflow-y-auto">
         <table className="w-full border-collapse text-left min-w-max">
-          <thead className="sticky top-0 bg-[#F5F0EA] z-10">
-            <tr className="border-b border-[#E8E4DF] text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
-              <th className="py-3.5 px-4 bg-[#F5F0EA]">Bank &amp; Branch</th>
-              <th className="py-3.5 px-4 bg-[#F5F0EA]">Manager Details</th>
-              <th className="py-3.5 px-4 bg-[#F5F0EA]">Recovery Officers</th>
-              <th className="py-3.5 px-4 bg-[#F5F0EA]">RBO Details</th>
-              <th className="py-3.5 px-4 bg-[#F5F0EA]">Network</th>
-              <th className="py-3.5 px-4 text-right bg-[#F5F0EA]">Created On</th>
-              <th className="py-3.5 px-4 text-center bg-[#F5F0EA]">Actions</th>
+          <thead className="sticky top-0 bg-[#F5F0EA] dark:bg-gray-800 z-10">
+            <tr className="border-b border-[#E8E4DF] dark:border-gray-700 text-[#5D5B57] dark:text-gray-300 text-[10px] uppercase font-bold tracking-wider">
+              <th className="py-3.5 px-4 bg-[#F5F0EA] dark:bg-gray-800">Bank &amp; Branch</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA] dark:bg-gray-800">Manager Details</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA] dark:bg-gray-800">Recovery Officers</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA] dark:bg-gray-800">RBO Details</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA] dark:bg-gray-800">Network</th>
+              <th className="py-3.5 px-4 text-right bg-[#F5F0EA] dark:bg-gray-800">Created On</th>
+              <th className="py-3.5 px-4 text-center bg-[#F5F0EA] dark:bg-gray-800">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E8E4DF] text-xs">
+          <tbody className="divide-y divide-[#E8E4DF] dark:divide-gray-700 text-xs">
             {filteredBranches.map((br) => {
               const parentBank = banksList.find((b) => b.id === br.bankId);
               return (
-                <tr key={br.id} className="hover:bg-white transition-colors">
+                <tr key={br.id} className="hover:bg-white dark:hover:bg-gray-900 transition-colors">
                   <td className="py-3 px-4">
-                    <div className="font-bold text-[#1C1C1A]">{parentBank?.bankName || "Unknown"}</div>
-                    <div className="font-semibold text-slate-700">{br.branchName}</div>
-                    <div className="text-pink-700 font-mono font-semibold text-[10px]">Code: {br.branchCode}</div>
+                    <div className="font-bold text-[#1C1C1A] dark:text-gray-100">{parentBank?.bankName || "Unknown"}</div>
+                    <div className="font-semibold text-slate-700 dark:text-gray-100">{br.branchName}</div>
+                    <div className="text-pink-700 dark:text-pink-300 font-mono font-semibold text-[10px]">Code: {br.branchCode}</div>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-700">{br.branchManager || "N/A"}</div>
-                    <div className="text-[#9C9890] text-[10px] flex items-center gap-1 mt-0.5">
+                    <div className="font-semibold text-slate-700 dark:text-gray-100">{br.branchManager || "N/A"}</div>
+                    <div className="text-[#9C9890] dark:text-gray-300 text-[10px] flex items-center gap-1 mt-0.5">
                       <PhoneCall className="w-3 h-3" /> {br.branchManagerContact || "N/A"}
                     </div>
                     {br.branchEmail && (
-                      <div className="text-[#9C9890] text-[10px] mt-0.5">{br.branchEmail}</div>
+                      <div className="text-[#9C9890] dark:text-gray-300 text-[10px] mt-0.5">{br.branchEmail}</div>
                     )}
                   </td>
                   <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-700">AO: {br.aoName || "N/A"}</div>
-                    <div className="text-slate-600">FO: {br.foName || "N/A"}</div>
-                    <div className="text-[#9C9890] text-[10px] flex items-center gap-1 mt-0.5">
+                    <div className="font-semibold text-slate-700 dark:text-gray-100">AO: {br.aoName || "N/A"}</div>
+                    <div className="text-slate-600 dark:text-gray-300">FO: {br.foName || "N/A"}</div>
+                    <div className="text-[#9C9890] dark:text-gray-300 text-[10px] flex items-center gap-1 mt-0.5">
                       <PhoneCall className="w-3 h-3" /> {br.foContact || "N/A"}
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="text-slate-600 font-semibold mt-1">RBO: {br.rbo || "N/A"}</div>
+                    <div className="text-slate-600 dark:text-gray-300 font-semibold mt-1">RBO: {br.rbo || "N/A"}</div>
                   </td>
-                  <td className="py-3 px-4 font-semibold text-slate-700">{br.network || "N/A"}</td>
-                  <td className="py-3 px-4 text-[#9C9890] text-right">
+                  <td className="py-3 px-4 font-semibold text-slate-700 dark:text-gray-100">{br.network || "N/A"}</td>
+                  <td className="py-3 px-4 text-[#9C9890] dark:text-gray-300 text-right">
                     {new Date(br.createdAt).toLocaleDateString()}
                   </td>
                   <td className="py-3 px-4 text-center">
@@ -340,7 +340,7 @@ export default function BranchMasterView({
                       {onEditBranch && (
                         <button
                           onClick={() => onEditBranch(br)}
-                          className="px-3.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-2xs"
+                          className="px-3.5 py-1.5 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-gray-700 hover:bg-amber-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-2xs"
                           title="Edit Branch Details"
                         >
                           <Pencil className="w-3.5 h-3.5" /> Edit
@@ -353,7 +353,7 @@ export default function BranchMasterView({
             })}
             {filteredBranches.length === 0 && !loading && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-[#9C9890] text-xs uppercase tracking-wider">
+                <td colSpan={7} className="text-center py-12 text-[#9C9890] dark:text-gray-300 text-xs uppercase tracking-wider">
                   No Branches Added Yet.
                 </td>
               </tr>
@@ -365,8 +365,8 @@ export default function BranchMasterView({
       {/* PORTAL MODAL - FULL OVERLAY HIGH-AESTHETIC WORK LOG FORM */}
       {showWorkModal && typeof window !== "undefined" && ReactDOM.createPortal(
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden my-auto transform transition-all">
-            
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-xl overflow-hidden my-auto transform transition-all">
+
             {/* Modal Header */}
             <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-3">
@@ -380,7 +380,7 @@ export default function BranchMasterView({
                       Branch Log
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-300 font-medium mt-0.5">
+                  <p className="text-xs text-slate-300 dark:text-gray-300 font-medium mt-0.5">
                     {selectedBranch?.branchName} &bull; <span className="text-emerald-300 font-bold">{parentBankOfSelected?.bankName || "Bank"}</span>
                   </p>
                 </div>
@@ -388,7 +388,7 @@ export default function BranchMasterView({
               <button
                 type="button"
                 onClick={() => setShowWorkModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-full bg-white/10 dark:bg-gray-900 hover:bg-white/20 dark:hover:bg-gray-900 text-slate-300 dark:text-gray-300 hover:text-white flex items-center justify-center transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -396,13 +396,13 @@ export default function BranchMasterView({
 
             {/* Modal Body / Form */}
             <form onSubmit={handleSubmitWork} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
-              
+
               {/* Work Type, Work Date & Work Status Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Work Type Selection */}
                 <div>
-                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                  <label className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                     Work Type <span className="text-rose-500">*</span>
                   </label>
                   <select
@@ -415,7 +415,7 @@ export default function BranchMasterView({
                         setSelectedBranchId(selectedBranch?.id?.toString() || "");
                       }
                     }}
-                    className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-bold text-slate-800 transition-all shadow-sm"
+                    className="w-full text-xs p-3.5 border-2 border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 rounded-2xl bg-slate-50/70 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:border-emerald-500 font-bold text-slate-800 dark:text-gray-100 transition-all shadow-sm"
                   >
                     <option value="">-- Select Work Type --</option>
                     <option value="Bank">Bank Work</option>
@@ -426,8 +426,8 @@ export default function BranchMasterView({
 
                 {/* Work Date Selection (Supports Past/Custom Dates) */}
                 <div>
-                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                  <label className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                     Work Date <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -435,21 +435,21 @@ export default function BranchMasterView({
                     required
                     value={workDateStr}
                     onChange={(e) => setWorkDateStr(e.target.value)}
-                    className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-bold text-slate-800 transition-all shadow-sm"
+                    className="w-full text-xs p-3.5 border-2 border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 rounded-2xl bg-slate-50/70 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:border-emerald-500 font-bold text-slate-800 dark:text-gray-100 transition-all shadow-sm"
                   />
                 </div>
 
                 {/* Work Status Selection */}
                 <div>
-                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <label className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                     Work Status <span className="text-rose-500">*</span>
                   </label>
                   <select
                     required
                     value={workStatus}
                     onChange={(e) => setWorkStatus(e.target.value)}
-                    className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-bold text-slate-800 transition-all shadow-sm"
+                    className="w-full text-xs p-3.5 border-2 border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 rounded-2xl bg-slate-50/70 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:border-emerald-500 font-bold text-slate-800 dark:text-gray-100 transition-all shadow-sm"
                   >
                     <option value="Pending">⏳ Pending</option>
                     <option value="In Progress">🔄 In Progress</option>
@@ -460,16 +460,16 @@ export default function BranchMasterView({
 
               {/* Dynamic Sub-Sections Based on Selection */}
               {workType === "Bank" && (
-                <div className="p-4 bg-emerald-50/60 rounded-2xl border-2 border-emerald-100/80 space-y-3.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-black uppercase tracking-wider">
-                    <Building2 className="w-4 h-4 text-emerald-600" />
+                <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/50 rounded-2xl border-2 border-emerald-100/80 dark:border-gray-700 space-y-3.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider">
+                    <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                     Bank &amp; Branch Selection
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Bank Select */}
                     <div>
-                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label className="text-[10px] font-bold text-slate-600 dark:text-gray-300 uppercase tracking-wider block mb-1">
                         Bank <span className="text-rose-500">*</span>
                       </label>
                       <select
@@ -486,7 +486,7 @@ export default function BranchMasterView({
                             setSelectedBranchId("");
                           }
                         }}
-                        className="w-full text-xs p-3 border border-emerald-200 rounded-xl bg-white focus:outline-none focus:border-emerald-600 font-bold text-slate-800 shadow-sm"
+                        className="w-full text-xs p-3 border border-emerald-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 focus:outline-none focus:border-emerald-600 font-bold text-slate-800 dark:text-gray-100 shadow-sm"
                       >
                         <option value="">-- Select Bank --</option>
                         {banksList.map((b) => (
@@ -499,14 +499,14 @@ export default function BranchMasterView({
 
                     {/* Branch Select */}
                     <div>
-                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label className="text-[10px] font-bold text-slate-600 dark:text-gray-300 uppercase tracking-wider block mb-1">
                         Branch <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
                         value={selectedBranchId}
                         onChange={(e) => setSelectedBranchId(e.target.value)}
-                        className="w-full text-xs p-3 border border-emerald-200 rounded-xl bg-white focus:outline-none focus:border-emerald-600 font-bold text-slate-800 shadow-sm"
+                        className="w-full text-xs p-3 border border-emerald-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 focus:outline-none focus:border-emerald-600 font-bold text-slate-800 dark:text-gray-100 shadow-sm"
                       >
                         <option value="">-- Select Branch --</option>
                         {branchesList
@@ -523,9 +523,9 @@ export default function BranchMasterView({
               )}
 
               {workType === "Office work" && (
-                <div className="p-4 bg-indigo-50/60 rounded-2xl border-2 border-indigo-100/80 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <label className="text-xs font-black text-indigo-900 uppercase tracking-wider block flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="p-4 bg-indigo-50/60 dark:bg-indigo-950/50 rounded-2xl border-2 border-indigo-100/80 dark:border-gray-700 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <label className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                     Office Work Details <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -534,15 +534,15 @@ export default function BranchMasterView({
                     value={officeWorkDetail}
                     onChange={(e) => setOfficeWorkDetail(e.target.value)}
                     placeholder="e.g. Notice Drafting, File Audit, Document Verification..."
-                    className="w-full text-xs p-3 border border-indigo-200 rounded-xl bg-white focus:outline-none focus:border-indigo-600 font-semibold text-slate-800 shadow-sm"
+                    className="w-full text-xs p-3 border border-indigo-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 focus:outline-none focus:border-indigo-600 font-semibold text-slate-800 dark:text-gray-100 shadow-sm"
                   />
                 </div>
               )}
 
               {workType === "Other" && (
-                <div className="p-4 bg-amber-50/60 rounded-2xl border-2 border-amber-100/80 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <label className="text-xs font-black text-amber-900 uppercase tracking-wider block flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-amber-600" />
+                <div className="p-4 bg-amber-50/60 dark:bg-amber-950/50 rounded-2xl border-2 border-amber-100/80 dark:border-gray-700 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <label className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider block flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
                     Specify Work Description <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -551,24 +551,24 @@ export default function BranchMasterView({
                     value={otherWorkDetail}
                     onChange={(e) => setOtherWorkDetail(e.target.value)}
                     placeholder="Enter custom work description..."
-                    className="w-full text-xs p-3 border border-amber-200 rounded-xl bg-white focus:outline-none focus:border-amber-600 font-semibold text-slate-800 shadow-sm"
+                    className="w-full text-xs p-3 border border-amber-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 focus:outline-none focus:border-amber-600 font-semibold text-slate-800 dark:text-gray-100 shadow-sm"
                   />
                 </div>
               )}
 
               {/* Upload Attachment */}
               <div>
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center justify-between">
+                <label className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider block mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                     Upload Attachment (All Images / Documents / Recordings)
                   </span>
                   {uploadingFile && (
-                    <span className="text-[10px] text-emerald-600 font-bold animate-pulse">Uploading file...</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-300 font-bold animate-pulse">Uploading file...</span>
                   )}
                 </label>
 
-                <div className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-4 text-center bg-slate-50/70 hover:bg-emerald-50/30 transition-all relative group cursor-pointer">
+                <div className="border-2 border-dashed border-slate-200 dark:border-gray-700 hover:border-emerald-400 rounded-2xl p-4 text-center bg-slate-50/70 dark:bg-gray-800 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/50 transition-all relative group cursor-pointer">
                   <input
                     type="file"
                     accept="*/*"
@@ -576,25 +576,25 @@ export default function BranchMasterView({
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                    <p className="text-xs font-bold text-slate-700 group-hover:text-emerald-900">
+                    <Upload className="w-6 h-6 text-slate-400 dark:text-gray-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors" />
+                    <p className="text-xs font-bold text-slate-700 dark:text-gray-100 group-hover:text-emerald-900 dark:group-hover:text-emerald-300">
                       Click or Drag &amp; Drop file here
                     </p>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-[10px] text-slate-400 dark:text-gray-300 font-medium">
                       Supports All Files: Images, PDF, DOCX, Audio Recordings, Videos, Spreadsheets
                     </p>
                   </div>
                 </div>
 
                 {uploadedFileUrl && (
-                  <div className="mt-3 flex items-center justify-between gap-2 p-3 bg-emerald-50 text-emerald-900 rounded-2xl border border-emerald-200 text-xs font-bold shadow-sm">
+                  <div className="mt-3 flex items-center justify-between gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 rounded-2xl border border-emerald-200 dark:border-gray-700 text-xs font-bold shadow-sm">
                     <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
                       <a
                         href={uploadedFileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="underline hover:text-emerald-950 truncate max-w-[280px]"
+                        className="underline hover:text-emerald-950 dark:hover:text-emerald-300 truncate max-w-[280px]"
                       >
                         {uploadedFileUrl.split("/").pop()}
                       </a>
@@ -602,7 +602,7 @@ export default function BranchMasterView({
                     <button
                       type="button"
                       onClick={() => setUploadedFileUrl("")}
-                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="p-1 text-slate-400 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
                       title="Remove attachment"
                     >
                       <X className="w-4 h-4" />
@@ -613,8 +613,8 @@ export default function BranchMasterView({
 
               {/* Remarks Textarea */}
               <div>
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                <label className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                   Remarks / Notes
                 </label>
                 <textarea
@@ -622,16 +622,16 @@ export default function BranchMasterView({
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder="Enter detailed work remarks or notes..."
-                  className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-medium text-slate-800 transition-all resize-none shadow-sm"
+                  className="w-full text-xs p-3.5 border-2 border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 rounded-2xl bg-slate-50/70 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:border-emerald-500 font-medium text-slate-800 dark:text-gray-100 transition-all resize-none shadow-sm"
                 />
               </div>
 
               {/* Modal Footer Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowWorkModal(false)}
-                  className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-200 transition-colors"
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancel
                 </button>

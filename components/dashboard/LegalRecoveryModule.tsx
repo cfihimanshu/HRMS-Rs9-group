@@ -894,10 +894,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   // ODOO-STYLE LAUNCHER VIEW
   if (activeSubModule === "launcher") {
     return (
-      <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
+      <div className="space-y-6 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] dark:border-gray-700 pb-5">
           <div>
-            <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold flex items-center gap-1">
+            <span className="text-[9px] uppercase tracking-widest text-indigo-600 dark:text-indigo-300 font-bold flex items-center gap-1">
               <LayoutGrid className="w-3 h-3 text-[#C9A84C]" /> App Modules
             </span>
             <h2 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -912,85 +912,85 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           {/* Module 3: Manage Banks */}
           <button
             onClick={() => setActiveSubModule("banks")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-sky-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-sky-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-sky-50 to-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-sky-50 dark:from-sky-950/60 to-sky-100 dark:to-sky-950/60 text-sky-600 dark:text-sky-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <Landmark size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Bank Master</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add Banks</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Bank Master</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Add Banks</span>
           </button>
 
           {/* Bank Cases & Pending Bills */}
           <button
             onClick={() => setActiveSubModule("masters")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 dark:from-emerald-950/60 to-emerald-100 dark:to-emerald-950/60 text-emerald-600 dark:text-emerald-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <Banknote size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Bank Cases</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Cases &amp; Pending Bills</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Bank Cases</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Cases &amp; Pending Bills</span>
           </button>
 
           {/* Module 4: Manage Branches */}
           <button
             onClick={() => setActiveSubModule("branches")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-pink-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-pink-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-50 to-pink-100 text-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-50 dark:from-pink-950/60 to-pink-100 dark:to-pink-950/60 text-pink-600 dark:text-pink-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <Network size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Branch Master</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add Branches</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Branch Master</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Add Branches</span>
           </button>
 
           {/* Module 7: Legal Work Logs */}
           <button
             onClick={() => setActiveSubModule("work-logs")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-blue-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-blue-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-50 dark:from-blue-950/60 to-blue-100 dark:to-blue-950/60 text-blue-600 dark:text-blue-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <Briefcase size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Legal Work</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Work Log History</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Legal Work</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Work Log History</span>
           </button>
 
           {/* Module 8: Notice Board */}
           <button
             onClick={() => setActiveSubModule("notices")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 dark:from-purple-950/60 to-purple-100 dark:to-purple-950/60 text-purple-600 dark:text-purple-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <FileText size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Notice Board</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Track &amp; Manage Notices</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Notice Board</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Track &amp; Manage Notices</span>
           </button>
 
           <button
             onClick={() => setActiveSubModule("old-notice-archive")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-amber-200 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-amber-200 transition-all duration-300"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-50 dark:from-amber-950/60 to-orange-100 dark:to-orange-950/60 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <History size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Old Notice Archive</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Previous Work Entries</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Old Notice Archive</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Previous Work Entries</span>
           </button>
 
 
           {/* Module 13: Legal Work Entry History */}
           <button
             onClick={() => setActiveSubModule("legal-work-entry-history")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300 cursor-pointer"
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300 cursor-pointer"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 dark:from-purple-950/60 to-purple-100 dark:to-purple-950/60 text-purple-600 dark:text-purple-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <History size={28} strokeWidth={2} />
             </div>
-            <span className="font-bold text-sm text-slate-800">Legal Work Entry History</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Logged Entries &amp; Details</span>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Legal Work Entry History</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-300 mt-1 uppercase tracking-wider font-semibold">Logged Entries &amp; Details</span>
           </button>
 
         </div>
@@ -1006,20 +1006,20 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
   return (
     <>
-      <div className="space-y-6 animate-fade-in text-[#1C1C1A] ">
+      <div className="space-y-6 animate-fade-in text-[#1C1C1A] dark:text-gray-100 ">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] dark:border-gray-700 pb-5">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setActiveSubModule("launcher")}
-              className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+              className="p-2 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors"
               title="Back to Apps"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold flex items-center gap-1">
-                <LayoutGrid className="w-3 h-3 text-[#C9A84C]" /> Legal Recovery / {activeSubModule.replace('-', ' ')}
+              <span className="text-[9px] uppercase tracking-widest text-indigo-600 dark:text-indigo-300 font-bold flex items-center gap-1">
+                <LayoutGrid className="w-3 h-3 text-[#C9A84C] dark:text-amber-300" /> Legal Recovery / {activeSubModule.replace('-', ' ')}
               </span>
               <h2 className="text-xl font-light tracking-wide font-serif capitalize" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {activeSubModule.replace('-', ' ')}
@@ -1035,7 +1035,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 fetchNbfcBranches();
                 if (activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches") fetchCases();
               }}
-              className="px-3 py-1.5 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] text-[#5D5B57] hover:text-[#1C1C1A] rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
             </button>
@@ -1123,19 +1123,19 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
         {/* Add New Bank Form */}
         {showAddBankForm && activeSubModule === "banks" && (
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Landmark className="w-4 h-4 text-sky-600" /> Register New Bank
+          <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-5 shadow-sm animate-slide-down">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                <Landmark className="w-4 h-4 text-sky-600 dark:text-sky-300" /> Register New Bank
               </h3>
-              <button onClick={() => setShowAddBankForm(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowAddBankForm(false)} className="text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleAddBankSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bank Name *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Bank Name *</label>
                   <input required type="text" placeholder="e.g. State Bank of India" value={bankForm.bankName}
                     onChange={e => {
                       const val = e.target.value;
@@ -1148,14 +1148,14 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       }
                       setBankForm({ ...bankForm, bankName: val, bankCode: autoCode });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-sky-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-sky-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bank Code (Auto / Editable) *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Bank Code (Auto / Editable) *</label>
                   <input required type="text" placeholder="e.g. SBI" value={bankForm.bankCode}
                     onChange={e => setBankForm({ ...bankForm, bankCode: e.target.value.toUpperCase() })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-sky-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-sky-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
                   />
                 </div>
               </div>
@@ -1170,24 +1170,24 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
         {/* Add / Edit Branch Form */}
         {showAddBranchForm && activeSubModule === "branches" && (
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Network className="w-4 h-4 text-pink-600" /> {editBranchId ? "✏️ Edit Branch Details" : "Register New Branch"}
+          <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-5 shadow-sm animate-slide-down">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                <Network className="w-4 h-4 text-pink-600 dark:text-pink-300" /> {editBranchId ? "✏️ Edit Branch Details" : "Register New Branch"}
               </h3>
-              <button onClick={() => { setShowAddBranchForm(false); setEditBranchId(null); setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" }); }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setShowAddBranchForm(false); setEditBranchId(null); setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" }); }} className="text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleAddBranchSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Bank *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Select Bank *</label>
                   <select
                     required
                     value={branchForm.bankId}
                     onChange={e => setBranchForm({ ...branchForm, bankId: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="">-- Choose a Bank --</option>
                     {banksList.map(b => (
@@ -1196,55 +1196,55 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Name / Area *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Name / Area *</label>
                   <input required type="text" placeholder="e.g. Connaught Place" value={branchForm.branchName}
                     onChange={e => setBranchForm({ ...branchForm, branchName: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Code (Manual / Numeric) *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Code (Manual / Numeric) *</label>
                   <input required type="number" placeholder="e.g. 10025" value={branchForm.branchCode}
                     onChange={e => setBranchForm({ ...branchForm, branchCode: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Email</label>
-                  <input type="email" placeholder="Email" value={branchForm.branchEmail} onChange={e => setBranchForm({ ...branchForm, branchEmail: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Email</label>
+                  <input type="email" placeholder="Email" value={branchForm.branchEmail} onChange={e => setBranchForm({ ...branchForm, branchEmail: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Manager</label>
-                  <input type="text" placeholder="Manager Name" value={branchForm.branchManager} onChange={e => setBranchForm({ ...branchForm, branchManager: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Manager</label>
+                  <input type="text" placeholder="Manager Name" value={branchForm.branchManager} onChange={e => setBranchForm({ ...branchForm, branchManager: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact</label>
-                  <input type="text" placeholder="Mobile Number" value={branchForm.branchManagerContact} onChange={e => setBranchForm({ ...branchForm, branchManagerContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Manager Contact</label>
+                  <input type="text" placeholder="Mobile Number" value={branchForm.branchManagerContact} onChange={e => setBranchForm({ ...branchForm, branchManagerContact: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name</label>
-                  <input type="text" placeholder="Account Officer" value={branchForm.aoName} onChange={e => setBranchForm({ ...branchForm, aoName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">AO Name</label>
+                  <input type="text" placeholder="Account Officer" value={branchForm.aoName} onChange={e => setBranchForm({ ...branchForm, aoName: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name</label>
-                  <input type="text" placeholder="Field Officer Name" value={branchForm.foName} onChange={e => setBranchForm({ ...branchForm, foName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">FO Name</label>
+                  <input type="text" placeholder="Field Officer Name" value={branchForm.foName} onChange={e => setBranchForm({ ...branchForm, foName: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Contact Number</label>
-                  <input type="text" placeholder="Phone Number" value={branchForm.foContact} onChange={e => setBranchForm({ ...branchForm, foContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">FO Contact Number</label>
+                  <input type="text" placeholder="Phone Number" value={branchForm.foContact} onChange={e => setBranchForm({ ...branchForm, foContact: e.target.value })} className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">RBO</label>
                   <RboSelect value={branchForm.rbo} onChange={rbo => setBranchForm(current => ({ ...current, rbo }))} />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Network</label>
                   <NetworkSelect value={branchForm.network} onChange={network => setBranchForm(current => ({ ...current, network }))} />
                 </div>
               </div>
@@ -1260,10 +1260,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
         {/* Add / Edit Case Form */}
         {showAddCaseForm && activeSubModule === "masters" && (
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Building className="w-4 h-4 text-emerald-600" /> {editCaseId ? "✏️ Edit Bank Recovery Case & Details" : "Register New Bank Recovery Case"}
+          <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-5 shadow-sm animate-slide-down">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                <Building className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /> {editCaseId ? "✏️ Edit Bank Recovery Case & Details" : "Register New Bank Recovery Case"}
               </h3>
               <button
                 onClick={() => {
@@ -1276,7 +1276,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     pocName: "", invoiceNo: "", invoiceDate: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
                   });
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1285,7 +1285,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               {/* Row 1: Bank & Branch Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Bank *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Select Bank *</label>
                   <select
                     required
                     value={selectedBankIdForCase}
@@ -1295,7 +1295,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       const bName = banksList.find(b => b.id.toString() === bId)?.bankName || "";
                       setCaseForm({ ...caseForm, bankName: bName, branchName: "", branchId: "", aoName: "", deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "" });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800 dark:text-gray-100"
                   >
                     <option value="">-- Select Registered Bank --</option>
                     {banksList.map(b => (
@@ -1307,7 +1307,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Branch (Auto-Populates Details)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Select Branch (Auto-Populates Details)</label>
                   <select
                     required
                     value={String(resolveRecoveryBranch(branchesList, selectedBankIdForCase, caseForm.branchId, caseForm.branchName)?.id || "")}
@@ -1327,7 +1327,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                         rbo: branch?.rbo || ""
                       });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800 dark:text-gray-100"
                     disabled={!selectedBankIdForCase}
                   >
                     <option value="">-- Select Branch --</option>
@@ -1342,36 +1342,36 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               </div>
 
               {!editCaseId && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-indigo-50/40 border border-indigo-100 rounded-xl">
-                  <p className="text-xs font-semibold text-indigo-800 md:col-span-2">New invoices are automatically assigned to {sessionUser?.name || "the signed-in user"}.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-indigo-50/40 dark:bg-indigo-950/50 border border-indigo-100 dark:border-gray-700 rounded-xl">
+                  <p className="text-xs font-semibold text-indigo-800 dark:text-indigo-300 md:col-span-2">New invoices are automatically assigned to {sessionUser?.name || "the signed-in user"}.</p>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-bold mb-1">Invoice Number *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 dark:text-indigo-300 font-bold mb-1">Invoice Number *</label>
                     <input
                       required
                       type="text"
                       placeholder="e.g. RAA/2026-27/001"
                       value={caseForm.invoiceNo}
                       onChange={e => setCaseForm({ ...caseForm, invoiceNo: e.target.value })}
-                      className="w-full bg-white border border-indigo-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800"
+                      className="w-full bg-white dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-bold mb-1">Invoice Date *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 dark:text-indigo-300 font-bold mb-1">Invoice Date *</label>
                     <input
                       required
                       type="date"
                       value={caseForm.invoiceDate}
                       onChange={e => setCaseForm({ ...caseForm, invoiceDate: e.target.value, pendingSince: caseForm.pendingSince || e.target.value })}
-                      className="w-full bg-white border border-indigo-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                      className="w-full bg-white dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800 dark:text-gray-100"
                     />
                   </div>
                 </div>
               )}
 
               {/* Row 2: Financial Details */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-3 bg-emerald-50/40 border border-emerald-100 rounded-xl">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-3 bg-emerald-50/40 dark:bg-emerald-950/50 border border-emerald-100 dark:border-gray-700 rounded-xl">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-bold mb-1">Invoice / Bill Amount (₹) *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-bold mb-1">Invoice / Bill Amount (₹) *</label>
                   <input
                     required
                     type="number"
@@ -1386,11 +1386,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                         pendingAmount: !caseForm.pendingAmount || caseForm.pendingAmount === caseForm.totalBillAmount ? val : caseForm.pendingAmount
                       });
                     }}
-                    className="w-full bg-white border border-emerald-200 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800"
+                    className="w-full bg-white dark:bg-gray-900 border border-emerald-200 dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800 dark:text-gray-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-rose-800 font-bold mb-1">Pending Amount (₹) *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-rose-800 dark:text-rose-300 font-bold mb-1">Pending Amount (₹) *</label>
                   <input
                     required
                     type="number"
@@ -1398,24 +1398,24 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     placeholder="0.00"
                     value={caseForm.pendingAmount}
                     onChange={e => setCaseForm({ ...caseForm, pendingAmount: e.target.value })}
-                    className="w-full bg-white border border-rose-200 focus:border-rose-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-rose-700"
+                    className="w-full bg-white dark:bg-gray-900 border border-rose-200 dark:border-gray-700 focus:border-rose-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-rose-700 dark:text-rose-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-1">Pending Since (Date)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 dark:text-gray-300 font-bold mb-1">Pending Since (Date)</label>
                   <input
                     type="date"
                     value={caseForm.pendingSince}
                     onChange={e => setCaseForm({ ...caseForm, pendingSince: e.target.value })}
-                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-700 font-medium"
+                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-700 dark:text-gray-100 font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-1">Case Status</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 dark:text-gray-300 font-bold mb-1">Case Status</label>
                   <select
                     value={caseForm.status}
                     onChange={e => setCaseForm({ ...caseForm, status: e.target.value })}
-                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                   >
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -1427,33 +1427,33 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               {/* Row 3: Key Officials Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name (Authorised Officer)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">AO Name (Authorised Officer)</label>
                   <input
                     type="text"
                     placeholder="e.g. Rahul Sharma"
                     value={caseForm.aoName}
                     onChange={e => setCaseForm({ ...caseForm, aoName: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch / Dept Manager Name</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch / Dept Manager Name</label>
                   <input
                     type="text"
                     placeholder="Manager Name"
                     value={caseForm.deptManagerName}
                     onChange={e => setCaseForm({ ...caseForm, deptManagerName: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact Number</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Manager Contact Number</label>
                   <input
                     type="text"
                     placeholder="Phone / Mobile"
                     value={caseForm.contactNumber}
                     onChange={e => setCaseForm({ ...caseForm, contactNumber: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
               </div>
@@ -1461,56 +1461,56 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               {/* Row 4: Additional Branch & Field Details */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Email</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Email</label>
                   <input
                     type="email"
                     placeholder="branch@bank.com"
                     value={caseForm.branchEmail}
                     onChange={e => setCaseForm({ ...caseForm, branchEmail: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name (Field Officer)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">FO Name (Field Officer)</label>
                   <input
                     type="text"
                     placeholder="FO Name"
                     value={caseForm.foName}
                     onChange={e => setCaseForm({ ...caseForm, foName: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Contact Number</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">FO Contact Number</label>
                   <input
                     type="text"
                     placeholder="FO Phone"
                     value={caseForm.foContact}
                     onChange={e => setCaseForm({ ...caseForm, foContact: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO / Region / Zone</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">RBO / Region / Zone</label>
                   <input
                     type="text"
                     placeholder="e.g. Jaipur Zone - RBO 2"
                     value={caseForm.rbo}
                     onChange={e => setCaseForm({ ...caseForm, rbo: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddCaseForm(false);
                     setEditCaseId(null);
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold uppercase tracking-wider"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-semibold uppercase tracking-wider"
                 >
                   Cancel
                 </button>
@@ -1650,36 +1650,36 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       {/* Follow Up Modal */}
       {showFollowUpForm.show && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
-          <div className="bg-white rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9] shrink-0">
-              <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">
-                <PhoneCall className="w-5 h-5 text-indigo-600" /> Log Follow Up Call
+          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] dark:border-gray-700 bg-[#FCFBF9] dark:bg-gray-900 shrink-0">
+              <h3 className="font-serif text-lg text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                <PhoneCall className="w-5 h-5 text-indigo-600 dark:text-indigo-300" /> Log Follow Up Call
               </h3>
-              <button onClick={() => setShowFollowUpForm({ show: false, master: null })} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowFollowUpForm({ show: false, master: null })} className="text-slate-400 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1">
               {/* Display Master Info */}
-              <div className="p-4 bg-indigo-50/50 border-b border-[#E8E4DF] text-xs">
+              <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/50 border-b border-[#E8E4DF] dark:border-gray-700 text-xs">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="font-bold text-slate-800">{showFollowUpForm.master?.bankName} - {showFollowUpForm.master?.branchName}</div>
-                    <div className="text-slate-500 mt-1">Branch Code: {showFollowUpForm.master?.branchId}</div>
+                    <div className="font-bold text-slate-800 dark:text-gray-100">{showFollowUpForm.master?.bankName} - {showFollowUpForm.master?.branchName}</div>
+                    <div className="text-slate-500 dark:text-gray-300 mt-1">Branch Code: {showFollowUpForm.master?.branchId}</div>
                     {(() => {
                       const br = branchesList.find(b => b.branchCode === showFollowUpForm.master?.branchId);
                       return (
                         <div className="mt-2 space-y-1">
-                          <div className="text-slate-600">Manager: <span className="font-semibold">{br?.branchManager || 'N/A'}</span> ({br?.branchManagerContact || 'N/A'})</div>
-                          <div className="text-slate-600">AO: <span className="font-semibold">{br?.aoName || 'N/A'}</span></div>
-                          <div className="text-slate-600">RBO: <span className="font-semibold">{br?.rbo || 'N/A'}</span></div>
+                          <div className="text-slate-600 dark:text-gray-300">Manager: <span className="font-semibold">{br?.branchManager || 'N/A'}</span> ({br?.branchManagerContact || 'N/A'})</div>
+                          <div className="text-slate-600 dark:text-gray-300">AO: <span className="font-semibold">{br?.aoName || 'N/A'}</span></div>
+                          <div className="text-slate-600 dark:text-gray-300">RBO: <span className="font-semibold">{br?.rbo || 'N/A'}</span></div>
                         </div>
                       );
                     })()}
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-rose-600">Due: ₹{showFollowUpForm.master?.pendingAmount || '0.00'}</div>
+                    <div className="font-bold text-rose-600 dark:text-rose-300">Due: ₹{showFollowUpForm.master?.pendingAmount || '0.00'}</div>
                   </div>
                 </div>
               </div>
@@ -1687,21 +1687,21 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               <form onSubmit={handleFollowUpSubmit} className="p-5 space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Date *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Call Date *</label>
                     <input
                       type="date"
                       required
                       value={followUpForm.callDate}
                       onChange={e => setFollowUpForm({ ...followUpForm, callDate: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-indigo-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-indigo-700 dark:text-indigo-300"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Status *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Call Status *</label>
                     <select
                       value={followUpForm.callStatus}
                       onChange={e => setFollowUpForm({ ...followUpForm, callStatus: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     >
                       <option value="Connected">Connected</option>
                       <option value="Not Answered">Not Answered</option>
@@ -1711,34 +1711,34 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Next Follow Up Date</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Next Follow Up Date</label>
                     <input
                       type="date"
                       value={followUpForm.nextFollowUpDate}
                       onChange={e => setFollowUpForm({ ...followUpForm, nextFollowUpDate: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Conversation Details *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Conversation Details *</label>
                   <textarea
                     required
                     rows={4}
                     value={followUpForm.conversationDetails}
                     onChange={e => setFollowUpForm({ ...followUpForm, conversationDetails: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
                     placeholder="Summarize the conversation here..."
                   ></textarea>
                 </div>
 
                 {String(userRole || "").toLowerCase() === "owner" && <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Forward To (Optional)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Forward To (Optional)</label>
                   <select
                     value={followUpForm.forwardedTo}
                     onChange={e => setFollowUpForm({ ...followUpForm, forwardedTo: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none"
                   >
                     <option value="">-- Complete follow-up without forwarding --</option>
                     {taskForwardEmployees
@@ -1749,26 +1749,26 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                         </option>
                       ))}
                   </select>
-                  <p className="mt-1 text-[9px] text-slate-400">Select an employee to create a new Legal Follow-up task in their My Tasks.</p>
+                  <p className="mt-1 text-[9px] text-slate-400 dark:text-gray-300">Select an employee to create a new Legal Follow-up task in their My Tasks.</p>
                 </div>}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Upload Document / Recording / Screenshot</label>
-                    <span className="text-[9px] text-slate-400 font-medium">Images, Audio (MP3/M4A/WAV/AMR), PDFs, Docs</span>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold">Upload Document / Recording / Screenshot</label>
+                    <span className="text-[9px] text-slate-400 dark:text-gray-300 font-medium">Images, Audio (MP3/M4A/WAV/AMR), PDFs, Docs</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
                       accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                       onChange={e => setAudioFile(e.target.files ? e.target.files[0] : null)}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
+                      className="block w-full text-xs text-slate-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] dark:border-gray-700 rounded-lg"
                     />
                     {audioFile && (
                       <button
                         type="button"
                         onClick={() => setAudioFile(null)}
-                        className="px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg shrink-0"
+                        className="px-2 py-1.5 text-xs text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-gray-700 rounded-lg shrink-0"
                         title="Remove attachment"
                       >
                         Remove
@@ -1776,14 +1776,14 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     )}
                   </div>
                   {audioFile && (
-                    <div className="mt-1 text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                    <div className="mt-1 text-[10px] text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
                       📎 Selected: {audioFile.name} ({(audioFile.size / 1024).toFixed(1)} KB)
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-[#E8E4DF] flex justify-end gap-2">
-                  <button type="button" onClick={() => setShowFollowUpForm({ show: false, master: null })} className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <div className="pt-4 border-t border-[#E8E4DF] dark:border-gray-700 flex justify-end gap-2">
+                  <button type="button" onClick={() => setShowFollowUpForm({ show: false, master: null })} className="px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800">
                     Cancel
                   </button>
                   <button disabled={submittingFollowUp} type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50">
@@ -1798,27 +1798,27 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       {/* Work Log Form Modal */}
       {showWorkLogForm.show && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#FCFBF9] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
-            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-white">
-              <h2 className="text-sm font-black text-[#1C1C1A] uppercase tracking-wider flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-[#C9A84C]" /> Log Legal Work
+        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-gray-800 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
+            <div className="px-6 py-4 border-b border-[#E8E4DF] dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-900">
+              <h2 className="text-sm font-black text-[#1C1C1A] dark:text-gray-100 uppercase tracking-wider flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-[#C9A84C] dark:text-amber-300" /> Log Legal Work
               </h2>
-              <button onClick={() => setShowWorkLogForm({ show: false, master: null })} className="text-slate-400 hover:text-rose-600 transition-colors">
+              <button onClick={() => setShowWorkLogForm({ show: false, master: null })} className="text-slate-400 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1">
-              <div className="p-4 bg-amber-50/50 border-b border-[#E8E4DF] text-xs">
+              <div className="p-4 bg-amber-50/50 dark:bg-amber-950/50 border-b border-[#E8E4DF] dark:border-gray-700 text-xs">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-slate-500 font-bold mb-1">Bank Name</div>
-                    <div className="font-semibold text-slate-800">{showWorkLogForm.master?.bankName || 'N/A'}</div>
+                    <div className="text-slate-500 dark:text-gray-300 font-bold mb-1">Bank Name</div>
+                    <div className="font-semibold text-slate-800 dark:text-gray-100">{showWorkLogForm.master?.bankName || 'N/A'}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500 font-bold mb-1">Branch</div>
-                    <div className="font-semibold text-slate-800">{showWorkLogForm.master?.branchName || 'N/A'}</div>
+                    <div className="text-slate-500 dark:text-gray-300 font-bold mb-1">Branch</div>
+                    <div className="font-semibold text-slate-800 dark:text-gray-100">{showWorkLogForm.master?.branchName || 'N/A'}</div>
                   </div>
                 </div>
               </div>
@@ -1827,17 +1827,17 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 <form onSubmit={handleWorkLogSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Date *</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Work Date *</label>
                       <input
                         type="date"
                         required
                         value={workLogForm.workDate}
                         onChange={e => setWorkLogForm({ ...workLogForm, workDate: e.target.value })}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] dark:focus:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Category *</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Work Category *</label>
                       <select
                         value={workLogForm.category}
                         onChange={e => {
@@ -1848,7 +1848,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                             subCategory: WORK_CATEGORIES[cat][0]
                           });
                         }}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] dark:focus:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none"
                       >
                         {Object.keys(WORK_CATEGORIES).map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -1856,11 +1856,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       </select>
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Step / Action *</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Work Step / Action *</label>
                       <select
                         value={workLogForm.subCategory}
                         onChange={e => setWorkLogForm({ ...workLogForm, subCategory: e.target.value })}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] dark:focus:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none"
                       >
                         {WORK_CATEGORIES[workLogForm.category]?.map(sub => (
                           <option key={sub} value={sub}>{sub}</option>
@@ -1870,28 +1870,28 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   </div>
 
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Remarks / Details</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Remarks / Details</label>
                     <textarea
                       rows={3}
                       value={workLogForm.remarks}
                       onChange={e => setWorkLogForm({ ...workLogForm, remarks: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] dark:focus:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
                       placeholder="Any specific details regarding this work step..."
                     ></textarea>
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-[#E8E4DF]">
+                  <div className="flex justify-end gap-3 pt-4 border-t border-[#E8E4DF] dark:border-gray-700">
                     <button
                       type="button"
                       onClick={() => setShowWorkLogForm({ show: false, master: null })}
-                      className="px-4 py-2 bg-white border border-[#E8E4DF] text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors"
+                      className="px-4 py-2 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={submittingWorkLog}
-                      className="px-4 py-2 bg-[#1C1C1A] text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#323230] disabled:opacity-50 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-[#1C1C1A] text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#323230] dark:hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center gap-2"
                     >
                       {submittingWorkLog ? "Saving..." : "Save Work Log"} <CheckCircle className="w-3.5 h-3.5" />
                     </button>
@@ -1905,31 +1905,31 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       {/* Business Development Form Modal */}
       {showMarketingForm.show && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#FCFBF9] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
-            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-white">
-              <h2 className="text-sm font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-gray-800 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
+            <div className="px-6 py-4 border-b border-[#E8E4DF] dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-900">
+              <h2 className="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-2">
                 <PhoneCall className="w-5 h-5 text-indigo-500" /> Business Development
               </h2>
-              <button onClick={() => setShowMarketingForm({ show: false, branch: null })} className="text-slate-400 hover:text-rose-600 transition-colors">
+              <button onClick={() => setShowMarketingForm({ show: false, branch: null })} className="text-slate-400 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6">
-              <div className="mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex justify-between items-center">
+              <div className="mb-4 bg-indigo-50 dark:bg-indigo-950/50 p-3 rounded-lg border border-indigo-100 dark:border-gray-700 flex justify-between items-center">
                 <div>
-                  <h4 className="text-xs font-bold text-indigo-900">{showMarketingForm.branch?.branchName}</h4>
-                  <p className="text-[10px] text-indigo-700 font-mono mt-0.5">Code: {showMarketingForm.branch?.branchCode}</p>
+                  <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-300">{showMarketingForm.branch?.branchName}</h4>
+                  <p className="text-[10px] text-indigo-700 dark:text-indigo-300 font-mono mt-0.5">Code: {showMarketingForm.branch?.branchCode}</p>
                 </div>
               </div>
               <form onSubmit={handleMarketingSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Type *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Call Type *</label>
                     <select
                       value={marketingForm.callType}
                       onChange={e => setMarketingForm({ ...marketingForm, callType: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                     >
                       <option>Business Development</option>
                       <option>General </option>
@@ -1938,33 +1938,33 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   </div>
                   {marketingForm.callType === "Others" && (
                     <div className="col-span-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 font-bold mb-1">Mention Custom Call Type *</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 dark:text-rose-300 font-bold mb-1">Mention Custom Call Type *</label>
                       <input
                         type="text"
                         required
                         placeholder="E.g., Client Visit, Escalation, etc."
                         value={customCallType}
                         onChange={e => setCustomCallType(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Date *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Call Date *</label>
                     <input
                       type="date"
                       required
                       value={marketingForm.callDate}
                       onChange={e => setMarketingForm({ ...marketingForm, callDate: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Status *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Call Status *</label>
                     <select
                       value={marketingForm.callStatus}
                       onChange={e => setMarketingForm({ ...marketingForm, callStatus: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                     >
                       <option>Connected</option>
                       <option>Not Answered</option>
@@ -1976,60 +1976,60 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   </div>
                   {marketingForm.callStatus === "Others" && (
                     <div className="col-span-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 font-bold mb-1">Mention Custom Call Status *</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 dark:text-rose-300 font-bold mb-1">Mention Custom Call Status *</label>
                       <input
                         type="text"
                         required
                         placeholder="E.g., Call Back Later, Line Busy, etc."
                         value={customCallStatus}
                         onChange={e => setCustomCallStatus(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                       />
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Conversation Details *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Conversation Details *</label>
                   <textarea
                     rows={4}
                     required
                     value={marketingForm.conversationDetails}
                     onChange={e => setMarketingForm({ ...marketingForm, conversationDetails: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
                     placeholder="Enter discussion details about our company services..."
                   ></textarea>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Next Follow Up Date (Optional)</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Next Follow Up Date (Optional)</label>
                     <input
                       type="date"
                       value={marketingForm.nextFollowUpDate}
                       onChange={e => setMarketingForm({ ...marketingForm, nextFollowUpDate: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Document (Optional)</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Upload Document (Optional)</label>
                     <input
                       type="file"
                       accept="*/*"
                       onChange={e => setAudioFile(e.target.files ? e.target.files[0] : null)}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
+                      className="block w-full text-xs text-slate-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] dark:border-gray-700 rounded-lg"
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-[#E8E4DF]">
+                <div className="flex gap-3 pt-4 border-t border-[#E8E4DF] dark:border-gray-700">
                   <button
                     type="button"
                     onClick={() => {
                       setShowMarketingForm({ show: false, branch: null });
                       setAudioFile(null);
                     }}
-                    className="flex-1 px-4 py-3 bg-white border border-[#E8E4DF] text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors"
+                    className="flex-1 px-4 py-3 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Cancel
                   </button>
@@ -2050,50 +2050,50 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       {/* History Modal */}
       {showHistoryModal.show && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
-          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[85vh]">
-            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9]">
-              <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">
-                <History className="w-5 h-5 text-indigo-600" /> Call History Logs
+          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[85vh]">
+            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] dark:border-gray-700 bg-[#FCFBF9] dark:bg-gray-900">
+              <h3 className="font-serif text-lg text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                <History className="w-5 h-5 text-indigo-600 dark:text-indigo-300" /> Call History Logs
               </h3>
-              <button onClick={() => setShowHistoryModal({ show: false, masterId: null })} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowHistoryModal({ show: false, masterId: null })} className="text-slate-400 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 overflow-y-auto bg-slate-50 flex-1 space-y-8">
+            <div className="p-4 overflow-y-auto bg-slate-50 dark:bg-gray-800 flex-1 space-y-8">
               {loadingHistory ? (
-                <div className="text-center py-8 text-slate-500 text-xs">Loading history...</div>
+                <div className="text-center py-8 text-slate-500 dark:text-gray-300 text-xs">Loading history...</div>
               ) : (
                 <>
                   {/* Follow Up Calls Section */}
                   <div>
-                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2 flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-gray-100 uppercase tracking-wider mb-3 border-b border-slate-200 dark:border-gray-700 pb-2 flex items-center gap-2">
                       <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Follow Up Calls
                     </h4>
                     {historyData.length === 0 ? (
-                      <div className="text-center py-4 text-slate-400 text-[10px] font-semibold bg-white rounded-lg border border-slate-200 border-dashed">No follow ups recorded.</div>
+                      <div className="text-center py-4 text-slate-400 dark:text-gray-300 text-[10px] font-semibold bg-white dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700 border-dashed">No follow ups recorded.</div>
                     ) : (
                       <div className="space-y-3">
                         {historyData.map(log => (
-                          <div key={log.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative">
-                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                          <div key={log.id} className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm relative">
+                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 px-2 py-1 rounded">
                               {log.callDate ? new Date(log.callDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
                             </div>
                             <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${log.callStatus === 'Connected' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${log.callStatus === 'Connected' ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'}`}>
                                 {log.callStatus}
                               </span>
-                              <span className="text-xs font-semibold text-slate-700">Called by: {log.callerName || 'Unknown'}</span>
+                              <span className="text-xs font-semibold text-slate-700 dark:text-gray-100">Called by: {log.callerName || 'Unknown'}</span>
                             </div>
-                            <p className="text-xs text-slate-600 mt-2 whitespace-pre-wrap">{log.conversationDetails}</p>
+                            <p className="text-xs text-slate-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">{log.conversationDetails}</p>
 
-                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3">
+                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 dark:border-gray-700 pt-3">
                               {log.callRecordingUrl && (
-                                <a href={log.callRecordingUrl} target="_blank" rel="noreferrer" className="text-[10px] flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded">
+                                <a href={log.callRecordingUrl} target="_blank" rel="noreferrer" className="text-[10px] flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-1 rounded">
                                   <FileAudio className="w-3 h-3" /> View Attachment
                                 </a>
                               )}
                               {log.nextFollowUpDate && (
-                                <span className="text-[10px] flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded">
+                                <span className="text-[10px] flex items-center gap-1 text-amber-600 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/50 px-2 py-1 rounded">
                                   <Calendar className="w-3 h-3" /> Next Call: {new Date(log.nextFollowUpDate).toLocaleDateString()}
                                 </span>
                               )}
@@ -2106,28 +2106,28 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
                   {/* Work Logs Section */}
                   <div>
-                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2 flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-gray-100 uppercase tracking-wider mb-3 border-b border-slate-200 dark:border-gray-700 pb-2 flex items-center gap-2">
                       <Briefcase className="w-3.5 h-3.5 text-blue-500" /> Work Logs
                     </h4>
                     {workLogHistoryData.length === 0 ? (
-                      <div className="text-center py-4 text-slate-400 text-[10px] font-semibold bg-white rounded-lg border border-slate-200 border-dashed">No work logged yet.</div>
+                      <div className="text-center py-4 text-slate-400 dark:text-gray-300 text-[10px] font-semibold bg-white dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700 border-dashed">No work logged yet.</div>
                     ) : (
                       <div className="space-y-3">
                         {workLogHistoryData.map(log => (
-                          <div key={log.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative border-l-4 border-l-blue-400">
-                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                          <div key={log.id} className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm relative border-l-4 border-l-blue-400">
+                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 px-2 py-1 rounded">
                               {log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
                             </div>
                             <div className="mb-2">
-                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-black uppercase tracking-wider border border-blue-100">
+                              <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded text-[10px] font-black uppercase tracking-wider border border-blue-100 dark:border-gray-700">
                                 {log.category}
                               </span>
                             </div>
-                            <div className="text-xs font-bold text-slate-800 mb-1">{log.subCategory}</div>
-                            {log.remarks && <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{log.remarks}</p>}
+                            <div className="text-xs font-bold text-slate-800 dark:text-gray-100 mb-1">{log.subCategory}</div>
+                            {log.remarks && <p className="text-xs text-slate-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{log.remarks}</p>}
 
-                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3">
-                              <span className="text-[10px] font-bold text-slate-500">Logged by: <span className="text-slate-700">{log.employeeName || 'Unknown'}</span></span>
+                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 dark:border-gray-700 pt-3">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-gray-300">Logged by: <span className="text-slate-700 dark:text-gray-100">{log.employeeName || 'Unknown'}</span></span>
                             </div>
                           </div>
                         ))}
@@ -2144,25 +2144,25 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       {/* Payment Form Modal */}
       {showPaymentForm.show && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
-          <div className="bg-white rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9] shrink-0">
-              <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">
-                <Banknote className="w-5 h-5 text-emerald-600" /> Log Payment Received
+          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] dark:border-gray-700 bg-[#FCFBF9] dark:bg-gray-900 shrink-0">
+              <h3 className="font-serif text-lg text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-300" /> Log Payment Received
               </h3>
-              <button onClick={() => setShowPaymentForm({ show: false, master: null })} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowPaymentForm({ show: false, master: null })} className="text-slate-400 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1">
-              <div className="p-4 bg-emerald-50/50 border-b border-[#E8E4DF] text-xs">
+              <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/50 border-b border-[#E8E4DF] dark:border-gray-700 text-xs">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="font-bold text-slate-800">{showPaymentForm.master?.bankName} - {showPaymentForm.master?.branchName}</div>
-                    <div className="text-slate-500 mt-1">Branch Code: {showPaymentForm.master?.branchId}</div>
+                    <div className="font-bold text-slate-800 dark:text-gray-100">{showPaymentForm.master?.bankName} - {showPaymentForm.master?.branchName}</div>
+                    <div className="text-slate-500 dark:text-gray-300 mt-1">Branch Code: {showPaymentForm.master?.branchId}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-rose-600">Total Due: ₹{showPaymentForm.master?.pendingAmount || '0.00'}</div>
+                    <div className="font-bold text-rose-600 dark:text-rose-300">Total Due: ₹{showPaymentForm.master?.pendingAmount || '0.00'}</div>
                   </div>
                 </div>
               </div>
@@ -2170,12 +2170,12 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               <form onSubmit={handlePaymentSubmit} className="p-5 space-y-4">
                 {showPaymentForm.master?.importedBillCount > 0 && (
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Invoice Number *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Invoice Number *</label>
                     <select
                       required
                       value={paymentForm.invoiceId}
                       onChange={e => setPaymentForm({ ...paymentForm, invoiceId: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none font-semibold text-slate-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none font-semibold text-slate-700 dark:text-gray-100"
                     >
                       <option value="">-- Select pending invoice --</option>
                       {paymentInvoices.map((invoice: any) => (
@@ -2185,19 +2185,19 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       ))}
                     </select>
                     {selectedPaymentInvoice && (
-                      <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border border-emerald-100 bg-emerald-50/60 p-2 text-[10px]">
+                      <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border border-emerald-100 dark:border-gray-700 bg-emerald-50/60 dark:bg-emerald-950/50 p-2 text-[10px]">
                         <span>Bill: <b>₹{Number(selectedPaymentInvoice.billAmount || 0).toLocaleString('en-IN')}</b></span>
                         <span>Received: <b>₹{Number(selectedPaymentInvoice.receivedAmount || 0).toLocaleString('en-IN')}</b></span>
-                        <span className="text-rose-700">Due: <b>₹{Number(selectedPaymentInvoice.dueAmount || 0).toLocaleString('en-IN')}</b></span>
+                        <span className="text-rose-700 dark:text-rose-300">Due: <b>₹{Number(selectedPaymentInvoice.dueAmount || 0).toLocaleString('en-IN')}</b></span>
                       </div>
                     )}
-                    {!paymentInvoices.length && <p className="mt-1 text-[10px] font-semibold text-emerald-700">No pending invoice is available for this branch.</p>}
+                    {!paymentInvoices.length && <p className="mt-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">No pending invoice is available for this branch.</p>}
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Amount Received (₹) *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Amount Received (₹) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2205,41 +2205,41 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       required
                       value={paymentForm.amount}
                       onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-emerald-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-emerald-700 dark:text-emerald-300"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">TDS Adjusted (₹)</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">TDS Adjusted (₹)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={paymentForm.tdsAmount}
                       onChange={e => setPaymentForm({ ...paymentForm, tdsAmount: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-amber-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-amber-700"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-amber-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-amber-700 dark:text-amber-300"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
 
                 <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Payment Date *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Payment Date *</label>
                     <input
                       type="date"
                       required
                       value={paymentForm.paymentDate}
                       onChange={e => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Payment Mode *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Payment Mode *</label>
                     <select
                       value={paymentForm.paymentMode}
                       onChange={e => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none mb-1"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none mb-1"
                     >
                       <option value="NEFT/RTGS">NEFT / RTGS</option>
                       <option value="IMPS">IMPS</option>
@@ -2254,48 +2254,48 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                         required
                         value={paymentForm.otherPaymentMode}
                         onChange={e => setPaymentForm({ ...paymentForm, otherPaymentMode: e.target.value })}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none mt-2"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none mt-2"
                         placeholder="Specify Payment Mode"
                       />
                     )}
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Transaction ID / Ref No.</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Transaction ID / Ref No.</label>
                     <input
                       type="text"
                       value={paymentForm.transactionId}
                       onChange={e => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none uppercase"
+                      className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none uppercase"
                       placeholder="e.g. UTR NO."
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Proof (Receipt / Screenshot)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Upload Proof (Receipt / Screenshot)</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
                       accept="image/*,.pdf"
                       onChange={e => setProofFile(e.target.files ? e.target.files[0] : null)}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
+                      className="block w-full text-xs text-slate-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-[#E8E4DF] dark:border-gray-700 rounded-lg"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Remarks (Optional)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Remarks (Optional)</label>
                   <textarea
                     rows={2}
                     value={paymentForm.remarks}
                     onChange={e => setPaymentForm({ ...paymentForm, remarks: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
+                    className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
                     placeholder="Any additional notes about this payment..."
                   ></textarea>
                 </div>
 
-                <div className="pt-4 border-t border-[#E8E4DF] flex justify-end gap-2">
-                  <button type="button" onClick={() => setShowPaymentForm({ show: false, master: null })} className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <div className="pt-4 border-t border-[#E8E4DF] dark:border-gray-700 flex justify-end gap-2">
+                  <button type="button" onClick={() => setShowPaymentForm({ show: false, master: null })} className="px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800">
                     Cancel
                   </button>
                   <button disabled={submittingPayment || (showPaymentForm.master?.importedBillCount > 0 && !paymentInvoices.length)} type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-emerald-700 disabled:opacity-50">

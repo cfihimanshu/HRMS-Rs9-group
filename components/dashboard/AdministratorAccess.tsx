@@ -67,7 +67,7 @@ function UserSearchCombobox({
   return (
     <div ref={containerRef} className="relative max-w-sm w-full">
       <div className="relative">
-        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={query}
@@ -81,14 +81,14 @@ function UserSearchCombobox({
             setIsOpen(true);
           }}
           placeholder="🔍 Type to search &amp; select user..."
-          className="w-full text-xs pl-8 pr-3 py-2 border border-[#E8E4DF] focus:border-[#C9A84C] rounded-xl bg-white font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium focus:outline-none transition-all shadow-2xs"
+          className="w-full text-xs pl-8 pr-3 py-2 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-300 placeholder:font-medium focus:outline-none transition-all shadow-2xs"
         />
       </div>
 
       {isOpen && (
         <div
           className={`absolute z-[9999] left-0 ${openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
-            } w-full bg-white border border-[#E8E4DF] rounded-xl shadow-2xl max-h-44 overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-150`}
+            } w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl shadow-2xl max-h-44 overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-150`}
         >
           {filtered.map(emp => (
             <button
@@ -99,17 +99,17 @@ function UserSearchCombobox({
                 setQuery("");
                 setIsOpen(false);
               }}
-              className="w-full text-left p-2 hover:bg-[#F5F0EA] rounded-lg transition-colors flex items-center justify-between gap-2 text-xs"
+              className="w-full text-left p-2 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-between gap-2 text-xs"
             >
               <div className="truncate">
-                <span className="font-bold text-slate-800 block truncate">{emp.name || "Employee"}</span>
-                <span className="text-[10px] text-slate-400 font-medium truncate block">{emp.email} &bull; {emp.role || "User"}</span>
+                <span className="font-bold text-slate-800 dark:text-gray-100 block truncate">{emp.name || "Employee"}</span>
+                <span className="text-[10px] text-slate-400 dark:text-gray-300 font-medium truncate block">{emp.email} &bull; {emp.role || "User"}</span>
               </div>
-              <span className="text-[10px] font-bold text-[#C9A84C] bg-[#C9A84C]/10 px-2 py-0.5 rounded border border-[#C9A84C]/30 shrink-0">+ Add</span>
+              <span className="text-[10px] font-bold text-[#C9A84C] dark:text-amber-300 bg-[#C9A84C]/10 px-2 py-0.5 rounded border border-[#C9A84C]/30 shrink-0">+ Add</span>
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="p-3 text-center text-[11px] text-slate-400 font-medium">
+            <div className="p-3 text-center text-[11px] text-slate-400 dark:text-gray-300 font-medium">
               No matching users found
             </div>
           )}
@@ -197,7 +197,7 @@ function MultiEmployeeCheckboxSelect({
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={search}
@@ -211,7 +211,7 @@ function MultiEmployeeCheckboxSelect({
             setIsOpen(true);
           }}
           placeholder={selectedIds.length > 0 ? `${selectedIds.length} user(s) selected...` : placeholder}
-          className="w-full text-xs pl-8 pr-7 py-2 border border-slate-200 focus:border-indigo-500 rounded-xl bg-white font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-2xs cursor-pointer"
+          className="w-full text-xs pl-8 pr-7 py-2 border border-slate-200 dark:border-gray-700 focus:border-indigo-500 rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-300 placeholder:font-normal focus:outline-none transition-all shadow-2xs cursor-pointer"
         />
         {selectedIds.length > 0 && (
           <button
@@ -220,7 +220,7 @@ function MultiEmployeeCheckboxSelect({
               e.stopPropagation();
               handleClearAll();
             }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300 text-xs font-bold"
             title="Clear All Selected"
           >
             ✕
@@ -230,19 +230,19 @@ function MultiEmployeeCheckboxSelect({
 
       {/* Selected Employee Badges Preview */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto custom-scrollbar p-1 bg-slate-100/60 rounded-xl border border-slate-200/60">
+        <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto custom-scrollbar p-1 bg-slate-100/60 dark:bg-gray-800 rounded-xl border border-slate-200/60 dark:border-gray-700">
           {selectedIds.map(id => {
             const emp = employees.find(e => String(e.id) === String(id));
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-indigo-200 text-indigo-900 rounded-lg text-[11px] font-bold shadow-2xs"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 text-indigo-900 dark:text-indigo-300 rounded-lg text-[11px] font-bold shadow-2xs"
               >
                 <span>👤 {emp ? emp.name : id}</span>
                 <button
                   type="button"
                   onClick={() => handleToggle(id)}
-                  className="text-indigo-500 hover:text-rose-600 font-black ml-0.5"
+                  className="text-indigo-500 hover:text-rose-600 dark:hover:text-rose-300 font-black ml-0.5"
                 >
                   &times;
                 </button>
@@ -254,15 +254,15 @@ function MultiEmployeeCheckboxSelect({
 
       {/* Checkbox Dropdown Panel */}
       {isOpen && (
-        <div className={`absolute z-[99999] left-0 ${openUpward ? "bottom-full mb-1" : "top-full mt-1"} w-full bg-white border border-[#E8E4DF] rounded-2xl shadow-2xl max-h-56 flex flex-col overflow-hidden animate-in fade-in duration-150`}>
+        <div className={`absolute z-[99999] left-0 ${openUpward ? "bottom-full mb-1" : "top-full mt-1"} w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl shadow-2xl max-h-56 flex flex-col overflow-hidden animate-in fade-in duration-150`}>
           {/* Header Controls */}
-          <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 shrink-0">
+          <div className="p-2.5 bg-slate-50 dark:bg-gray-800 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-300 shrink-0">
             <span>{label} ({selectedIds.length} Selected)</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleSelectAll}
-                className="text-indigo-600 hover:underline font-bold"
+                className="text-indigo-600 dark:text-indigo-300 hover:underline font-bold"
               >
                 Select All
               </button>
@@ -278,28 +278,28 @@ function MultiEmployeeCheckboxSelect({
           </div>
 
           {/* List items with checkboxes */}
-          <div className="p-1.5 overflow-y-auto custom-scrollbar divide-y divide-slate-100 flex-1">
+          <div className="p-1.5 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-gray-700 flex-1">
             {filtered.map(emp => {
               const isChecked = selectedIds.map(String).includes(String(emp.id));
               return (
                 <label
                   key={emp.id}
-                  className={`flex items-center justify-between p-2 hover:bg-indigo-50/60 rounded-xl cursor-pointer transition-colors text-xs font-semibold select-none ${isChecked ? 'bg-indigo-50/40' : ''}`}
+                  className={`flex items-center justify-between p-2 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/50 rounded-xl cursor-pointer transition-colors text-xs font-semibold select-none ${isChecked ? 'bg-indigo-50/40 dark:bg-indigo-950/50' : ''}`}
                 >
                   <div className="flex items-center gap-2 min-w-0 pr-2">
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => handleToggle(emp.id)}
-                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-gray-700 text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500 cursor-pointer"
                     />
                     <div className="truncate">
-                      <span className="font-bold text-slate-800 block truncate">{emp.name || "Employee"}</span>
-                      <span className="text-[10px] text-slate-400 font-medium truncate block">{emp.role || "User"} &bull; {emp.email}</span>
+                      <span className="font-bold text-slate-800 dark:text-gray-100 block truncate">{emp.name || "Employee"}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-gray-300 font-medium truncate block">{emp.role || "User"} &bull; {emp.email}</span>
                     </div>
                   </div>
                   {isChecked && (
-                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-md shrink-0">
+                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 bg-indigo-100/70 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md shrink-0">
                       ✓ Selected
                     </span>
                   )}
@@ -307,14 +307,14 @@ function MultiEmployeeCheckboxSelect({
               );
             })}
             {filtered.length === 0 && (
-              <div className="p-4 text-center text-xs text-slate-400 font-medium">
+              <div className="p-4 text-center text-xs text-slate-400 dark:text-gray-300 font-medium">
                 No employees found matching search.
               </div>
             )}
           </div>
 
           {/* Done Button */}
-          <div className="p-2 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+          <div className="p-2 bg-slate-50 dark:bg-gray-800 border-t border-slate-100 dark:border-gray-700 flex justify-end shrink-0">
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -346,19 +346,19 @@ function RequesterOverrideSelector({
   const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
 
   return (
-    <div className="pt-3 border-t border-slate-100 space-y-3">
+    <div className="pt-3 border-t border-slate-100 dark:border-gray-700 space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-black uppercase text-indigo-600 tracking-wider block">
+        <label className="text-[11px] font-black uppercase text-indigo-600 dark:text-indigo-300 tracking-wider block">
           ⚡ Requester Specific Override Rules (Multiple Selection Allowed):
         </label>
-        <span className="text-[10px] text-slate-400 font-bold">
+        <span className="text-[10px] text-slate-400 dark:text-gray-300 font-bold">
           {currentOverrides.length} rule(s) configured
         </span>
       </div>
 
-      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 max-w-4xl">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 bg-slate-50/80 dark:bg-gray-800 p-3.5 rounded-2xl border border-slate-200/80 dark:border-gray-700 max-w-4xl">
         <div className="w-full lg:w-80 shrink-0">
-          <label className="text-[10px] uppercase font-black text-slate-500 block mb-1">
+          <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-300 block mb-1">
             When Request Created By (Select 1+ Requesters):
           </label>
           <MultiEmployeeCheckboxSelect
@@ -372,13 +372,13 @@ function RequesterOverrideSelector({
         </div>
 
         <div className="text-center self-center shrink-0 hidden lg:block pt-3">
-          <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-black text-xs inline-flex items-center justify-center border border-indigo-200">
+          <span className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-black text-xs inline-flex items-center justify-center border border-indigo-200 dark:border-gray-700">
             ➔
           </span>
         </div>
 
         <div className="w-full lg:w-80 shrink-0">
-          <label className="text-[10px] uppercase font-black text-slate-500 block mb-1">
+          <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-300 block mb-1">
             Route Approval Specifically To (Select 1+ Approvers):
           </label>
           <MultiEmployeeCheckboxSelect
@@ -410,7 +410,7 @@ function RequesterOverrideSelector({
       {/* Active Multi-Select Override Rules Cards */}
       {currentOverrides && currentOverrides.length > 0 && (
         <div className="space-y-2 pt-1">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Configured Requester Override Rules:</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-300">Configured Requester Override Rules:</p>
           <div className="grid grid-cols-1 gap-2">
             {currentOverrides.map((ov, index) => {
               const reqIds: string[] = Array.isArray(ov.applicantIds)
@@ -421,15 +421,15 @@ function RequesterOverrideSelector({
               return (
                 <div
                   key={index}
-                  className="p-3 bg-white border border-indigo-200 rounded-2xl shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                  className="p-3 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 rounded-2xl shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                 >
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">Requesters:</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-300 shrink-0">Requesters:</span>
                       {reqIds.map(rId => {
                         const emp = employees.find((e: any) => String(e.id) === String(rId));
                         return (
-                          <span key={rId} className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-[11px] font-bold">
+                          <span key={rId} className="px-2 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 border border-slate-200 dark:border-gray-700 rounded-lg text-[11px] font-bold">
                             👤 {emp ? emp.name : rId}
                           </span>
                         );
@@ -441,7 +441,7 @@ function RequesterOverrideSelector({
                       {appIds.map(aId => {
                         const emp = employees.find((e: any) => String(e.id) === String(aId));
                         return (
-                          <span key={aId} className="px-2 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg text-[11px] font-bold">
+                          <span key={aId} className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-gray-700 rounded-lg text-[11px] font-bold">
                             🎯 {emp ? emp.name : aId}
                           </span>
                         );
@@ -452,7 +452,7 @@ function RequesterOverrideSelector({
                   <button
                     type="button"
                     onClick={() => onRemoveOverride(index)}
-                    className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl transition-all border border-rose-200 shrink-0 text-xs font-bold flex items-center gap-1"
+                    className="p-2 text-rose-600 dark:text-rose-300 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-all border border-rose-200 dark:border-gray-700 shrink-0 text-xs font-bold flex items-center gap-1"
                     title="Delete Override Rule"
                   >
                     <span>🗑️ Delete Rule</span>
@@ -894,33 +894,33 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
 
   if (sessionUser?.role !== "Owner") {
     return (
-      <div className="bg-white border border-[#E8E4DF] rounded-2xl p-12 text-center shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl p-12 text-center shadow-sm">
         <ShieldAlert className="w-8 h-8 text-rose-500 mx-auto mb-2" />
-        <p className="text-[#1C1C1A] text-sm font-bold uppercase tracking-widest">Access Denied</p>
-        <p className="text-[#9C9890] text-xs mt-1">This page is restricted to Owners only.</p>
+        <p className="text-[#1C1C1A] dark:text-gray-100 text-sm font-bold uppercase tracking-widest">Access Denied</p>
+        <p className="text-[#9C9890] dark:text-gray-300 text-xs mt-1">This page is restricted to Owners only.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-2xl font-serif font-light text-[#1C1C1A] dark:text-gray-100" style={{ fontFamily: "'Playfair Display', serif" }}>
             Administrator Access Control
           </h1>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-2 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#5D5B57] hover:text-[#1C1C1A] rounded-xl transition-all shadow-sm"
+          className="p-2 bg-[#FCFBF9] dark:bg-gray-900 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 rounded-xl transition-all shadow-sm"
         >
           <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
         </button>
       </div>
 
       {/* Sub-Tabs Selector */}
-      <div className="flex bg-[#F5F0EA]/60 p-1 rounded-xl border border-[#E8E4DF] max-w-[560px]">
+      <div className="flex bg-[#F5F0EA]/60 dark:bg-gray-800 p-1 rounded-xl border border-[#E8E4DF] dark:border-gray-700 max-w-[560px]">
         <button
           type="button"
           onClick={() => setActiveSubTab("admin")}
@@ -928,7 +928,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
             "flex-1 px-4 py-2 text-[10px] uppercase font-bold tracking-wider rounded-lg transition-all",
             activeSubTab === "admin"
               ? "bg-[#C9A84C] text-white shadow-sm"
-              : "text-[#5D5B57] hover:text-[#1C1C1A]"
+              : "text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"
           )}
         >
           Admin Access
@@ -940,7 +940,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
             "flex-1 px-4 py-2 text-[10px] uppercase font-bold tracking-wider rounded-lg transition-all",
             activeSubTab === "users"
               ? "bg-[#C9A84C] text-white shadow-sm"
-              : "text-[#5D5B57] hover:text-[#1C1C1A]"
+              : "text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"
           )}
         >
           Users Access
@@ -952,7 +952,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
             "flex-1 px-4 py-2 text-[10px] uppercase font-bold tracking-wider rounded-lg transition-all flex items-center justify-center gap-1",
             activeSubTab === "approval-matrix"
               ? "bg-[#C9A84C] text-white shadow-sm"
-              : "text-[#5D5B57] hover:text-[#1C1C1A]"
+              : "text-[#5D5B57] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"
           )}
         >
           <ShieldCheck className="w-3.5 h-3.5" /> Request Routing Matrix
@@ -962,36 +962,36 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       {activeSubTab !== "approval-matrix" && (
         <>
           {/* Filter and Search */}
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 p-4 rounded-xl">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C9890]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C9890] dark:text-gray-300" />
               <input
                 type="text"
                 placeholder="Search users by name, email, department..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg pl-9 pr-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none transition-all font-sans"
+                className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] rounded-lg pl-9 pr-3 py-2 text-xs text-[#1C1C1A] dark:text-gray-100 placeholder-[#9C9890] focus:outline-none transition-all font-sans"
               />
             </div>
           </div>
 
           {/* Users Table */}
           {loading ? (
-            <div className="bg-white border border-[#E8E4DF] rounded-2xl p-12 text-center shadow-sm">
-              <RefreshCw className="w-8 h-8 text-[#C9A84C] animate-spin mx-auto mb-3" />
-              <p className="text-[#9C9890] text-xs uppercase tracking-widest font-semibold">Loading access controls...</p>
+            <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl p-12 text-center shadow-sm">
+              <RefreshCw className="w-8 h-8 text-[#C9A84C] dark:text-amber-300 animate-spin mx-auto mb-3" />
+              <p className="text-[#9C9890] dark:text-gray-300 text-xs uppercase tracking-widest font-semibold">Loading access controls...</p>
             </div>
           ) : displayEmployees.length === 0 ? (
-            <div className="bg-white border border-[#E8E4DF] rounded-2xl p-12 text-center shadow-sm">
-              <ShieldAlert className="w-8 h-8 text-[#9C9890] mx-auto mb-2" />
-              <p className="text-[#9C9890] text-xs uppercase tracking-widest font-semibold">No users found matching search query</p>
+            <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl p-12 text-center shadow-sm">
+              <ShieldAlert className="w-8 h-8 text-[#9C9890] dark:text-gray-300 mx-auto mb-2" />
+              <p className="text-[#9C9890] dark:text-gray-300 text-xs uppercase tracking-widest font-semibold">No users found matching search query</p>
             </div>
           ) : (
-            <div className="bg-white border border-[#E8E4DF] rounded-2xl overflow-visible shadow-sm">
+            <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl overflow-visible shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/30 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
+                    <tr className="border-b border-[#E8E4DF] dark:border-gray-700 bg-[#F5F0EA]/30 dark:bg-gray-800 text-[#5D5B57] dark:text-gray-300 text-[10px] uppercase font-bold tracking-wider">
                       <th className="py-4 px-6 font-bold">User Information</th>
                       <th className="py-4 px-4 font-bold text-center">Is Admin?</th>
                       {activeSubTab === "admin" ? (
@@ -1009,7 +1009,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E8E4DF] text-xs">
+                  <tbody className="divide-y divide-[#E8E4DF] dark:divide-gray-700 text-xs">
                     {displayEmployees.map((emp) => {
                       const isUserSaving = savingUserId === emp.id;
                       const empStatus = (emp.status || "active").toLowerCase();
@@ -1038,8 +1038,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                           className={cn(
                             "transition-colors",
                             isInactiveOrArchived
-                              ? "bg-rose-50/70 dark:bg-rose-950/20 border-l-4 border-l-rose-500 hover:bg-rose-100/50"
-                              : "hover:bg-[#FAFAF7]/50",
+                              ? "bg-rose-50/70 dark:bg-rose-950/50 border-l-4 border-l-rose-500 hover:bg-rose-100/50 dark:hover:bg-rose-950/50"
+                              : "hover:bg-[#FAFAF7]/50 dark:hover:bg-gray-800",
                             isUserSaving && "opacity-60 pointer-events-none"
                           )}
                         >
@@ -1049,27 +1049,27 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                               <div className={cn(
                                 "w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-light border",
                                 isInactiveOrArchived
-                                  ? "bg-rose-100 border-rose-200 text-rose-700"
-                                  : "bg-[#F5F0EA] border-[#E8E4DF] text-[#5D5B57]"
+                                  ? "bg-rose-100 dark:bg-rose-950/50 border-rose-200 dark:border-gray-700 text-rose-700 dark:text-rose-300"
+                                  : "bg-[#F5F0EA] dark:bg-gray-800 border-[#E8E4DF] dark:border-gray-700 text-[#5D5B57] dark:text-gray-300"
                               )}>
                                 {initial}
                               </div>
                               <div>
-                                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                <div className="font-semibold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
                                   {emp.name}
                                   {isCurrentlyAdmin && (
-                                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-600 text-[8px] uppercase tracking-wider font-bold">
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-300 text-[8px] uppercase tracking-wider font-bold">
                                       Admin
                                     </span>
                                   )}
                                   {isInactiveOrArchived && (
-                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 border border-rose-300 text-rose-700 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-1">
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/50 border border-rose-300 dark:border-gray-700 text-rose-700 dark:text-rose-300 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-1">
                                       <Lock className="w-2.5 h-2.5" /> {empStatus}
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-[#9C9890]">{emp.email}</div>
-                                <div className="text-[9px] text-[#5D5B57] mt-0.5 uppercase tracking-wider font-medium">
+                                <div className="text-[10px] text-[#9C9890] dark:text-gray-300">{emp.email}</div>
+                                <div className="text-[9px] text-[#5D5B57] dark:text-gray-300 mt-0.5 uppercase tracking-wider font-medium">
                                   {userDeptName} &bull; {emp.role || "Employee"}
                                 </div>
                               </div>
@@ -1086,10 +1086,10 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                               className={cn(
                                 "mx-auto flex items-center justify-center w-8 h-8 rounded-xl border transition-all shadow-sm",
                                 isInactiveOrArchived
-                                  ? "bg-rose-100/50 border-rose-200 text-rose-400 opacity-60 cursor-not-allowed"
+                                  ? "bg-rose-100/50 dark:bg-rose-950/50 border-rose-200 dark:border-gray-700 text-rose-400 opacity-60 cursor-not-allowed"
                                   : isCurrentlyAdmin
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
-                                    : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
+                                    ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
+                                    : "bg-white dark:bg-gray-900 border-[#E8E4DF] dark:border-gray-700 text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 hover:bg-[#F5F0EA]/40 dark:hover:bg-gray-800"
                               )}
                             >
                               {isCurrentlyAdmin ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
@@ -1112,8 +1112,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                       isInactiveOrArchived
                                         ? "text-rose-300 opacity-40 cursor-not-allowed"
                                         : isChecked
-                                          ? "text-[#C9A84C] hover:scale-105"
-                                          : "text-[#E8E4DF] hover:text-[#9C9890]"
+                                          ? "text-[#C9A84C] dark:text-amber-300 hover:scale-105"
+                                          : "text-[#E8E4DF] dark:text-gray-300 hover:text-[#9C9890] dark:hover:text-gray-300"
                                     )}
                                   >
                                     {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
@@ -1149,12 +1149,12 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                     className={cn(
                                       "mx-auto flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all text-[9px] font-bold tracking-wider",
                                       isInactiveOrArchived
-                                        ? "bg-rose-100/60 border-rose-200 text-rose-600/90 cursor-not-allowed opacity-80"
+                                        ? "bg-rose-100/60 dark:bg-rose-950/50 border-rose-200 dark:border-gray-700 text-rose-600/90 dark:text-rose-300 cursor-not-allowed opacity-80"
                                         : isAllChecked
-                                          ? "bg-[#C9A84C]/10 border-[#C9A84C] text-[#C9A84C]"
+                                          ? "bg-[#C9A84C]/10 border-[#C9A84C] text-[#C9A84C] dark:text-amber-300"
                                           : isSomeChecked
-                                            ? "bg-[#C9A84C]/5 border-[#C9A84C]/50 text-[#C9A84C]/80"
-                                            : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
+                                            ? "bg-[#C9A84C]/5 border-[#C9A84C]/50 text-[#C9A84C]/80 dark:text-amber-300"
+                                            : "bg-white dark:bg-gray-900 border-[#E8E4DF] dark:border-gray-700 text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 hover:bg-[#F5F0EA]/40 dark:hover:bg-gray-800"
                                     )}
                                   >
                                     {isInactiveOrArchived ? (
@@ -1180,16 +1180,16 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
 
                                   {/* Popover Dropdown */}
                                   {isPopoverOpen && (
-                                    <div className="absolute z-[9999] top-full mt-1.5 left-1/2 -translate-x-1/2 w-64 bg-white border border-[#E8E4DF] rounded-2xl shadow-2xl p-4 text-left animate-in fade-in duration-150">
-                                      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                                    <div className="absolute z-[9999] top-full mt-1.5 left-1/2 -translate-x-1/2 w-64 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl shadow-2xl p-4 text-left animate-in fade-in duration-150">
+                                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-700 pb-2 mb-3">
                                         <div>
-                                          <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">{cat}</h5>
-                                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[170px]">{emp.name}</p>
+                                          <h5 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider">{cat}</h5>
+                                          <p className="text-[10px] text-slate-400 dark:text-gray-300 font-medium truncate max-w-[170px]">{emp.name}</p>
                                         </div>
                                         <button
                                           type="button"
                                           onClick={() => setActivePopover(null)}
-                                          className="text-slate-400 hover:text-slate-600 text-base font-bold leading-none p-1"
+                                          className="text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300 text-base font-bold leading-none p-1"
                                         >
                                           &times;
                                         </button>
@@ -1201,7 +1201,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                           return (
                                             <label
                                               key={page.id}
-                                              className="flex items-center gap-2.5 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors text-xs text-slate-700 font-medium"
+                                              className="flex items-center gap-2.5 p-1.5 hover:bg-slate-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors text-xs text-slate-700 dark:text-gray-100 font-medium"
                                             >
                                               <input
                                                 type="checkbox"
@@ -1213,7 +1213,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                                     setDraftAccess(prev => prev.filter(id => id !== page.id));
                                                   }
                                                 }}
-                                                className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5"
+                                                className="rounded text-amber-600 dark:text-amber-300 focus:ring-amber-500 w-3.5 h-3.5"
                                               />
                                               <span className="truncate">{page.label}</span>
                                             </label>
@@ -1221,7 +1221,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                         })}
                                       </div>
 
-                                      <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-slate-100">
+                                      <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-slate-100 dark:border-gray-700">
                                         <button
                                           type="button"
                                           onClick={() => {
@@ -1233,7 +1233,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                               setDraftAccess(prev => Array.from(new Set([...prev, ...catPageIds])));
                                             }
                                           }}
-                                          className="text-[10px] font-bold text-slate-500 hover:text-slate-800 underline"
+                                          className="text-[10px] font-bold text-slate-500 dark:text-gray-300 hover:text-slate-800 dark:hover:text-gray-100 underline"
                                         >
                                           Toggle All
                                         </button>
@@ -1241,7 +1241,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                           <button
                                             type="button"
                                             onClick={() => setActivePopover(null)}
-                                            className="px-2 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
+                                            className="px-2 py-1 text-[11px] font-bold text-slate-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg"
                                           >
                                             Cancel
                                           </button>
@@ -1277,37 +1277,37 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       {/* APPROVAL ROUTING MATRIX TAB */}
       {activeSubTab === "approval-matrix" && (
         <div className="space-y-6 pb-44">
-          <div className="pb-1 border-b border-[#E8E4DF]">
-            <h2 className="text-lg font-bold text-[#1C1C1A] flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#C9A84C]" /> Requests & Approval Control Matrix
+          <div className="pb-1 border-b border-[#E8E4DF] dark:border-gray-700">
+            <h2 className="text-lg font-bold text-[#1C1C1A] dark:text-gray-100 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#C9A84C] dark:text-amber-300" /> Requests & Approval Control Matrix
             </h2>
-            <p className="text-xs text-[#5D5B57] mt-0.5">
+            <p className="text-xs text-[#5D5B57] dark:text-gray-300 mt-0.5">
               Decide which role or user receives request approvals and notifications.
             </p>
           </div>
 
-          <div className="bg-white border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-[#E8E4DF] bg-slate-50 flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700">Form Workflow Routing Table</span>
-              <span className="text-xs text-slate-500 font-bold">{approvalMatrix.length} Workflows Configured</span>
+          <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-[#E8E4DF] dark:border-gray-700 bg-slate-50 dark:bg-gray-800 flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-100">Form Workflow Routing Table</span>
+              <span className="text-xs text-slate-500 dark:text-gray-300 font-bold">{approvalMatrix.length} Workflows Configured</span>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-gray-700">
               {approvalMatrix.map((item, idx) => {
                 const currentRoles: string[] = item.approverRoles || [];
                 return (
-                  <div key={item.formKey} className="p-5 hover:bg-slate-50/50 transition-colors space-y-4">
+                  <div key={item.formKey} className="p-5 hover:bg-slate-50/50 dark:hover:bg-gray-800 transition-colors space-y-4">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-gray-700 pb-3">
                       <div>
-                        <span className="text-[10px] font-black uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2.5 py-0.5 rounded-md tracking-wider">
+                        <span className="text-[10px] font-black uppercase text-[#C9A84C] dark:text-amber-300 bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2.5 py-0.5 rounded-md tracking-wider">
                           {item.category || "Workflow"}
                         </span>
-                        <h4 className="text-sm font-bold text-slate-900 mt-1">{item.formName}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-gray-100 mt-1">{item.formName}</h4>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-xl">
-                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-2 rounded-xl">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-100 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={item.notifyEmail !== false}
@@ -1317,12 +1317,12 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                               setApprovalMatrix(updated);
                               await handleSaveMatrixRule(updatedItem);
                             }}
-                            className="rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                            className="rounded text-amber-600 dark:text-amber-300 focus:ring-amber-500 cursor-pointer"
                           />
                           <span>📧 Email Alert</span>
                         </label>
 
-                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-100 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={item.notifyApp !== false}
@@ -1332,7 +1332,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                               setApprovalMatrix(updated);
                               await handleSaveMatrixRule(updatedItem);
                             }}
-                            className="rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                            className="rounded text-amber-600 dark:text-amber-300 focus:ring-amber-500 cursor-pointer"
                           />
                           <span>🔔 In-App Alert</span>
                         </label>
@@ -1350,10 +1350,10 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                     {/* Step 1: Assign Approver Roles */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
+                        <label className="text-[11px] font-black uppercase text-slate-700 dark:text-gray-100 tracking-wider">
                           Assign Approver Roles (Click to Enable / Disable):
                         </label>
-                        <span className="text-[10px] text-slate-400 font-bold">
+                        <span className="text-[10px] text-slate-400 dark:text-gray-300 font-bold">
                           {currentRoles.length} Role(s) Active
                         </span>
                       </div>
@@ -1382,8 +1382,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                 await handleSaveMatrixRule(updatedItem);
                               }}
                               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${isAssigned
-                                ? "bg-[#C9A84C] text-white border-[#B0913F] shadow-xs group"
-                                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800"
+                                ? "bg-[#C9A84C] text-white border-[#B0913F] dark:border-gray-700 shadow-xs group"
+                                : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-800 dark:hover:text-gray-100"
                                 }`}
                             >
                               <span>{isAssigned ? "✓" : "+"}</span>
@@ -1400,8 +1400,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                     </div>
 
                     {/* Step 2: Assign Specific Employee Approvers */}
-                    <div className="pt-3 border-t border-slate-100 space-y-2">
-                      <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block">
+                    <div className="pt-3 border-t border-slate-100 dark:border-gray-700 space-y-2">
+                      <label className="text-[11px] font-black uppercase text-slate-700 dark:text-gray-100 tracking-wider block">
                         Assign Specific Employee(s) (Optional Specific Users):
                       </label>
 
@@ -1422,7 +1422,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                           }}
                         />
 
-                        <span className="text-[11px] text-slate-400 font-bold">
+                        <span className="text-[11px] text-slate-400 dark:text-gray-300 font-bold">
                           {(item.approverUsers || []).length} user(s) assigned
                         </span>
                       </div>
@@ -1435,7 +1435,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                             return (
                               <span
                                 key={uId}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold shadow-2xs"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-gray-700 rounded-xl text-xs font-bold shadow-2xs"
                               >
                                 <span>👤 {targetEmp ? `${targetEmp.name} (${targetEmp.role || "User"})` : uId}</span>
                                 <button
@@ -1447,7 +1447,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                     setApprovalMatrix(updated);
                                     await handleSaveMatrixRule(updatedItem);
                                   }}
-                                  className="text-rose-600 hover:text-rose-900 font-black ml-1 text-sm leading-none p-0.5 hover:bg-rose-100 rounded"
+                                  className="text-rose-600 dark:text-rose-300 hover:text-rose-900 dark:hover:text-rose-300 font-black ml-1 text-sm leading-none p-0.5 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded"
                                   title="Remove User"
                                 >
                                   ✕
@@ -1487,7 +1487,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
               })}
 
               {approvalMatrix.length === 0 && !loadingMatrix && (
-                <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <div className="p-12 text-center text-slate-400 dark:text-gray-300 text-xs font-bold uppercase tracking-wider">
                   No approval workflows found.
                 </div>
               )}

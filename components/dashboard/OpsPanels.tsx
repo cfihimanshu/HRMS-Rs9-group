@@ -91,7 +91,7 @@ const SearchableCombobox = ({
 
   return (
     <div className={`relative font-sans ${isOpen ? "z-[9999]" : "z-0"}`} ref={containerRef}>
-      <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">{label}</label>
+      <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">{label}</label>
       <div className="relative">
         <input
           type="text"
@@ -103,17 +103,17 @@ const SearchableCombobox = ({
             if (!disabled) setIsOpen(true);
           }}
           placeholder={placeholder}
-          className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px] disabled:opacity-50 disabled:bg-slate-100 pr-7"
+          className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-gray-800 pr-7 dark:[color-scheme:dark]"
         />
         <div
           onClick={() => { if (!disabled) setIsOpen(prev => !prev); }}
-          className="absolute right-2.5 top-2.5 cursor-pointer text-purple-600 hover:text-purple-800 text-[10px]"
+          className="absolute right-2.5 top-2.5 cursor-pointer text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-300 text-[10px]"
         >
           ▼
         </div>
       </div>
       {isOpen && !disabled && (
-        <div className="absolute z-[99999] left-0 right-0 mt-1 bg-white border border-purple-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
+        <div className="absolute z-[99999] left-0 right-0 mt-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-gray-700 font-sans animate-fade-in">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt, i) => (
               <div
@@ -124,13 +124,13 @@ const SearchableCombobox = ({
                   if (onSelectOption) onSelectOption(opt);
                   setIsOpen(false);
                 }}
-                className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-purple-50 hover:text-purple-900 cursor-pointer transition-colors"
+                className="px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-900 dark:hover:text-purple-300 cursor-pointer transition-colors"
               >
                 {opt}
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
+            <div className="px-3 py-2 text-xs text-slate-400 dark:text-gray-400 italic">No matching options found (keep typing for custom)</div>
           )}
         </div>
       )}
@@ -700,7 +700,7 @@ export function DailyCommitments({
     const firstDayIndex = getFirstDayOfMonth(calendarYear, calendarMonth);
 
     for (let i = 0; i < firstDayIndex; i++) {
-      days.push(<div key={`empty-${i}`} className="h-14 border border-slate-100 bg-slate-50/50 rounded-lg"></div>);
+      days.push(<div key={`empty-${i}`} className="h-14 border border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-slate-950/50 rounded-lg"></div>);
     }
 
     const todayStart = new Date();
@@ -728,37 +728,37 @@ export function DailyCommitments({
       });
 
       let statusLabel = "";
-      let statusColor = "bg-white text-slate-700 border-slate-200";
+      let statusColor = "bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-100 border-slate-200 dark:border-gray-700";
 
       if (isSunday) {
         statusLabel = "Weekly Off";
-        statusColor = "bg-slate-100 text-slate-500 border-slate-200 font-bold";
+        statusColor = "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border-slate-200 dark:border-gray-700 font-bold";
       } else if (isApprovedLeave) {
         statusLabel = "Leave";
-        statusColor = "bg-amber-100 text-amber-800 border-amber-200 font-bold";
+        statusColor = "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 font-bold";
       } else if (attendanceRec) {
         if (attendanceRec.status === "Present") {
           statusLabel = "Present";
-          statusColor = "bg-emerald-100 text-emerald-800 border-emerald-200 font-bold";
+          statusColor = "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 font-bold";
         } else if (attendanceRec.status === "Leave") {
           statusLabel = "Leave";
-          statusColor = "bg-amber-100 text-amber-800 border-amber-200 font-bold";
+          statusColor = "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 font-bold";
         } else if (attendanceRec.status === "Absent") {
           statusLabel = "Absent";
-          statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
+          statusColor = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 font-bold";
         } else {
           statusLabel = attendanceRec.status;
-          statusColor = "bg-slate-100 text-slate-800 border-slate-200";
+          statusColor = "bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 border-slate-200 dark:border-gray-700";
         }
       } else if (isFuture) {
         statusLabel = "";
-        statusColor = "bg-white text-slate-300 border-slate-100";
+        statusColor = "bg-white dark:bg-gray-900 text-slate-300 border-slate-100 dark:border-gray-700";
       } else if (isToday) {
         statusLabel = "Pending";
-        statusColor = "bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse font-bold";
+        statusColor = "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 animate-pulse font-bold";
       } else {
         statusLabel = "Absent";
-        statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
+        statusColor = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 font-bold";
       }
 
       const dateStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
@@ -775,7 +775,7 @@ export function DailyCommitments({
       days.push(
         <div
           key={`day-${d}`}
-          className={`h-14 border rounded-lg p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm`}
+          className={`h-14 border dark:border-gray-700 rounded-lg p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm`}
         >
           <div className="text-[10px] font-bold font-mono">{d}</div>
           {statusLabel && (
@@ -1072,13 +1072,13 @@ export function DailyCommitments({
   };
 
   return (
-    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       {formMode === "both" && (
         <>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-850">Daily Commitment Audits</h1>
-              <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
+              <h1 className="text-lg sm:text-xl font-black text-slate-850 dark:text-gray-100">Daily Commitment Audits</h1>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 sm:mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
             </div>
             <button
               className="bg-[#714B67] hover:bg-[#5F3F56] px-3.5 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow w-full sm:w-auto shrink-0"
@@ -1090,25 +1090,25 @@ export function DailyCommitments({
 
           {/* Stats widgets */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 md:gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-widest truncate">Present</div>
               <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.attendance ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">Late Checkins</div>
               <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.lateCheckins ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">Leaves Count</div>
               <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.leaves ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm">
               <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">SOD Declarations</div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
+              <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-300 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm col-span-2 sm:col-span-1">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm col-span-2 sm:col-span-1">
               <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">EOD Logs Submitted</div>
-              <div className="text-xl sm:text-2xl font-black text-[#714B67] font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
+              <div className="text-xl sm:text-2xl font-black text-[#714B67] dark:text-purple-300 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
             </div>
           </div>
         </>
@@ -1119,67 +1119,67 @@ export function DailyCommitments({
 
         {/* SOD Planner with Strict Verification */}
         {(formMode === "both" || formMode === "sod") && (
-          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
-            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
+            <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono pb-2 border-b border-slate-100 dark:border-gray-700 mb-4 flex items-center justify-between">
               <span>📋 SOD</span>
               {sodAlreadySubmitted && (
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
                   ALREADY FILED
                 </span>
               )}
             </h3>
 
             {sodAlreadySubmitted ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
-                <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 dark:bg-emerald-950/50 border dark:border-gray-700 border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
+                <div className="bg-emerald-100 dark:bg-emerald-950/50 p-3 rounded-full text-emerald-600 dark:text-emerald-300">
                   <CalendarCheck className="w-8 h-8" />
                 </div>
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">SOD Declared Successfully</h4>
-                <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
+                <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">SOD Declared Successfully</h4>
+                <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium max-w-xs leading-relaxed">
                   Your Start of Day planner for today has been logged. You are set to go! Check your entries in the Work Report.
                 </p>
               </div>
             ) : !showCamera ? (
               <div className="space-y-4 font-semibold text-slate-650 flex-1">
                 {/* Profile Bar */}
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 sm:p-3 flex justify-between items-center flex-wrap gap-2">
+                <div className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-2.5 sm:p-3 flex justify-between items-center flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
+                    <span className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                    <Hash className="w-3 h-3 text-slate-400 shrink-0" />
-                    <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
+                  <div className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 rounded">
+                    <Hash className="w-3 h-3 text-slate-400 dark:text-gray-400 shrink-0" />
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-gray-400 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
                   </div>
                 </div>
 
                 {/* Legal Recovery Vertical SOD Schedule Planner Table */}
                 {isLegalRecovery && (
-                  <div className="space-y-4 bg-purple-50/50 border border-purple-200 rounded-xl p-3 sm:p-4 animate-fade-in md:col-span-2">
-                    <div className="flex items-center justify-between border-b border-purple-200 pb-2 flex-wrap gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-purple-900 font-mono flex items-center gap-1.5">
-                        <Scale className="w-4 h-4 text-purple-600 shrink-0" /> Legal Recovery Schedule Planner Table
+                  <div className="space-y-4 bg-purple-50/50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl p-3 sm:p-4 animate-fade-in md:col-span-2">
+                    <div className="flex items-center justify-between border-b dark:border-gray-700 border-purple-200 pb-2 flex-wrap gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 font-mono flex items-center gap-1.5">
+                        <Scale className="w-4 h-4 text-purple-600 dark:text-purple-300 shrink-0" /> Legal Recovery Schedule Planner Table
                       </span>
-                      <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">
+                      <span className="text-[10px] font-mono text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/50 px-2 py-0.5 rounded font-bold">
                         Legal Recovery Mode Active
                       </span>
                     </div>
 
                     {/* Schedule Form Input Row */}
-                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-3.5 rounded-xl border dark:border-gray-700 border-purple-200 shadow-sm space-y-3">
                       {/* Top Row: Date, Time, Work Section, Type */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
                         <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Date *</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Date *</label>
                           <input
                             type="date"
                             value={legalInputDate}
                             onChange={e => setLegalInputDate(e.target.value)}
-                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
+                            className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                           />
                         </div>
                         <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Time *</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Time *</label>
                           <input
                             type="time"
                             value={
@@ -1205,15 +1205,15 @@ export function DailyCommitments({
                               hour = hour % 12 || 12;
                               setLegalInputTime(`${String(hour).padStart(2, '0')}:${m} ${ampm}`);
                             }}
-                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
+                            className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                           />
                         </div>
                         <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Work Location *</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Work Location *</label>
                           <select
                             value={legalWorkLocation}
                             onChange={e => setLegalWorkLocation(e.target.value)}
-                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
+                            className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                           >
                             <option value="Office">Office</option>
                             <option value="Bank">Bank</option>
@@ -1222,7 +1222,7 @@ export function DailyCommitments({
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Type *</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Type *</label>
                           <select
                             value={legalInputType}
                             onChange={e => {
@@ -1242,7 +1242,7 @@ export function DailyCommitments({
                                 setLegalWorkLocation("Office");
                               }
                             }}
-                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                            className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:[color-scheme:dark]"
                           >
                             <option value="General">General</option>
                             <option value="Bank Related">Bank Related</option>
@@ -1256,14 +1256,14 @@ export function DailyCommitments({
 
                       {/* Conditional Custom Work Location when 'Other' */}
                       {legalWorkLocation === "Other" && (
-                        <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg animate-fade-in">
-                          <label className="block text-[9px] font-bold uppercase text-amber-800 mb-1">Specify Work Location *</label>
+                        <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200 rounded-lg animate-fade-in">
+                          <label className="block text-[9px] font-bold uppercase text-amber-800 dark:text-amber-300 mb-1">Specify Work Location *</label>
                           <input
                             type="text"
                             value={legalCustomLocation}
                             onChange={e => setLegalCustomLocation(e.target.value)}
                             placeholder="Enter custom location details..."
-                            className="w-full p-2 border border-amber-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-600 bg-white"
+                            className="w-full p-2 border dark:border-gray-700 border-amber-300 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-amber-600 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                           />
                         </div>
                       )}
@@ -1275,30 +1275,30 @@ export function DailyCommitments({
                         <div className="space-y-3 animate-fade-in pt-1">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Call Direction / Mode *</label>
+                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">Call Direction / Mode *</label>
                               <select
                                 value={legalInputSubType || "Incoming Call"}
                                 onChange={e => setLegalInputSubType(e.target.value)}
-                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border dark:border-gray-700 border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                               >
                                 <option value="Incoming Call">Incoming Call 📥</option>
                                 <option value="Outgoing Call">Outgoing Call 📤</option>
                               </select>
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks / Call Note (Optional)</label>
+                              <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Remarks / Call Note (Optional)</label>
                               <input
                                 type="text"
                                 value={legalInputRemarks}
                                 onChange={e => setLegalInputRemarks(e.target.value)}
                                 placeholder="Call details or summary..."
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 h-[38px] dark:bg-gray-800 dark:[color-scheme:dark]"
                               />
                             </div>
                           </div>
 
                           {/* Bank, Branch & Officer Selection */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 dark:bg-purple-950/50 p-3 rounded-lg border dark:border-gray-700 border-purple-200">
                             {/* Bank Name - Searchable */}
                             <div>
                               <SearchableCombobox
@@ -1348,23 +1348,23 @@ export function DailyCommitments({
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Officer Name</label>
                               <input
                                 type="text"
                                 value={legalInputOfficerName}
                                 onChange={e => setLegalInputOfficerName(e.target.value)}
                                 placeholder="Officer name..."
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Number</label>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Officer Number</label>
                               <input
                                 type="text"
                                 value={legalInputOfficerPhone}
                                 onChange={e => setLegalInputOfficerPhone(e.target.value)}
                                 placeholder="Phone / contact..."
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                               />
                             </div>
                           </div>
@@ -1374,13 +1374,13 @@ export function DailyCommitments({
                       {/* Case 1: Type === "General" -> Remark option */}
                       {legalInputType === "General" && (
                         <div className="animate-fade-in pt-1">
-                          <label className="block text-[9px] font-bold uppercase text-slate-700 mb-1">Remarks *</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-700 dark:text-gray-100 mb-1">Remarks *</label>
                           <input
                             type="text"
                             value={legalInputRemarks}
                             onChange={e => setLegalInputRemarks(e.target.value)}
                             placeholder="General remarks or notes (Required)..."
-                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                            className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:[color-scheme:dark]"
                           />
                         </div>
                       )}
@@ -1389,7 +1389,7 @@ export function DailyCommitments({
                       {legalInputType === "Field Visit" && (
                         <div className="space-y-3 animate-fade-in pt-1">
                           {/* Bank, Branch & Officer Selection */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 dark:bg-purple-950/50 p-3 rounded-lg border dark:border-gray-700 border-purple-200">
                             {/* Bank Name - Searchable */}
                             <div>
                               <SearchableCombobox
@@ -1439,35 +1439,35 @@ export function DailyCommitments({
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Officer Name</label>
                               <input
                                 type="text"
                                 value={legalInputOfficerName}
                                 onChange={e => setLegalInputOfficerName(e.target.value)}
                                 placeholder="Officer name..."
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Number</label>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Officer Number</label>
                               <input
                                 type="text"
                                 value={legalInputOfficerPhone}
                                 onChange={e => setLegalInputOfficerPhone(e.target.value)}
                                 placeholder="Phone / contact..."
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                               />
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Visit Details / Purpose *</label>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Visit Details / Purpose *</label>
                             <input
                               type="text"
                               value={legalInputDetails}
                               onChange={e => setLegalInputDetails(e.target.value)}
                               placeholder="Field visit purpose or agenda..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
+                              className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 h-[38px] dark:bg-gray-800 dark:[color-scheme:dark]"
                             />
                           </div>
                         </div>
@@ -1477,23 +1477,23 @@ export function DailyCommitments({
                       {legalInputType === "Others" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
                           <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Specify Custom Type / Input *</label>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Specify Custom Type / Input *</label>
                             <input
                               type="text"
                               value={legalInputOtherType}
                               onChange={e => setLegalInputOtherType(e.target.value)}
                               placeholder="Specify custom type..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                              className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:[color-scheme:dark]"
                             />
                           </div>
                           <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Details (Optional)</label>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 dark:text-gray-400 mb-1">Details (Optional)</label>
                             <input
                               type="text"
                               value={legalInputDetails}
                               onChange={e => setLegalInputDetails(e.target.value)}
                               placeholder="Additional details..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                              className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:[color-scheme:dark]"
                             />
                           </div>
                         </div>
@@ -1501,13 +1501,13 @@ export function DailyCommitments({
 
                       {/* Case 4: Type === "Bank Related" -> Sub-Type selector + Dynamic Bank Fields */}
                       {legalInputType === "Bank Related" && (
-                        <div className="space-y-3 animate-fade-in pt-1 border-t border-purple-100">
+                        <div className="space-y-3 animate-fade-in pt-1 border-t dark:border-gray-700 border-purple-100">
                           <div>
-                            <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Select Bank Sub-Type *</label>
+                            <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 mb-1">Select Bank Sub-Type *</label>
                             <select
                               value={legalInputSubType}
                               onChange={e => setLegalInputSubType(e.target.value)}
-                              className="w-full md:w-1/2 p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600"
+                              className="w-full md:w-1/2 p-2 border dark:border-gray-700 border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                             >
                               <option value="AO related">AO related</option>
                               <option value="RBO related">RBO related</option>
@@ -1544,7 +1544,7 @@ export function DailyCommitments({
                             }
 
                             return (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-purple-50/40 p-3 rounded-lg border border-purple-200">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-purple-50/40 dark:bg-purple-950/50 p-3 rounded-lg border dark:border-gray-700 border-purple-200">
                                 {/* 1. Bank Input (from bank_masters) */}
                                 <div>
                                   <SearchableCombobox
@@ -1632,26 +1632,26 @@ export function DailyCommitments({
                                 {/* 5. Case Input (Required ONLY for Case related) */}
                                 {legalInputSubType === "case related" && (
                                   <div>
-                                    <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Case Details / No. *</label>
+                                    <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Case Details / No. *</label>
                                     <input
                                       type="text"
                                       value={legalInputCaseDetails}
                                       onChange={e => setLegalInputCaseDetails(e.target.value)}
                                       placeholder="Enter case details..."
-                                      className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                      className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                                     />
                                   </div>
                                 )}
 
                                 {/* 6. Details Input (For ALL Bank sub-types) */}
                                 <div className="sm:col-span-2 md:col-span-3">
-                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Details / Remarks *</label>
+                                  <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Details / Remarks *</label>
                                   <input
                                     type="text"
                                     value={legalInputDetails}
                                     onChange={e => setLegalInputDetails(e.target.value)}
                                     placeholder="Enter specific work details..."
-                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                    className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                                   />
                                 </div>
                               </div>
@@ -1662,7 +1662,7 @@ export function DailyCommitments({
 
                       {/* Case 5: Type === "NBFC" -> Searchable NBFC Name & Branch (from nbfc_masters & nbfc_branches) */}
                       {legalInputType === "NBFC" && (
-                        <div className="space-y-3 animate-fade-in pt-1 border-t border-purple-100">
+                        <div className="space-y-3 animate-fade-in pt-1 border-t dark:border-gray-700 border-purple-100">
                           {(() => {
                             const selectedNbfcObj = nbfcsList.find(n => (n.nbfcName || (n as any).name || "").toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
                             const filteredNbfcBranches = selectedNbfcObj
@@ -1705,13 +1705,13 @@ export function DailyCommitments({
 
                                 {/* Details / Remarks Input */}
                                 <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Details / Remarks *</label>
+                                  <label className="block text-[9px] font-bold uppercase text-slate-600 dark:text-gray-300 mb-1">Details / Remarks *</label>
                                   <input
                                     type="text"
                                     value={legalInputDetails}
                                     onChange={e => setLegalInputDetails(e.target.value)}
                                     placeholder="Enter specific NBFC work details..."
-                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                    className="w-full p-2 border border-slate-300 dark:border-gray-700 rounded-lg text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 focus:outline-none focus:border-purple-600 h-[38px] dark:[color-scheme:dark]"
                                   />
                                 </div>
                               </div>
@@ -1735,17 +1735,17 @@ export function DailyCommitments({
                     {legalScheduleItems.length > 0 ? (
                       <div className="space-y-2">
                         <div className="flex justify-between items-center px-1 flex-wrap gap-1.5">
-                          <span className="text-[11px] font-black uppercase text-purple-900 font-mono flex items-center gap-1">
+                          <span className="text-[11px] font-black uppercase text-purple-900 dark:text-purple-300 font-mono flex items-center gap-1">
                             📅 Multi Task-Day Schedule ({legalScheduleItems.length} Entries across {[...new Set(legalScheduleItems.map(i => i.date))].length} Days)
                           </span>
-                          <span className="text-[10px] text-purple-700 font-bold bg-purple-100 px-2 py-0.5 rounded">
+                          <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-100 dark:bg-purple-950/50 px-2 py-0.5 rounded">
                             You can add more entries for any date before submitting
                           </span>
                         </div>
-                        <div className="overflow-x-auto border border-purple-200 rounded-xl bg-white shadow-xs max-h-64 overflow-y-auto">
+                        <div className="overflow-x-auto border dark:border-gray-700 border-purple-200 rounded-xl bg-white dark:bg-gray-900 shadow-xs max-h-64 overflow-y-auto">
                           <table className="w-full text-left text-xs border-collapse">
-                            <thead className="sticky top-0 z-10 bg-purple-100 shadow-2xs">
-                              <tr className="bg-purple-100 text-purple-950 text-[10px] uppercase font-mono font-black border-b border-purple-200">
+                            <thead className="sticky top-0 z-10 bg-purple-100 dark:bg-purple-950/50 shadow-2xs">
+                              <tr className="bg-purple-100 dark:bg-purple-950/50 text-purple-950 text-[10px] uppercase font-mono font-black border-b dark:border-gray-700 border-purple-200">
                                 <th className="py-2.5 px-3">#</th>
                                 <th className="py-2.5 px-3">Date</th>
                                 <th className="py-2.5 px-3">Time</th>
@@ -1755,47 +1755,47 @@ export function DailyCommitments({
                                 <th className="py-2.5 px-3 text-right">Action</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-purple-100 text-slate-800 font-semibold">
+                            <tbody className="divide-y dark:divide-gray-700 divide-purple-100 text-slate-800 dark:text-gray-100 font-semibold">
                               {legalScheduleItems.map((item, idx) => (
-                                <tr key={idx} className="hover:bg-purple-50/40">
-                                  <td className="py-2.5 px-3 font-mono font-bold text-slate-400">{idx + 1}</td>
-                                  <td className="py-2.5 px-3 font-mono text-purple-900 font-extrabold">
-                                    <span className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono text-[11px] whitespace-nowrap">
+                                <tr key={idx} className="hover:bg-purple-50/40 dark:hover:bg-purple-950/50">
+                                  <td className="py-2.5 px-3 font-mono font-bold text-slate-400 dark:text-gray-400">{idx + 1}</td>
+                                  <td className="py-2.5 px-3 font-mono text-purple-900 dark:text-purple-300 font-extrabold">
+                                    <span className="bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 px-2 py-0.5 rounded font-mono text-[11px] whitespace-nowrap">
                                       📅 {item.date}
                                     </span>
                                   </td>
-                                  <td className="py-2.5 px-3 font-bold text-slate-900 whitespace-nowrap">
+                                  <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-gray-100 whitespace-nowrap">
                                     {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
                                       ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
                                       : item.workSection}
                                   </td>
                                   <td className="py-2.5 px-3 whitespace-nowrap">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${item.type === "Bank Related" ? "bg-purple-100 text-purple-800 border border-purple-200" : item.type === "Others" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-blue-100 text-blue-800 border border-blue-200"
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${item.type === "Bank Related" ? "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border dark:border-gray-700 border-purple-200" : item.type === "Others" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-200" : "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-200"
                                       }`}>
                                       {item.type === "Others" && item.otherType ? `Others (${item.otherType})` : item.type}
                                     </span>
                                   </td>
                                   <td className="py-2.5 px-3 max-w-[320px]">
                                     {item.type === "General" ? (
-                                      <span className="text-[11px] text-slate-600 italic">{item.remarks || "General work"}</span>
+                                      <span className="text-[11px] text-slate-600 dark:text-gray-300 italic">{item.remarks || "General work"}</span>
                                     ) : item.type === "Others" ? (
-                                      <span className="text-[11px] text-slate-700 font-medium">{item.details || item.remarks || "—"}</span>
+                                      <span className="text-[11px] text-slate-700 dark:text-gray-100 font-medium">{item.details || item.remarks || "—"}</span>
                                     ) : (
                                       <div className="space-y-0.5 text-[10px]">
                                         {item.subType && (
-                                          <div className="font-bold text-purple-900">
-                                            Sub-Type: <span className="bg-purple-200/70 px-1.5 py-0.5 rounded font-black">{item.subType}</span>
+                                          <div className="font-bold text-purple-900 dark:text-purple-300">
+                                            Sub-Type: <span className="bg-purple-200/70 dark:bg-purple-950/50 px-1.5 py-0.5 rounded font-black">{item.subType}</span>
                                           </div>
                                         )}
-                                        <div className="text-slate-700 flex flex-wrap gap-1 font-semibold">
-                                          {item.bankName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏦 {item.bankName}</span>}
-                                          {item.aoName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏛️ AO: {item.aoName}</span>}
-                                          {item.rboName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">📍 RBO: {item.rboName}</span>}
-                                          {item.branchName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏢 Branch: {item.branchName}</span>}
-                                          {item.officerName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">👤 Officer: {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
-                                          {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.5 rounded border border-rose-200 font-bold">⚖️ Case: {item.caseDetails}</span>}
+                                        <div className="text-slate-700 dark:text-gray-100 flex flex-wrap gap-1 font-semibold">
+                                          {item.bankName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.5 rounded border border-slate-200 dark:border-gray-700">🏦 {item.bankName}</span>}
+                                          {item.aoName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.5 rounded border border-slate-200 dark:border-gray-700">🏛️ AO: {item.aoName}</span>}
+                                          {item.rboName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.5 rounded border border-slate-200 dark:border-gray-700">📍 RBO: {item.rboName}</span>}
+                                          {item.branchName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.5 rounded border border-slate-200 dark:border-gray-700">🏢 Branch: {item.branchName}</span>}
+                                          {item.officerName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.5 rounded border border-slate-200 dark:border-gray-700">👤 Officer: {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
+                                          {item.caseDetails && <span className="bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 px-1 py-0.5 rounded border dark:border-gray-700 border-rose-200 font-bold">⚖️ Case: {item.caseDetails}</span>}
                                         </div>
-                                        {item.details && <div className="text-slate-600 font-medium text-[9px] pt-0.5">Details: "{item.details}"</div>}
+                                        {item.details && <div className="text-slate-600 dark:text-gray-300 font-medium text-[9px] pt-0.5">Details: "{item.details}"</div>}
                                       </div>
                                     )}
                                   </td>
@@ -1803,7 +1803,7 @@ export function DailyCommitments({
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteLegalScheduleItem(idx)}
-                                      className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-all"
+                                      className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 p-1 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded transition-all"
                                       title="Delete Entry"
                                     >
                                       <Trash2 className="w-4 h-4" />
@@ -1816,7 +1816,7 @@ export function DailyCommitments({
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-4 text-xs font-semibold text-purple-700 bg-white border border-purple-100 rounded-lg">
+                      <div className="text-center py-4 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-100 rounded-lg">
                         ⚠️ Please add at least 1 schedule entry to your table before submitting SOD.
                       </div>
                     )}
@@ -1829,19 +1829,19 @@ export function DailyCommitments({
                     {/* Task Title (Master Category Dropdown synced with Tasks) */}
                     <div className="md:col-span-2">
                       <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                        <label className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 font-mono tracking-wider">
                           Task Title / Category *
                         </label>
                         <button
                           type="button"
                           onClick={() => setShowAddSodTitleInput(!showAddSodTitleInput)}
-                          className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                          className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-0.5"
                         >
                           <Plus className="w-3 h-3" /> Add Master Title
                         </button>
                       </div>
                       <select
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={sodTaskTitle}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1860,20 +1860,20 @@ export function DailyCommitments({
                             {cat}
                           </option>
                         ))}
-                        <option value="ADD_NEW_TITLE" className="font-bold text-[#714B67] bg-purple-50">
+                        <option value="ADD_NEW_TITLE" className="font-bold text-[#714B67] dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50">
                           ➕ Add New Master Option...
                         </option>
                       </select>
 
                       {showAddSodTitleInput && (
-                        <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                        <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 dark:text-purple-300 font-black">
                             Add New Category / Title (Stored in Master DB) *
                           </label>
                           <div className="flex flex-col sm:flex-row gap-1.5">
                             <input
                               type="text"
-                              className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                              className="flex-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                               placeholder="Enter new task title/category..."
                               value={newSodTitleText}
                               onChange={(e) => setNewSodTitleText(e.target.value)}
@@ -1895,19 +1895,19 @@ export function DailyCommitments({
                     {/* Task Type / Mode (Master Mode Dropdown synced with Tasks) */}
                     <div className="md:col-span-2">
                       <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                        <label className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 font-mono tracking-wider">
                           Task Type / Mode *
                         </label>
                         <button
                           type="button"
                           onClick={() => setShowAddSodModeInput(!showAddSodModeInput)}
-                          className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                          className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-0.5"
                         >
                           <Plus className="w-3 h-3" /> Add Master Mode
                         </button>
                       </div>
                       <select
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={taskType}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1926,20 +1926,20 @@ export function DailyCommitments({
                             {mode}
                           </option>
                         ))}
-                        <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
+                        <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50">
                           ➕ Add New Mode Option...
                         </option>
                       </select>
 
                       {showAddSodModeInput && (
-                        <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                        <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 dark:text-purple-300 font-black">
                             Add New Task Mode (Stored in Master DB) *
                           </label>
                           <div className="flex flex-col sm:flex-row gap-1.5">
                             <input
                               type="text"
-                              className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                              className="flex-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                               placeholder="Enter new task mode (e.g. Field Visit)..."
                               value={newSodModeText}
                               onChange={(e) => setNewSodModeText(e.target.value)}
@@ -1958,11 +1958,11 @@ export function DailyCommitments({
 
                     {/* Sub-Fields (For Bank or Notice) */}
                     {(sodTaskTitle === "Bank" || sodTaskTitle === "Notice") && (
-                      <div className="md:col-span-2 space-y-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-slate-800 animate-fade-in">
+                      <div className="md:col-span-2 space-y-3 bg-emerald-50/80 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-xl p-3 text-slate-800 dark:text-gray-100 animate-fade-in">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                           {/* Select Bank */}
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-black mb-1">
                               Select Bank *
                             </label>
                             <select
@@ -1975,7 +1975,7 @@ export function DailyCommitments({
                                 setSodBankName(bObj?.bankName || "");
                                 setSodBranchName("");
                               }}
-                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white"
+                              className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                             >
                               <option value="">-- Select Bank --</option>
                               {banksList.map((b) => (
@@ -1988,7 +1988,7 @@ export function DailyCommitments({
 
                           {/* Select Branch */}
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-black mb-1">
                               Select Branch *
                             </label>
                             <select
@@ -1996,7 +1996,7 @@ export function DailyCommitments({
                               value={sodBranchName}
                               onChange={(e) => setSodBranchName(e.target.value)}
                               disabled={!selectedBankId}
-                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white disabled:opacity-50"
+                              className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 disabled:opacity-50 dark:[color-scheme:dark]"
                             >
                               <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
                               {branchesList
@@ -2014,7 +2014,7 @@ export function DailyCommitments({
                         {sodTaskTitle === "Bank" && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 animate-fade-in">
                             <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-black mb-1">
                                 Officer Name *
                               </label>
                               <input
@@ -2023,11 +2023,11 @@ export function DailyCommitments({
                                 placeholder="e.g. Ramesh Sharma"
                                 value={sodOfficerName}
                                 onChange={(e) => setSodOfficerName(e.target.value)}
-                                className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 font-black mb-1">
                                 Officer Phone *
                               </label>
                               <input
@@ -2036,7 +2036,7 @@ export function DailyCommitments({
                                 placeholder="e.g. 9876543210"
                                 value={sodOfficerPhone}
                                 onChange={(e) => setSodOfficerPhone(e.target.value)}
-                                className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                className="w-full border dark:border-gray-700 border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                               />
                             </div>
                           </div>
@@ -2046,25 +2046,25 @@ export function DailyCommitments({
 
                     {taskType === "Other" && (
                       <div className="md:col-span-2">
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
-                        <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                        <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Specify Task Type *</label>
+                        <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
                       </div>
                     )}
                     {(sodTaskTitle === "IT" || taskType === "Development") && (
                       <div className="md:col-span-2 space-y-1.5">
                         <div className="flex justify-between items-center">
-                          <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">Project Name *</label>
+                          <label className="text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 font-mono tracking-wider">Project Name *</label>
                           <button
                             type="button"
                             onClick={() => setShowAddProjectInput(!showAddProjectInput)}
-                            className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-0.5"
                           >
                             <Plus className="w-3 h-3" /> Add Master Project
                           </button>
                         </div>
                         <select
                           required
-                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                           value={projectName}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -2080,20 +2080,20 @@ export function DailyCommitments({
                           {sodProjects.map((p) => (
                             <option key={p} value={p}>{p}</option>
                           ))}
-                          <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
+                          <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50">
                             ➕ Add New Project...
                           </option>
                         </select>
 
                         {showAddProjectInput && (
-                          <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2 animate-fade-in mt-2">
-                            <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">
+                          <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg space-y-2 animate-fade-in mt-2">
+                            <label className="block text-[9px] uppercase tracking-wider text-indigo-700 dark:text-indigo-300 font-black">
                               Add New Project (Stored in Master DB) *
                             </label>
                             <div className="flex flex-col sm:flex-row gap-2">
                               <input
                                 type="text"
-                                className="flex-1 bg-white border border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                                className="flex-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 dark:[color-scheme:dark]"
                                 placeholder="Enter new project name (e.g. HRMS, RRR)..."
                                 value={newProjectText}
                                 onChange={(e) => setNewProjectText(e.target.value)}
@@ -2111,18 +2111,18 @@ export function DailyCommitments({
                       </div>
                     )}
                     <div className="md:col-span-2">
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
-                      <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Remarks (Optional)</label>
+                      <textarea className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
                     </div>
                   </div>
                 )}
 
-                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
-                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <div className="bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-start gap-2 mt-4">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-300" />
                   <span><strong>Verification Required:</strong> You will need to take a live selfie to submit your SOD.</span>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end">
                   <button
                     type="button"
                     onClick={() => {
@@ -2140,11 +2140,11 @@ export function DailyCommitments({
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                <h4 className="text-xs font-black text-slate-700">Live Selfie Verification</h4>
+                <h4 className="text-xs font-black text-slate-700 dark:text-gray-100">Live Selfie Verification</h4>
                 {cameraError ? (
-                  <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
+                  <div className="bg-rose-50 dark:bg-rose-950/50 p-4 rounded-lg text-rose-600 dark:text-rose-300 text-xs font-bold text-center border dark:border-gray-700 border-rose-200">
                     ⚠️ {cameraError} <br /><br />
-                    <div className="text-left space-y-2 mb-4 font-normal text-slate-600">
+                    <div className="text-left space-y-2 mb-4 font-normal text-slate-600 dark:text-gray-300">
                       <p><strong>How to allow camera access:</strong></p>
                       <ol className="list-decimal pl-4 space-y-1 text-[11px]">
                         <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
@@ -2155,12 +2155,12 @@ export function DailyCommitments({
                       </p>
                     </div>
                     <div className="flex gap-2 justify-center">
-                      <button onClick={() => setShowCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
+                      <button onClick={() => setShowCamera(false)} className="bg-white dark:bg-gray-900 px-4 py-2 rounded border dark:border-gray-700 border-rose-200 text-slate-700 dark:text-gray-100 font-bold">Go Back</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] shadow-xl w-56 h-56 sm:w-64 sm:h-64 bg-slate-900 mx-auto">
+                    <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] dark:border-gray-700 shadow-xl w-56 h-56 sm:w-64 sm:h-64 bg-slate-900 mx-auto">
                       <video ref={videoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
                       <canvas ref={canvasRef} className="hidden" />
                       {submittingSOD && (
@@ -2173,7 +2173,7 @@ export function DailyCommitments({
 
                     {!submittingSOD && (
                       <div className="flex gap-3 w-full max-w-[16rem]">
-                        <button onClick={() => setShowCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                        <button onClick={() => setShowCamera(false)} className="flex-1 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 text-slate-700 dark:text-gray-100 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
                         <button onClick={captureSodPhotoAndSubmit} className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-[#714B67]/20 flex items-center justify-center gap-2">
                           <Camera className="w-4 h-4" /> Click & Submit
                         </button>
@@ -2188,23 +2188,23 @@ export function DailyCommitments({
 
         {/* EOD Form with Strict Verification */}
         {(formMode === "both" || formMode === "eod") && (
-          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
-            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
+            <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono pb-2 border-b border-slate-100 dark:border-gray-700 mb-4 flex items-center justify-between">
               <span>📝 EOD</span>
               {eodAlreadySubmitted && (
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
                   ALREADY FILED
                 </span>
               )}
             </h3>
 
             {eodAlreadySubmitted ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
-                <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 dark:bg-emerald-950/50 border dark:border-gray-700 border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
+                <div className="bg-emerald-100 dark:bg-emerald-950/50 p-3 rounded-full text-emerald-600 dark:text-emerald-300">
                   <CalendarCheck className="w-8 h-8" />
                 </div>
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">EOD Log Submitted</h4>
-                <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
+                <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">EOD Log Submitted</h4>
+                <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium max-w-xs leading-relaxed">
                   Your End of Day outcomes and pending targets have been registered. Good job finishing up today's work!
                 </p>
               </div>
@@ -2212,33 +2212,33 @@ export function DailyCommitments({
               <div className="space-y-4 font-semibold text-slate-650 flex-1">
 
                 {/* Profile Bar */}
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 sm:p-3 flex justify-between items-center mb-2 flex-wrap gap-2">
+                <div className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-2.5 sm:p-3 flex justify-between items-center mb-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
+                    <span className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                    <Hash className="w-3 h-3 text-slate-400 shrink-0" />
-                    <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
+                  <div className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 rounded">
+                    <Hash className="w-3 h-3 text-slate-400 dark:text-gray-400 shrink-0" />
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-gray-400 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">1. Completed Work *</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodCompleted} onChange={e => setEodCompleted(e.target.value)} placeholder="What was fully finished..." required />
+                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">1. Completed Work *</label>
+                  <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" value={eodCompleted} onChange={e => setEodCompleted(e.target.value)} placeholder="What was fully finished..." required />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">2. Pending Work *</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodPending} onChange={e => setEodPending(e.target.value)} placeholder="Incomplete targets..." required />
+                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">2. Pending Work *</label>
+                  <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" value={eodPending} onChange={e => setEodPending(e.target.value)} placeholder="Incomplete targets..." required />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">3. Issues Faced</label>
-                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodIssues} onChange={e => setEodIssues(e.target.value)} placeholder="Any blocker issues..." />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">3. Issues Faced</label>
+                    <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" value={eodIssues} onChange={e => setEodIssues(e.target.value)} placeholder="Any blocker issues..." />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">4. Escalation Required?</label>
-                    <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-xs font-bold text-slate-700 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodEscalation} onChange={e => setEodEscalation(e.target.value)}>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">4. Escalation Required?</label>
+                    <select className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2.5 text-xs font-bold text-slate-700 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" value={eodEscalation} onChange={e => setEodEscalation(e.target.value)}>
                       <option>No</option>
                       <option>Yes - Urgent</option>
                       <option>Yes - Normal</option>
@@ -2246,16 +2246,16 @@ export function DailyCommitments({
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">5. Tomorrow Plan *</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodTomorrowPlan} onChange={e => setEodTomorrowPlan(e.target.value)} placeholder="Work plan for tomorrow..." required />
+                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">5. Tomorrow Plan *</label>
+                  <input className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]" value={eodTomorrowPlan} onChange={e => setEodTomorrowPlan(e.target.value)} placeholder="Work plan for tomorrow..." required />
                 </div>
 
-                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
-                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <div className="bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-start gap-2 mt-4">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-300" />
                   <span><strong>Verification Required:</strong> You will need to take a live selfie and allow GPS tracking to submit your EOD.</span>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end">
                   <button type="button" onClick={() => setShowEodCamera(true)} className="bg-emerald-600 hover:bg-emerald-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
                     <Camera className="w-4 h-4" /> Start EOD Verification
                   </button>
@@ -2263,9 +2263,9 @@ export function DailyCommitments({
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                <h4 className="text-xs font-black text-slate-700">Live Selfie & GPS Tracking (EOD)</h4>
+                <h4 className="text-xs font-black text-slate-700 dark:text-gray-100">Live Selfie & GPS Tracking (EOD)</h4>
                 {eodCameraError ? (
-                  <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
+                  <div className="bg-rose-50 dark:bg-rose-950/50 p-4 rounded-lg text-rose-600 dark:text-rose-300 text-xs font-bold text-center border dark:border-gray-700 border-rose-200">
                     ⚠️ {eodCameraError} <br /><br />
                     <div className="text-left space-y-2 mb-4 font-normal text-slate-660">
                       <p><strong>How to allow camera access:</strong></p>
@@ -2278,7 +2278,7 @@ export function DailyCommitments({
                       </p>
                     </div>
                     <div className="flex gap-2 justify-center">
-                      <button onClick={() => setShowEodCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
+                      <button onClick={() => setShowEodCamera(false)} className="bg-white dark:bg-gray-900 px-4 py-2 rounded border dark:border-gray-700 border-rose-200 text-slate-700 dark:text-gray-100 font-bold">Go Back</button>
                     </div>
                   </div>
                 ) : (
@@ -2296,7 +2296,7 @@ export function DailyCommitments({
 
                     {!submittingEOD && (
                       <div className="flex gap-3 w-full max-w-[16rem]">
-                        <button onClick={() => setShowEodCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                        <button onClick={() => setShowEodCamera(false)} className="flex-1 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 text-slate-700 dark:text-gray-100 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
                         <button onClick={captureEodPhotoAndSubmit} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
                           <Camera className="w-4 h-4" /> Click & Submit EOD
                         </button>
@@ -2312,30 +2312,30 @@ export function DailyCommitments({
 
       {/* Calendar Modal */}
       {showCalendarModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 text-slate-800">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative flex flex-col my-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 text-slate-800 dark:text-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative flex flex-col my-auto">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 mb-3 sm:mb-4 gap-2">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-700 pb-3 sm:pb-4 mb-3 sm:mb-4 gap-2">
               <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-800 tracking-wide uppercase font-mono flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-gray-100 tracking-wide uppercase font-mono flex items-center gap-2">
                   <span>📅 Employee Attendance Registry Calendar</span>
                 </h3>
               </div>
               <button
                 onClick={() => setShowCalendarModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Filter Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-150 rounded-xl p-3 sm:p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 rounded-xl p-3 sm:p-4 mb-4">
               <div>
-                <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-wider">Filter Company</label>
+                <label className="text-[9px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Filter Company</label>
                 <select
-                  className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                   value={selectedCompany}
                   onChange={(e) => handleCompanyChange(e.target.value)}
                   disabled={!isOwner || displayCompanies.length <= 1}
@@ -2348,9 +2348,9 @@ export function DailyCommitments({
               </div>
 
               <div>
-                <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-wider">Filter Employee</label>
+                <label className="text-[9px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Filter Employee</label>
                 <select
-                  className="w-full bg-white border border-slate-300 rounded p-1.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
                   disabled={!isOwner || displayUsers.length <= 1}
@@ -2385,16 +2385,16 @@ export function DailyCommitments({
               <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                 >
                   ← Prev
                 </button>
-                <span className="text-xs sm:text-sm font-black text-slate-800 font-mono text-center">
+                <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-gray-100 font-mono text-center">
                   {monthsList[calendarMonth]} {calendarYear}
                 </span>
                 <button
                   onClick={handleNextMonth}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                 >
                   Next →
                 </button>
@@ -2402,8 +2402,8 @@ export function DailyCommitments({
 
               {loadingCalendar ? (
                 <div className="h-64 flex flex-col items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
-                  <span className="text-xs font-semibold text-slate-500">Loading attendance calendar...</span>
+                  <Loader2 className="w-8 h-8 text-[#714B67] dark:text-purple-300 animate-spin mb-2" />
+                  <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">Loading attendance calendar...</span>
                 </div>
               ) : (
                 <>
@@ -2412,7 +2412,7 @@ export function DailyCommitments({
                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
                       <div
                         key={day}
-                        className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 rounded ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
+                        className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 rounded ${idx === 0 ? "text-rose-500 bg-rose-50 dark:bg-rose-950/50" : "text-slate-500 dark:text-gray-400 bg-slate-50 dark:bg-gray-800"
                           }`}
                       >
                         {day}
@@ -2429,34 +2429,34 @@ export function DailyCommitments({
             </div>
 
             {/* Legend */}
-            <div className="mt-4 sm:mt-6 border-t border-slate-100 pt-3 sm:pt-4 flex flex-wrap gap-2.5 sm:gap-4 items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-500">
+            <div className="mt-4 sm:mt-6 border-t border-slate-100 dark:border-gray-700 pt-3 sm:pt-4 flex flex-wrap gap-2.5 sm:gap-4 items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-gray-400">
               <div className="flex flex-wrap gap-2.5 sm:gap-4">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-100 border border-emerald-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-300 block"></span>
                   <span>Present</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-100 border border-rose-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-100 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-300 block"></span>
                   <span>Absent</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-100 border border-amber-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-100 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 block"></span>
                   <span>Leave</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-100 border border-slate-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-100 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 block"></span>
                   <span>Weekly Off (Sunday)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-600 border dark:border-gray-700 border-rose-700 block"></span>
                   <span>Absent Fine (Imposed)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-50 border border-indigo-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-300 block"></span>
                   <span>Pending (Today)</span>
                 </div>
               </div>
-              <div className="text-[9px] text-slate-400 font-mono">
+              <div className="text-[9px] text-slate-400 dark:text-gray-400 font-mono">
                 All Sundays are automatically marked as Weekly Off.
               </div>
             </div>
@@ -2712,7 +2712,7 @@ export function PerformanceCompliance({
     const firstDayIndex = getFirstDayOfMonth(calendarYear, calendarMonth);
 
     for (let i = 0; i < firstDayIndex; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[46px] sm:h-14 border border-slate-100 bg-slate-50/50 rounded-lg"></div>);
+      days.push(<div key={`empty-${i}`} className="min-h-[46px] sm:h-14 border border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-slate-950/50 rounded-lg"></div>);
     }
 
     const todayStart = new Date();
@@ -2740,37 +2740,37 @@ export function PerformanceCompliance({
       });
 
       let statusLabel = "";
-      let statusColor = "bg-white text-slate-700 border-slate-200";
+      let statusColor = "bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-100 border-slate-200 dark:border-gray-700";
 
       if (isSunday) {
         statusLabel = "Holiday";
-        statusColor = "bg-slate-100 text-rose-500 border-slate-200 font-bold";
+        statusColor = "bg-slate-100 dark:bg-gray-800 text-rose-500 border-slate-200 dark:border-gray-700 font-bold";
       } else if (isApprovedLeave) {
         statusLabel = "Leave";
-        statusColor = "bg-amber-100 text-amber-800 border-amber-200 font-bold";
+        statusColor = "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 font-bold";
       } else if (attendanceRec) {
         if (attendanceRec.status === "Present") {
           statusLabel = "Present";
-          statusColor = "bg-emerald-100 text-emerald-800 border-emerald-200 font-bold";
+          statusColor = "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 font-bold";
         } else if (attendanceRec.status === "Leave") {
           statusLabel = "Leave";
-          statusColor = "bg-amber-100 text-amber-800 border-amber-200 font-bold";
+          statusColor = "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 font-bold";
         } else if (attendanceRec.status === "Absent") {
           statusLabel = "Absent";
-          statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
+          statusColor = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 font-bold";
         } else {
           statusLabel = attendanceRec.status;
-          statusColor = "bg-slate-100 text-slate-800 border-slate-200";
+          statusColor = "bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 border-slate-200 dark:border-gray-700";
         }
       } else if (isFuture) {
         statusLabel = "";
-        statusColor = "bg-white text-slate-350 border-slate-100";
+        statusColor = "bg-white dark:bg-gray-900 text-slate-350 border-slate-100 dark:border-gray-700";
       } else if (isToday) {
         statusLabel = "Pending";
-        statusColor = "bg-indigo-50 text-indigo-705 border-indigo-200 animate-pulse font-bold";
+        statusColor = "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-705 border-indigo-200 animate-pulse font-bold";
       } else {
         statusLabel = "Absent";
-        statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
+        statusColor = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 font-bold";
       }
 
       const dateStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
@@ -2787,7 +2787,7 @@ export function PerformanceCompliance({
       days.push(
         <div
           key={`day-${d}`}
-          className={`min-h-[46px] sm:h-14 border rounded-lg p-1 sm:p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm min-w-0`}
+          className={`min-h-[46px] sm:h-14 border dark:border-gray-700 rounded-lg p-1 sm:p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm min-w-0`}
         >
           <div className="text-[9px] sm:text-[10px] font-bold font-mono">{d}</div>
           {statusLabel && (
@@ -3508,7 +3508,7 @@ export function PerformanceCompliance({
       // Header row
       excelTemplate += `<tr style="height: 30px;">`;
       headers.forEach(h => {
-        excelTemplate += `<th style="background-color: #0f766e; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle;">${h}</th>`;
+        excelTemplate += `<th style="background-color: #0f766e; color: #ffffff; font-weight: bold; border dark:border-gray-700: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle;">${h}</th>`;
       });
       excelTemplate += `</tr>`;
 
@@ -3522,8 +3522,8 @@ export function PerformanceCompliance({
             ? valStr.replace(/\n/g, '<br style="mso-data-placement:same-cell;" />')
             : valStr;
           const style = isMultiLine
-            ? "border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; white-space: pre-wrap;"
-            : "border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;";
+            ? "border dark:border-gray-700: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; white-space: pre-wrap;"
+            : "border dark:border-gray-700: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;";
           excelTemplate += `<td style="${style}">${formattedCell}</td>`;
         });
         excelTemplate += `</tr>`;
@@ -3537,7 +3537,7 @@ export function PerformanceCompliance({
 
       excelTemplate += `<tr style="height: 32px; background-color: #f1f5f9; font-weight: bold; border-top: 2px solid #0f766e;">`;
       summaryRow.forEach((cell) => {
-        excelTemplate += `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; font-weight: bold; background-color: #f1f5f9;">${cell}</td>`;
+        excelTemplate += `<td style="border dark:border-gray-700: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; font-weight: bold; background-color: #f1f5f9;">${cell}</td>`;
       });
       excelTemplate += `</tr>`;
 
@@ -3802,10 +3802,10 @@ export function PerformanceCompliance({
 
       // Neutral light gray default header style with dark text
       const TH = (text: string, bg = "#f1f5f9", color = "#475569") =>
-        `<th style="background:${bg};color:${color};font-weight:bold;border:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
+        `<th style="background:${bg};color:${color};font-weight:bold;border dark:border-gray-700:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
       const TD = (val: any, style = "") =>
-        `<td style="border:1px solid #e2e8f0;padding:6px 8px;vertical-align:middle;color:#334155;${style}">${val ?? "—"}</td>`;
-      const BLANK = `<td style="border:none;"></td>`;
+        `<td style="border dark:border-gray-700:1px solid #e2e8f0;padding:6px 8px;vertical-align:middle;color:#334155;${style}">${val ?? "—"}</td>`;
+      const BLANK = `<td style="border dark:border-gray-700:none;"></td>`;
 
       const filteredEmps = visualStats.employeesData.filter((emp: any) => {
         if (emp.role === "Owner") return false;
@@ -3836,7 +3836,7 @@ export function PerformanceCompliance({
       html += `<table border="1" style="border-collapse:collapse;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;">`;
 
       // ── SECTION 1: Summary ────────────────────────────────────────────────────
-      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:12px 10px;border:1px solid #cbd5e1;text-align:left;">📊 Employee Work Summary — ${dateLabel}</td></tr>`;
+      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:12px 10px;border dark:border-gray-700:1px solid #cbd5e1;text-align:left;">📊 Employee Work Summary — ${dateLabel}</td></tr>`;
       html += `<tr>${TH("Employee Name")}${TH("Email")}${TH("Department")}${TH("Tasks Assigned")}${TH("Tasks Completed")}${TH("Pending Tasks")}${TH("Completion %")}${TH("Work Hours")}${TH("Productivity %")}${TH("Status")}</tr>`;
 
       filteredEmps.forEach((emp: any) => {
@@ -3848,12 +3848,12 @@ export function PerformanceCompliance({
       });
 
       // ── SECTION 2: Date-wise Details ─────────────────────────────────────────
-      html += `<tr><td colspan="10" style="height:16px;border:none;"></td></tr>`;
-      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:10px;border:1px solid #cbd5e1;">📋 Date-wise Work Details — ${dateLabel}</td></tr>`;
+      html += `<tr><td colspan="10" style="height:16px;border dark:border-gray-700:none;"></td></tr>`;
+      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:10px;border dark:border-gray-700:1px solid #cbd5e1;">📋 Date-wise Work Details — ${dateLabel}</td></tr>`;
 
       filteredEmps.forEach((emp: any) => {
         // Soft pink-lavender name header banner
-        html += `<tr><td colspan="10" style="background:#fdf2f8;color:#86198f;font-weight:bold;padding:10px;font-size:12px;border:1px solid #cbd5e1;">👤 ${emp.name} &nbsp;|&nbsp; ${emp.department} &nbsp;|&nbsp; ${emp.email || "—"}</td></tr>`;
+        html += `<tr><td colspan="10" style="background:#fdf2f8;color:#86198f;font-weight:bold;padding:10px;font-size:12px;border dark:border-gray-700:1px solid #cbd5e1;">👤 ${emp.name} &nbsp;|&nbsp; ${emp.department} &nbsp;|&nbsp; ${emp.email || "—"}</td></tr>`;
 
         // Tasks - Soft Indigo
         const empTasks = (reports.tasks || []).filter((t: any) => {
@@ -3863,7 +3863,7 @@ export function PerformanceCompliance({
 
         html += `<tr>${TH("Task Date", "#e0e7ff", "#3730a3")}${TH("Task Title", "#e0e7ff", "#3730a3")}${TH("Task Type", "#e0e7ff", "#3730a3")}${TH("Status", "#e0e7ff", "#3730a3")}${TH("Assigned By", "#e0e7ff", "#3730a3")}${TH("Description / Remarks", "#e0e7ff", "#3730a3")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         if (empTasks.length === 0) {
-          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No tasks found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border dark:border-gray-700:1px solid #e2e8f0;">No tasks found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         } else {
           empTasks.forEach((t: any) => {
             const assignerUser = (users as any[]).find((u: any) => u.id?.toString() === t.assignedBy?.toString());
@@ -3880,7 +3880,7 @@ export function PerformanceCompliance({
 
         html += `<tr>${TH("Call Date", "#e0f2fe", "#0369a1")}${TH("Bank Name", "#e0f2fe", "#0369a1")}${TH("Branch", "#e0f2fe", "#0369a1")}${TH("Log Type", "#e0f2fe", "#0369a1")}${TH("Call Status", "#e0f2fe", "#0369a1")}${TH("Conversation / Remarks", "#e0f2fe", "#0369a1")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         if (empCalls.length === 0) {
-          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No calls found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border dark:border-gray-700:1px solid #e2e8f0;">No calls found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         } else {
           empCalls.forEach((c: any) => {
             const cBg = (c.callStatus || "").toLowerCase().includes("connect") ? "background:#d1fae5;color:#065f46;" : "";
@@ -3896,7 +3896,7 @@ export function PerformanceCompliance({
 
         html += `<tr>${TH("Payment Date", "#d1fae5", "#065f46")}${TH("Bank Name", "#d1fae5", "#065f46")}${TH("Branch", "#d1fae5", "#065f46")}${TH("Amount (₹)", "#d1fae5", "#065f46")}${TH("Mode", "#d1fae5", "#065f46")}${TH("Transaction ID", "#d1fae5", "#065f46")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         if (empPayments.length === 0) {
-          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No payments logged in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border dark:border-gray-700:1px solid #e2e8f0;">No payments logged in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
         } else {
           empPayments.forEach((p: any) => {
             html += `<tr>${TD(fmtDate(p.paymentDate))}${TD(p.bankName || "—", "font-weight:bold;")}${TD(p.branchName || "General")}${TD("₹" + Number(p.amount || 0).toLocaleString("en-IN"), "color:#059669;font-weight:bold;text-align:right;")}${TD(p.paymentMode || "—")}${TD(p.transactionId || "—")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
@@ -3921,7 +3921,7 @@ export function PerformanceCompliance({
           });
         }
 
-        html += `<tr><td colspan="10" style="height:12px;border:none;"></td></tr>`;
+        html += `<tr><td colspan="10" style="height:12px;border dark:border-gray-700:none;"></td></tr>`;
       });
 
       html += `</table></body></html>`;
@@ -4171,7 +4171,7 @@ export function PerformanceCompliance({
       });
 
       // Construct native Excel HTML
-      const TH = (text: string) => `<th style="background:#714B67;color:#ffffff;font-weight:bold;border:1px solid #5F3F56;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
+      const TH = (text: string) => `<th style="background:#714B67;color:#ffffff;font-weight:bold;border dark:border-gray-700:1px solid #5F3F56;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
 
       let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
       html += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Work Report</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
@@ -4192,8 +4192,8 @@ export function PerformanceCompliance({
             : valStr;
           const sundayTdStyle = r.isSunday ? "background-color:#d1fae5;color:#065f46;font-weight:bold;" : "";
           const style = isMultiLine
-            ? `border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top;white-space:pre-wrap;${sundayTdStyle}`
-            : `border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:middle;white-space:nowrap;${sundayTdStyle}`;
+            ? `border dark:border-gray-700:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top;white-space:pre-wrap;${sundayTdStyle}`
+            : `border dark:border-gray-700:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:middle;white-space:nowrap;${sundayTdStyle}`;
           html += `<td style="${style}">${formattedCell}</td>`;
         });
         html += `</tr>`;
@@ -4209,7 +4209,7 @@ export function PerformanceCompliance({
         if (c.key === "date" || c.key === "empName") text = "TOTAL SUM";
         else if (c.key === "duration") text = totalHoursFormatted;
         else if (c.key === "fieldVisitKm") text = totalKmFormatted;
-        html += `<td style="border:1px solid #cbd5e1;padding:8px;font-weight:extrabold;background-color:#f1f5f9;color:#1e293b;vertical-align:middle;">${text}</td>`;
+        html += `<td style="border dark:border-gray-700:1px solid #cbd5e1;padding:8px;font-weight:extrabold;background-color:#f1f5f9;color:#1e293b;vertical-align:middle;">${text}</td>`;
       });
       html += `</tr>`;
 
@@ -4698,11 +4698,11 @@ export function PerformanceCompliance({
   }, [users, filteredList, callsHistory, paymentsHistory, candidatesList, selectedCompany, selectedDept, selectedUser, matchDateFilter, reports]);
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-4 sm:space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-850">Work Reports</h1>
-          <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">
+          <h1 className="text-lg sm:text-xl font-black text-slate-850 dark:text-gray-100">Work Reports</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 sm:mt-1">
             {isOwner ? "View daily Start of Day (SOD) and End of Day (EOD) logs submitted by all staff members." : "Track your daily SOD planning and EOD submissions."}
           </p>
         </div>
@@ -4719,12 +4719,12 @@ export function PerformanceCompliance({
           )}
 
           {/* Sub-Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none w-full sm:w-auto">
+          <div className="flex bg-slate-100 dark:bg-gray-800 p-1 rounded-lg border border-slate-200 dark:border-gray-700 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none w-full sm:w-auto">
             <button
               onClick={() => setActiveSubTab("visual-dashboard")}
               className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
                 ? "bg-[#714B67] text-white shadow-md"
-                : "text-slate-655 hover:text-[#714B67]"
+                : "text-slate-655 hover:text-[#714B67] dark:hover:text-purple-300"
                 }`}
             >
               📊 Visual Dashboard
@@ -4733,7 +4733,7 @@ export function PerformanceCompliance({
               onClick={() => setActiveSubTab("sod")}
               className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
                 ? "bg-[#714B67] text-white shadow-md"
-                : "text-slate-655 hover:text-[#714B67]"
+                : "text-slate-655 hover:text-[#714B67] dark:hover:text-purple-300"
                 }`}
             >
               Start of Day (SOD)
@@ -4742,7 +4742,7 @@ export function PerformanceCompliance({
               onClick={() => setActiveSubTab("eod")}
               className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
                 ? "bg-[#714B67] text-white shadow-md"
-                : "text-slate-655 hover:text-[#714B67]"
+                : "text-slate-655 hover:text-[#714B67] dark:hover:text-purple-300"
                 }`}
             >
               End of Day (EOD)
@@ -4751,7 +4751,7 @@ export function PerformanceCompliance({
               onClick={() => setActiveSubTab("attendance-calendar")}
               className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "attendance-calendar"
                 ? "bg-[#714B67] text-white shadow-md"
-                : "text-slate-655 hover:text-[#714B67]"
+                : "text-slate-655 hover:text-[#714B67] dark:hover:text-purple-300"
                 }`}
             >
               Attendance Calendar
@@ -4763,15 +4763,15 @@ export function PerformanceCompliance({
       {activeSubTab === "visual-dashboard" ? (
         <div className="space-y-6 animate-fadeIn">
           {/* Filters Bar */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
               {/* Date Filter Type Selector */}
               <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
-                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Date Range</label>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-black mb-1 font-mono">Date Range</label>
                 <select
                   value={dateFilterType}
                   onChange={(e: any) => setDateFilterType(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-gray-100 focus:outline-none font-bold transition-all shadow-sm dark:[color-scheme:dark]"
                 >
                   <option value="overall">All Time</option>
                   <option value="current-month">Current Month</option>
@@ -4783,21 +4783,21 @@ export function PerformanceCompliance({
               {dateFilterType === "custom" && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                   <div className="w-full sm:w-auto">
-                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">From</label>
+                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-bold mb-0.5">From</label>
                     <input
                       type="date"
                       value={startDateFilter}
                       onChange={(e) => setStartDateFilter(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg p-1.5 text-[10px] text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                   </div>
                   <div className="w-full sm:w-auto">
-                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">To</label>
+                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-bold mb-0.5">To</label>
                     <input
                       type="date"
                       value={endDateFilter}
                       onChange={(e) => setEndDateFilter(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg p-1.5 text-[10px] text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -4805,14 +4805,14 @@ export function PerformanceCompliance({
 
               {/* Department Dropdown */}
               <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
-                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Department</label>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-black mb-1 font-mono">Department</label>
                 <select
                   value={selectedDept}
                   onChange={(e) => {
                     setSelectedDept(e.target.value);
                     setSelectedUser("");
                   }}
-                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-gray-100 focus:outline-none font-bold transition-all shadow-sm dark:[color-scheme:dark]"
                 >
                   <option value="">All Departments</option>
                   {departmentsList.map((d: any) => (
@@ -4823,11 +4823,11 @@ export function PerformanceCompliance({
 
               {/* User Dropdown */}
               <div className="w-full sm:w-auto min-w-0 sm:min-w-[140px]">
-                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Employee</label>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-black mb-1 font-mono">Employee</label>
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-gray-100 focus:outline-none font-bold transition-all shadow-sm dark:[color-scheme:dark]"
                 >
                   <option value="">All Employees</option>
                   <optgroup label="Active Employees">
@@ -4847,11 +4847,11 @@ export function PerformanceCompliance({
 
               {/* User Status Filter */}
               <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
-                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">User Status</label>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 dark:text-gray-400 font-black mb-1 font-mono">User Status</label>
                 <select
                   value={userStatusFilter}
                   onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
-                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] dark:focus:border-gray-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-gray-100 focus:outline-none font-bold transition-all shadow-sm dark:[color-scheme:dark]"
                 >
                   <option value="active">Active Staff Only</option>
                   <option value="inactive">Inactive / Archived Staff</option>
@@ -4873,7 +4873,7 @@ export function PerformanceCompliance({
                   setEndDateFilter("");
                   setUserStatusFilter("active");
                 }}
-                className="w-full sm:w-auto justify-center flex items-center gap-1.5 border border-rose-250 hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
+                className="w-full sm:w-auto justify-center flex items-center gap-1.5 border dark:border-gray-700 border-rose-250 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Clear Filters
               </button>
@@ -4884,16 +4884,16 @@ export function PerformanceCompliance({
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             <div
               onClick={() => setSelectedDashboardCategory("staff")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-purple-50 rounded-lg text-purple-650 shrink-0">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+              <div className="p-2.5 sm:p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg text-purple-650 shrink-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">
                   {selectedUser ? "Active Staff" : "Total Staff"}
                 </div>
-                <div className="text-xs font-bold font-sans text-slate-800 leading-tight truncate">
+                <div className="text-xs font-bold font-sans text-slate-800 dark:text-gray-100 leading-tight truncate">
                   {selectedUser
                     ? (users.find(u => u.id?.toString() === selectedUser.toString())?.name || "Selected")
                     : `${visualStats.employeesData.length} Staff`
@@ -4904,42 +4904,42 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("calls")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-indigo-50 rounded-lg text-indigo-650 shrink-0">
-                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+              <div className="p-2.5 sm:p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-650 shrink-0">
+                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Total Bank Calls</div>
-                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalCalls}</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">Total Bank Calls</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800 dark:text-gray-100">{visualStats.totalCalls}</div>
               </div>
             </div>
 
             <div
               onClick={() => setSelectedDashboardCategory("hrCalls")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-sky-50 rounded-lg text-sky-650 shrink-0">
-                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
+              <div className="p-2.5 sm:p-3 bg-sky-50 dark:bg-sky-950/50 rounded-lg text-sky-650 shrink-0">
+                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600 dark:text-sky-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Interview Calls</div>
-                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalHrCalls}</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">Interview Calls</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800 dark:text-gray-100">{visualStats.totalHrCalls}</div>
               </div>
             </div>
 
             <div
               onClick={() => setSelectedDashboardCategory("tasks")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-emerald-50 rounded-lg text-emerald-650 shrink-0">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+              <div className="p-2.5 sm:p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg text-emerald-650 shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Tasks Completed</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">Tasks Completed</div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksDone}</span>
-                  <span className="text-[10px] text-emerald-600 font-bold">
+                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800 dark:text-gray-100">{visualStats.totalTasksDone}</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-300 font-bold">
                     {(() => {
                       const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
                       return tot > 0 ? `${Math.round((visualStats.totalTasksDone / tot) * 100)}%` : "0%";
@@ -4951,15 +4951,15 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("pendingTasks")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-[#F43F5E] active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-[#F43F5E] dark:hover:border-gray-700 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-rose-50 rounded-lg text-rose-650 shrink-0">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
+              <div className="p-2.5 sm:p-3 bg-rose-50 dark:bg-rose-950/50 rounded-lg text-rose-650 shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Pending Tasks</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">Pending Tasks</div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksPending}</span>
+                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800 dark:text-gray-100">{visualStats.totalTasksPending}</span>
                   <span className="text-[10px] text-rose-500 font-bold">
                     {(() => {
                       const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
@@ -4972,22 +4972,22 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("payments")}
-              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-2.5 sm:p-3 bg-amber-50 rounded-lg text-amber-650 shrink-0">
-                <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+              <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg text-amber-650 shrink-0">
+                <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-300" />
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Payments Recovered</div>
-                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800 truncate">Rs. {visualStats.totalPayments.toLocaleString()}</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider truncate">Payments Recovered</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800 dark:text-gray-100 truncate">Rs. {visualStats.totalPayments.toLocaleString()}</div>
               </div>
             </div>
           </div>
 
           {/* Employee Work Summary Table */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-5 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
-              <h3 className="font-serif text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-5 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-gray-700 pb-3 mb-4">
+              <h3 className="font-serif text-sm font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1.5 font-sans">
                 <Briefcase className="w-4 h-4 text-indigo-500" /> Employee Work Summary
               </h3>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
@@ -5007,14 +5007,14 @@ export function PerformanceCompliance({
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" /> Export Summary
                 </button>
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1 shadow-inner w-full md:w-56">
-                  <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-250 rounded-lg px-2.5 py-1 shadow-inner w-full md:w-56">
+                  <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400 shrink-0" />
                   <input
                     type="text"
                     placeholder="Search staff by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-transparent border-none focus:outline-none text-xs text-slate-800 font-semibold w-full placeholder:font-normal"
+                    className="bg-transparent border-none focus:outline-none text-xs text-slate-800 dark:text-gray-100 font-semibold w-full placeholder:font-normal dark:bg-gray-800 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
@@ -5023,7 +5023,7 @@ export function PerformanceCompliance({
             <div className="overflow-x-auto -mx-3 sm:mx-0">
               <table className="w-full text-left text-xs border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr className="border-b border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-slate-950/50 text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                     <th className="py-3 px-4">Employee</th>
                     <th className="py-3 px-4">Department</th>
                     <th className="py-3 px-4 text-center">Tasks Assigned</th>
@@ -5035,7 +5035,7 @@ export function PerformanceCompliance({
                     <th className="py-3 px-4 text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-medium text-slate-700 dark:text-gray-100">
                   {visualStats.employeesData
                     .filter((emp) => {
                       // Hide Owner role from summary table
@@ -5059,16 +5059,16 @@ export function PerformanceCompliance({
                       const productivity = completionPercent; // Base productivity on completion rate
 
                       let statusText = "Poor";
-                      let statusClass = "bg-rose-50 text-rose-700 border-rose-200";
+                      let statusClass = "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200";
                       if (productivity >= 90) {
                         statusText = "Excellent";
-                        statusClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        statusClass = "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200";
                       } else if (productivity >= 70) {
                         statusText = "Good";
-                        statusClass = "bg-blue-50 text-blue-700 border-blue-200";
+                        statusClass = "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200";
                       } else if (productivity >= 50) {
                         statusText = "Average";
-                        statusClass = "bg-amber-50 text-amber-700 border-amber-200";
+                        statusClass = "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200";
                       }
 
                       // Format initials for avatar fallback
@@ -5102,14 +5102,14 @@ export function PerformanceCompliance({
                                 [emp.id]: !prev[emp.id]
                               }));
                             }}
-                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${isInactiveEmpRow
-                                ? "bg-rose-50/70 border-l-2 border-l-rose-400"
-                                : expandedUserRows[emp.id] ? "bg-indigo-50/10 font-bold" : ""
+                            className={`hover:bg-indigo-50/15 dark:hover:bg-indigo-950/50 cursor-pointer transition-colors ${isInactiveEmpRow
+                                ? "bg-rose-50/70 dark:bg-rose-950/50 border-l-2 border-l-rose-400"
+                                : expandedUserRows[emp.id] ? "bg-indigo-50/10 dark:bg-indigo-950/50 font-bold" : ""
                               }`}
                           >
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full overflow-hidden border border-indigo-150 flex items-center justify-center bg-indigo-50 text-indigo-700 font-bold text-xs shrink-0 shadow-inner">
+                                <div className="w-8 h-8 rounded-full overflow-hidden border dark:border-gray-700 border-indigo-150 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs shrink-0 shadow-inner">
                                   {emp.profilePhoto ? (
                                     <img
                                       src={emp.profilePhoto}
@@ -5124,10 +5124,10 @@ export function PerformanceCompliance({
                                   )}
                                 </div>
                                 <div>
-                                  <span className="font-bold text-slate-800 text-xs block">{emp.name}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono font-medium block mt-0.5">{emp.email}</span>
+                                  <span className="font-bold text-slate-800 dark:text-gray-100 text-xs block">{emp.name}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono font-medium block mt-0.5">{emp.email}</span>
                                   {isInactiveEmpRow && (
-                                    <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-200">INACTIVE</span>
+                                    <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200">INACTIVE</span>
                                   )}
                                 </div>
                               </div>
@@ -5135,26 +5135,26 @@ export function PerformanceCompliance({
                             <td className="py-3.5 px-4 whitespace-nowrap font-semibold text-slate-655">
                               {emp.department}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-slate-800">
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-gray-100">
                               {totalTasks}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600">
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-300">
                               {emp.tasksDone}
                             </td>
                             <td className="py-3.5 px-4 text-center font-bold text-rose-500">
                               {emp.tasksPending}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600">
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600 dark:text-emerald-300">
                               {completionPercent.toFixed(1)}%
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-slate-700">
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-700 dark:text-gray-100">
                               {formatWorkHours(emp.totalWorkMs)}
                             </td>
                             <td className="py-3.5 px-4 text-center font-bold text-indigo-655">
                               {productivity.toFixed(1)}%
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${statusClass}`}>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border dark:border-gray-700 ${statusClass}`}>
                                 {statusText}
                               </span>
                             </td>
@@ -5162,8 +5162,8 @@ export function PerformanceCompliance({
 
                           {/* Expanded Row for Tasks Dropdown arranged day-by-day */}
                           {expandedUserRows[emp.id] && (
-                            <tr className="bg-slate-50/25">
-                              <td colSpan={9} className="p-4 border-b border-slate-200">
+                            <tr className="bg-slate-50/25 dark:bg-slate-950/50">
+                              <td colSpan={9} className="p-4 border-b border-slate-200 dark:border-gray-700">
                                 {(() => {
                                   // All employees (including those with assigned tasks) use filteredList
                                   // Tasks are already merged per employee per day in mergedList
@@ -5179,14 +5179,14 @@ export function PerformanceCompliance({
                                     <div className="pl-4 pr-4 py-2 animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                                       {/* Left Column: Daily Activity & Check-In Logs */}
                                       <div className="lg:col-span-7 space-y-4">
-                                        <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
-                                          <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                        <div className="flex items-center justify-between border-b dark:border-gray-700 border-indigo-50 pb-2">
+                                          <h4 className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 font-mono tracking-wider flex items-center gap-1.5">
                                             <Layers className="w-3.5 h-3.5 text-indigo-500" /> Daily Activity & Check-In Logs ({sortedLogs.length})
                                           </h4>
                                         </div>
 
                                         {sortedLogs.length === 0 ? (
-                                          <div className="text-left py-4 text-slate-400 text-xs font-semibold">
+                                          <div className="text-left py-4 text-slate-400 dark:text-gray-400 text-xs font-semibold">
                                             No presence or task entries found for this user in the selected date range.
                                           </div>
                                         ) : (
@@ -5198,14 +5198,14 @@ export function PerformanceCompliance({
                                               const dayVisits = dayItem.fieldVisits || [];
 
                                               return (
-                                                <div key={dayIdx} onClick={(e) => e.stopPropagation()} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3.5 shadow-sm max-w-4xl cursor-default">
+                                                <div key={dayIdx} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 space-y-3.5 shadow-sm max-w-4xl cursor-default">
                                                   {/* Date Header */}
-                                                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                                    <span className="font-bold text-xs text-indigo-900 flex items-center gap-1">
+                                                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-2">
+                                                    <span className="font-bold text-xs text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
                                                       📅 {new Date(dayItem.date).toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
-                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                                      hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200" :
+                                                      hasSod ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200" : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
                                                       }`}>
                                                       {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
                                                     </span>
@@ -5217,28 +5217,28 @@ export function PerformanceCompliance({
                                                       <div className="space-y-2">
                                                         <div className="flex items-center gap-2">
                                                           <strong>SOD Time:</strong>
-                                                          <span className="text-slate-700">{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
+                                                          <span className="text-slate-700 dark:text-gray-100">{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
                                                           {dayItem.sod?.selfieUrl && (
                                                             <img
                                                               src={dayItem.sod.selfieUrl.startsWith("http://localhost/") ? dayItem.sod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.sod.selfieUrl}
                                                               alt="Check-in Selfie"
                                                               onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
                                                               onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                                                              className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
+                                                              className="w-7 h-7 rounded-full object-cover border dark:border-gray-700 border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
                                                               title="Click to view check-in selfie"
                                                             />
                                                           )}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                           <strong>EOD Time:</strong>
-                                                          <span className="text-slate-700">{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
+                                                          <span className="text-slate-700 dark:text-gray-100">{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
                                                           {dayItem.eod?.selfieUrl && (
                                                             <img
                                                               src={dayItem.eod.selfieUrl.startsWith("http://localhost/") ? dayItem.eod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.eod.selfieUrl}
                                                               alt="Check-out Selfie"
                                                               onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
                                                               onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                                                              className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
+                                                              className="w-7 h-7 rounded-full object-cover border dark:border-gray-700 border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
                                                               title="Click to view check-out selfie"
                                                             />
                                                           )}
@@ -5247,20 +5247,20 @@ export function PerformanceCompliance({
 
                                                       <div className="space-y-1 flex items-center md:items-start md:justify-end">
                                                         {dayItem.sod?.latitude && dayItem.sod?.longitude ? (
-                                                          <div className="flex items-center gap-1.5 bg-slate-50 p-2 border border-slate-100 rounded-lg">
+                                                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-gray-800 p-2 border border-slate-100 dark:border-gray-700 rounded-lg">
                                                             <strong>GPS:</strong>
                                                             <a
                                                               href={`https://www.google.com/maps?q=${dayItem.sod.latitude},${dayItem.sod.longitude}`}
                                                               target="_blank"
                                                               rel="noopener noreferrer"
-                                                              className="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
+                                                              className="text-[11px] text-blue-600 dark:text-blue-300 hover:underline font-semibold flex items-center gap-0.5"
                                                             >
                                                               <MapPin className="w-3.5 h-3.5" />
                                                               <span>{dayItem.sod.latitude.toFixed(4)}, {dayItem.sod.longitude.toFixed(4)}</span>
                                                             </a>
                                                           </div>
                                                         ) : (
-                                                          <div className="text-slate-400"><strong>GPS:</strong> Not Available</div>
+                                                          <div className="text-slate-400 dark:text-gray-400"><strong>GPS:</strong> Not Available</div>
                                                         )}
                                                       </div>
                                                     </div>
@@ -5268,8 +5268,8 @@ export function PerformanceCompliance({
 
                                                   {/* Task Summary Details */}
                                                   {hasSod && (
-                                                    <div className="text-xs bg-slate-50 border border-slate-150 rounded-lg p-2.5 space-y-1">
-                                                      <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800">{dayItem.sod.taskType}</span></div>
+                                                    <div className="text-xs bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 rounded-lg p-2.5 space-y-1">
+                                                      <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800 dark:text-gray-100">{dayItem.sod.taskType}</span></div>
                                                       <div><strong>Summary:</strong> <span className="text-slate-655 italic">"{dayItem.sod.taskSummary || "No summary"}"</span></div>
                                                     </div>
                                                   )}
@@ -5296,34 +5296,34 @@ export function PerformanceCompliance({
                                                           }
 
                                                           return (
-                                                            <div key={t.id} className="bg-slate-50/50 border border-slate-200 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
+                                                            <div key={t.id} className="bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-gray-700 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
                                                               <div>
                                                                 <div className="flex justify-between items-start">
-                                                                  <span className="font-bold text-slate-800">{t.taskTitle}</span>
-                                                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
-                                                                    t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                                                  <span className="font-bold text-slate-800 dark:text-gray-100">{t.taskTitle}</span>
+                                                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-150" :
+                                                                    t.status === "In Progress" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-150" : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300"
                                                                     }`}>
                                                                     {t.status}
                                                                   </span>
                                                                 </div>
-                                                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                                                <div className="text-[10px] text-slate-400 dark:text-gray-400 mt-0.5">
                                                                   Type: {t.taskType}
                                                                   {t.assignedBy && (
-                                                                    <span className="ml-2 pl-2 border-l border-slate-200">
-                                                                      Assigned By: <span className="font-bold text-indigo-700">{users.find((u: any) => u.id?.toString() === t.assignedBy?.toString())?.name || "Manager"}</span>
+                                                                    <span className="ml-2 pl-2 border-l border-slate-200 dark:border-gray-700">
+                                                                      Assigned By: <span className="font-bold text-indigo-700 dark:text-indigo-300">{users.find((u: any) => u.id?.toString() === t.assignedBy?.toString())?.name || "Manager"}</span>
                                                                     </span>
                                                                   )}
                                                                 </div>
-                                                                {t.description && <div className="text-[10px] italic text-slate-500 mt-1 leading-relaxed">"{t.description}"</div>}
+                                                                {t.description && <div className="text-[10px] italic text-slate-500 dark:text-gray-400 mt-1 leading-relaxed">"{t.description}"</div>}
                                                               </div>
 
                                                               {proofUrls.length > 0 && (
-                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-gray-700">
                                                                   {proofUrls.map((pUrl, pIdx) => (
                                                                     <button
                                                                       key={pIdx}
                                                                       onClick={() => setSelectedSelfie(pUrl)}
-                                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                                      className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                                                     >
                                                                       <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
                                                                     </button>
@@ -5357,25 +5357,25 @@ export function PerformanceCompliance({
                                                           }
 
                                                           return (
-                                                            <div key={v.id} className="bg-slate-50/50 border border-slate-200 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
+                                                            <div key={v.id} className="bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-gray-700 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
                                                               <div>
-                                                                <div className="flex justify-between items-start font-bold text-slate-800">
+                                                                <div className="flex justify-between items-start font-bold text-slate-800 dark:text-gray-100">
                                                                   <span>🚗 Client: {v.client_name || "N/A"}</span>
                                                                   {v.distance_travelled && (
-                                                                    <span className="text-[9px] font-bold text-slate-500">{v.distance_travelled} KM</span>
+                                                                    <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">{v.distance_travelled} KM</span>
                                                                   )}
                                                                 </div>
                                                                 <div className="text-[10px] text-slate-450 mt-0.5">Purpose: {v.purpose || "Field Visit"}</div>
-                                                                {v.visit_notes && <div className="text-[10px] italic text-slate-500 mt-1 leading-relaxed">"{v.visit_notes}"</div>}
+                                                                {v.visit_notes && <div className="text-[10px] italic text-slate-500 dark:text-gray-400 mt-1 leading-relaxed">"{v.visit_notes}"</div>}
                                                               </div>
 
                                                               {visitProofUrls.length > 0 && (
-                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-gray-700">
                                                                   {visitProofUrls.map((pUrl, pIdx) => (
                                                                     <button
                                                                       key={pIdx}
                                                                       onClick={() => setSelectedSelfie(pUrl)}
-                                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                                      className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                                                     >
                                                                       <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
                                                                     </button>
@@ -5391,10 +5391,10 @@ export function PerformanceCompliance({
 
                                                   {/* EOD Work Done Details */}
                                                   {hasEod && (
-                                                    <div className="text-xs bg-slate-50 border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                                    <div className="text-xs bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
                                                       <div><strong>EOD Work Done:</strong> <span className="text-slate-655 font-semibold">"{dayItem.eod.completedWork || "None"}"</span></div>
-                                                      {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
-                                                      {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
+                                                      {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 dark:text-rose-300 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
+                                                      {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 dark:text-amber-300 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
                                                     </div>
                                                   )}
                                                 </div>
@@ -5425,14 +5425,14 @@ export function PerformanceCompliance({
                                             <>
                                               {/* Calls Made Report */}
                                               <div className="space-y-3.5">
-                                                <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
-                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                                <div className="flex items-center justify-between border-b dark:border-gray-700 border-indigo-50 pb-2">
+                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 font-mono tracking-wider flex items-center gap-1.5">
                                                     <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calls Made Report ({sortedCalls.length})
                                                   </h4>
                                                 </div>
 
                                                 {sortedCalls.length === 0 ? (
-                                                  <div className="text-left py-8 text-slate-400 text-xs font-semibold bg-white border border-slate-200 rounded-xl p-4 text-center">
+                                                  <div className="text-left py-8 text-slate-400 dark:text-gray-400 text-xs font-semibold bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 text-center">
                                                     No phone calls recorded by this user in the selected date range.
                                                   </div>
                                                 ) : (
@@ -5441,22 +5441,22 @@ export function PerformanceCompliance({
                                                       <div
                                                         key={callIdx}
                                                         onClick={(e) => e.stopPropagation()}
-                                                        className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
+                                                        className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
                                                       >
                                                         <div className="flex justify-between items-start font-bold text-xs">
-                                                          <span className="text-slate-800 leading-snug">{call.bankName || "Unknown Bank"}</span>
-                                                          <span className="text-[9px] text-slate-400 font-mono shrink-0">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                                                          <span className="text-slate-800 dark:text-gray-100 leading-snug">{call.bankName || "Unknown Bank"}</span>
+                                                          <span className="text-[9px] text-slate-400 dark:text-gray-400 font-mono shrink-0">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
                                                         </div>
-                                                        <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider font-mono">Branch: {call.branchName || "General"}</div>
-                                                        <div className="text-[10px] text-slate-600 font-medium">Log Type: <span className="font-bold text-indigo-700">{call.logType || "Call Log"}</span></div>
-                                                        <div className="italic text-slate-550 text-[10px] bg-slate-50/50 p-2 rounded-lg leading-relaxed font-medium">
+                                                        <div className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold uppercase tracking-wider font-mono">Branch: {call.branchName || "General"}</div>
+                                                        <div className="text-[10px] text-slate-600 dark:text-gray-300 font-medium">Log Type: <span className="font-bold text-indigo-700 dark:text-indigo-300">{call.logType || "Call Log"}</span></div>
+                                                        <div className="italic text-slate-550 text-[10px] bg-slate-50/50 dark:bg-slate-950/50 p-2 rounded-lg leading-relaxed font-medium">
                                                           "{call.conversationDetails || call.remarks || "No conversation details"}"
                                                         </div>
                                                         {call.callStatus && (
                                                           <div className="pt-0.5">
-                                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${call.callStatus.toLowerCase().includes("success") || call.callStatus.toLowerCase().includes("connected")
-                                                              ? "bg-emerald-50 text-emerald-700 border-emerald-150"
-                                                              : "bg-rose-50 text-rose-700 border-rose-150"
+                                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border dark:border-gray-700 ${call.callStatus.toLowerCase().includes("success") || call.callStatus.toLowerCase().includes("connected")
+                                                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-150"
+                                                              : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-150"
                                                               }`}>
                                                               {call.callStatus}
                                                             </span>
@@ -5470,14 +5470,14 @@ export function PerformanceCompliance({
 
                                               {/* Legal Recovery Payments Logged */}
                                               <div className="space-y-3.5 pt-2">
-                                                <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
-                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                                <div className="flex items-center justify-between border-b dark:border-gray-700 border-indigo-50 pb-2">
+                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 font-mono tracking-wider flex items-center gap-1.5">
                                                     <Coins className="w-3.5 h-3.5 text-indigo-500" /> Payments Logged ({sortedPayments.length})
                                                   </h4>
                                                 </div>
 
                                                 {sortedPayments.length === 0 ? (
-                                                  <div className="text-left py-8 text-slate-400 text-xs font-semibold bg-white border border-slate-200 rounded-xl p-4 text-center">
+                                                  <div className="text-left py-8 text-slate-400 dark:text-gray-400 text-xs font-semibold bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 text-center">
                                                     No payments logged by this user in the selected date range.
                                                   </div>
                                                 ) : (
@@ -5486,22 +5486,22 @@ export function PerformanceCompliance({
                                                       <div
                                                         key={payIdx}
                                                         onClick={(e) => e.stopPropagation()}
-                                                        className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
+                                                        className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
                                                       >
                                                         <div className="flex justify-between items-start font-bold text-xs">
-                                                          <span className="text-slate-800 leading-snug">{pay.bankName || "Unknown Bank"}</span>
-                                                          <span className="text-[9px] text-slate-400 font-mono shrink-0">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString("en-IN") : ""}</span>
+                                                          <span className="text-slate-800 dark:text-gray-100 leading-snug">{pay.bankName || "Unknown Bank"}</span>
+                                                          <span className="text-[9px] text-slate-400 dark:text-gray-400 font-mono shrink-0">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString("en-IN") : ""}</span>
                                                         </div>
-                                                        <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider font-mono">Branch: {pay.branchName || "General"}</div>
-                                                        <div className="text-xs font-black text-emerald-600">Amount: ₹{Number(pay.amount || 0).toLocaleString('en-IN')}</div>
+                                                        <div className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold uppercase tracking-wider font-mono">Branch: {pay.branchName || "General"}</div>
+                                                        <div className="text-xs font-black text-emerald-600 dark:text-emerald-300">Amount: ₹{Number(pay.amount || 0).toLocaleString('en-IN')}</div>
                                                         {pay.paymentMode && (
-                                                          <div className="text-[9px] text-slate-655 font-medium">Mode: <span className="font-bold text-slate-800">{pay.paymentMode}</span></div>
+                                                          <div className="text-[9px] text-slate-655 font-medium">Mode: <span className="font-bold text-slate-800 dark:text-gray-100">{pay.paymentMode}</span></div>
                                                         )}
                                                         {pay.transactionId && (
-                                                          <div className="text-[9px] text-slate-655 font-medium">Transaction ID: <span className="font-mono text-slate-800">{pay.transactionId}</span></div>
+                                                          <div className="text-[9px] text-slate-655 font-medium">Transaction ID: <span className="font-mono text-slate-800 dark:text-gray-100">{pay.transactionId}</span></div>
                                                         )}
                                                         {pay.remarks && (
-                                                          <div className="italic text-slate-550 text-[10px] bg-slate-50/50 p-2 rounded-lg leading-relaxed font-medium">
+                                                          <div className="italic text-slate-550 text-[10px] bg-slate-50/50 dark:bg-slate-950/50 p-2 rounded-lg leading-relaxed font-medium">
                                                             "{pay.remarks}"
                                                           </div>
                                                         )}
@@ -5535,27 +5535,27 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDetailUser(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
+                className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                <div className="flex justify-between items-start border-b border-slate-200 dark:border-gray-700 pb-4 mb-4">
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700">Employee Activity Logs</h3>
-                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">{selectedDetailUser.name}</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Department: {selectedDetailUser.department}</p>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">Employee Activity Logs</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 dark:text-gray-100 mt-1">{selectedDetailUser.name}</h2>
+                    <p className="text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider mt-0.5">Department: {selectedDetailUser.department}</p>
                   </div>
                   <button
                     onClick={() => setSelectedDetailUser(null)}
-                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800">
+                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800 dark:text-gray-100">
                   {/* Presence, Tasks & Field Visits Timeline */}
                   <div>
-                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 pb-1 mb-3 tracking-wider flex items-center gap-1.5">
+                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 dark:border-gray-700 pb-1 mb-3 tracking-wider flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-indigo-500" /> Daily Activity &amp; Check-In Logs ({
                         filteredList.filter(item => item.employee?.id?.toString() === selectedDetailUser.id.toString()).length
                       })
@@ -5571,14 +5571,14 @@ export function PerformanceCompliance({
                           const dayVisits = dayItem.fieldVisits || [];
 
                           return (
-                            <div key={dayIdx} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3 shadow-sm">
+                            <div key={dayIdx} className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 space-y-3 shadow-sm">
                               {/* Date Header */}
-                              <div className="flex justify-between items-center border-b border-slate-200/80 pb-2">
-                                <span className="font-bold text-xs text-indigo-900">
+                              <div className="flex justify-between items-center border-b dark:border-gray-700 border-slate-200/80 pb-2">
+                                <span className="font-bold text-xs text-indigo-900 dark:text-indigo-300">
                                   📅 {dayItem.date.toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                  hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200" :
+                                  hasSod ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200" : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200"
                                   }`}>
                                   {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
                                 </span>
@@ -5596,7 +5596,7 @@ export function PerformanceCompliance({
                                         alt="Check-in Selfie"
                                         onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
                                         onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                                        className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
+                                        className="w-7 h-7 rounded-full object-cover border dark:border-gray-700 border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
                                         title="Click to view check-in selfie"
                                       />
                                     )}
@@ -5610,7 +5610,7 @@ export function PerformanceCompliance({
                                         alt="Check-out Selfie"
                                         onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
                                         onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                                        className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
+                                        className="w-7 h-7 rounded-full object-cover border dark:border-gray-700 border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
                                         title="Click to view check-out selfie"
                                       />
                                     )}
@@ -5625,7 +5625,7 @@ export function PerformanceCompliance({
                                         href={`https://www.google.com/maps?q=${dayItem.sod.latitude},${dayItem.sod.longitude}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
+                                        className="text-[11px] text-blue-600 dark:text-blue-300 hover:underline font-semibold flex items-center gap-0.5"
                                       >
                                         <MapPin className="w-3.5 h-3.5" />
                                         <span>{dayItem.sod.latitude.toFixed(4)}, {dayItem.sod.longitude.toFixed(4)}</span>
@@ -5639,16 +5639,16 @@ export function PerformanceCompliance({
 
                               {/* Task Summary Details */}
                               {hasSod && (
-                                <div className="text-xs bg-white border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
-                                  <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800">{dayItem.sod.taskType}</span></div>
-                                  <div><strong>Summary:</strong> <span className="text-slate-600 italic">"{dayItem.sod.taskSummary || "No summary"}"</span></div>
+                                <div className="text-xs bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                  <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800 dark:text-gray-100">{dayItem.sod.taskType}</span></div>
+                                  <div><strong>Summary:</strong> <span className="text-slate-600 dark:text-gray-300 italic">"{dayItem.sod.taskSummary || "No summary"}"</span></div>
                                 </div>
                               )}
 
                               {/* Dynamic Tasks / Office Work Log */}
                               {dayTasks.length > 0 && (
                                 <div className="space-y-1.5">
-                                  <div className="text-[9px] font-black uppercase text-slate-400 font-mono tracking-wider">Logged Office Work</div>
+                                  <div className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">Logged Office Work</div>
                                   <div className="space-y-1.5">
                                     {dayTasks.map((t: any) => {
                                       let proofUrls: string[] = [];
@@ -5665,17 +5665,17 @@ export function PerformanceCompliance({
                                       }
 
                                       return (
-                                        <div key={t.id} className="bg-white border border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
+                                        <div key={t.id} className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
                                           <div className="flex justify-between items-start">
-                                            <span className="font-bold text-slate-850">{t.taskTitle}</span>
-                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
-                                              t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                            <span className="font-bold text-slate-850 dark:text-gray-100">{t.taskTitle}</span>
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-150" :
+                                              t.status === "In Progress" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-150" : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300"
                                               }`}>
                                               {t.status}
                                             </span>
                                           </div>
-                                          <div className="text-[10px] text-slate-400">Type: {t.taskType}</div>
-                                          {t.description && <div className="text-[10px] italic text-slate-500">"{t.description}"</div>}
+                                          <div className="text-[10px] text-slate-400 dark:text-gray-400">Type: {t.taskType}</div>
+                                          {t.description && <div className="text-[10px] italic text-slate-500 dark:text-gray-400">"{t.description}"</div>}
 
                                           {proofUrls.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-1">
@@ -5683,7 +5683,7 @@ export function PerformanceCompliance({
                                                 <button
                                                   key={pIdx}
                                                   onClick={() => setSelectedSelfie(pUrl)}
-                                                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                  className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                                 >
                                                   <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
                                                 </button>
@@ -5717,15 +5717,15 @@ export function PerformanceCompliance({
                                       }
 
                                       return (
-                                        <div key={v.id} className="bg-white border border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
-                                          <div className="flex justify-between items-start font-bold text-slate-850">
+                                        <div key={v.id} className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
+                                          <div className="flex justify-between items-start font-bold text-slate-850 dark:text-gray-100">
                                             <span>🚗 Client: {v.client_name || "N/A"}</span>
                                             {v.distance_travelled && (
-                                              <span className="text-[9px] font-bold text-slate-500">{v.distance_travelled} KM</span>
+                                              <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">{v.distance_travelled} KM</span>
                                             )}
                                           </div>
                                           <div className="text-[10px] text-slate-450">Purpose: {v.purpose || "Field Visit"}</div>
-                                          {v.visit_notes && <div className="text-[10px] italic text-slate-500">"{v.visit_notes}"</div>}
+                                          {v.visit_notes && <div className="text-[10px] italic text-slate-500 dark:text-gray-400">"{v.visit_notes}"</div>}
 
                                           {visitProofUrls.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-1">
@@ -5733,7 +5733,7 @@ export function PerformanceCompliance({
                                                 <button
                                                   key={pIdx}
                                                   onClick={() => setSelectedSelfie(pUrl)}
-                                                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                  className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                                 >
                                                   <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
                                                 </button>
@@ -5749,24 +5749,24 @@ export function PerformanceCompliance({
 
                               {/* EOD Work Done Details */}
                               {hasEod && (
-                                <div className="text-xs bg-white border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                <div className="text-xs bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
                                   <div><strong>EOD Work Done:</strong> <span className="text-slate-655 font-semibold">"{dayItem.eod.completedWork || "None"}"</span></div>
-                                  {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
-                                  {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
+                                  {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 dark:text-rose-300 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
+                                  {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 dark:text-amber-300 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
                                 </div>
                               )}
                             </div>
                           );
                         })}
                       {filteredList.filter(item => item.employee?.id?.toString() === selectedDetailUser.id.toString()).length === 0 && (
-                        <div className="text-center py-10 text-slate-400 text-xs">No check-in or presence entries logged in this date range.</div>
+                        <div className="text-center py-10 text-slate-400 dark:text-gray-400 text-xs">No check-in or presence entries logged in this date range.</div>
                       )}
                     </div>
                   </div>
 
                   {/* Calls History Tab */}
                   <div>
-                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 dark:border-gray-700 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
                       <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calls Made ({
                         callsHistory.filter(c =>
                           (c.callerName || c.employeeName || "").toLowerCase().trim() === selectedDetailUser.name.toLowerCase().trim()
@@ -5781,14 +5781,14 @@ export function PerformanceCompliance({
                           && matchDateFilter(c.callDate)
                         )
                         .map((call, idx) => (
-                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs">
-                            <div className="flex justify-between font-bold text-slate-800">
+                          <div key={idx} className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 p-2.5 rounded-lg text-xs">
+                            <div className="flex justify-between font-bold text-slate-800 dark:text-gray-100">
                               <span>{call.bankName} - {call.branchName}</span>
-                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
                             </div>
-                            <div className="text-slate-600 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
+                            <div className="text-slate-600 dark:text-gray-300 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
                             {call.callStatus && (
-                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-100 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">
                                 {call.callStatus}
                               </span>
                             )}
@@ -5798,7 +5798,7 @@ export function PerformanceCompliance({
                         (c.callerName || c.employeeName || "").toLowerCase().trim() === selectedDetailUser.name.toLowerCase().trim()
                         && matchDateFilter(c.callDate)
                       ).length === 0 && (
-                          <div className="text-center py-6 text-slate-400 text-xs">No calls logged by this user.</div>
+                          <div className="text-center py-6 text-slate-400 dark:text-gray-400 text-xs">No calls logged by this user.</div>
                         )}
                     </div>
                   </div>
@@ -5815,53 +5815,53 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDetailBranch(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
+                className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                <div className="flex justify-between items-start border-b border-slate-200 dark:border-gray-700 pb-4 mb-4">
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-emerald-700">Bank Branch Details</h3>
-                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">{selectedDetailBranch.bankName}</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Branch Name: {selectedDetailBranch.branchName}</p>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Bank Branch Details</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 dark:text-gray-100 mt-1">{selectedDetailBranch.bankName}</h2>
+                    <p className="text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider mt-0.5">Branch Name: {selectedDetailBranch.branchName}</p>
                   </div>
                   <button
                     onClick={() => setSelectedDetailBranch(null)}
-                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800">
+                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800 dark:text-gray-100">
                   <div>
-                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                    <div className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 border-b border-slate-100 dark:border-gray-700 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
                       <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calling History ({callsHistory.filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate)).length})
                     </div>
                     <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                       {callsHistory
                         .filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate))
                         .map((call, idx) => (
-                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs">
-                            <div className="flex justify-between font-bold text-slate-800">
+                          <div key={idx} className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 p-2.5 rounded-lg text-xs">
+                            <div className="flex justify-between font-bold text-slate-800 dark:text-gray-100">
                               <span>By: {call.callerName || call.employeeName || "System"}</span>
-                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString() : ""}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString() : ""}</span>
                             </div>
-                            <div className="text-slate-600 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
+                            <div className="text-slate-600 dark:text-gray-300 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
                             {call.callStatus && (
-                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-100 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">
                                 {call.callStatus}
                               </span>
                             )}
                           </div>
                         ))}
                       {callsHistory.filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate)).length === 0 && (
-                        <div className="text-center py-6 text-slate-400 text-xs">No calls logged for this branch.</div>
+                        <div className="text-center py-6 text-slate-400 dark:text-gray-400 text-xs">No calls logged for this branch.</div>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                    <div className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 border-b border-slate-100 dark:border-gray-700 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
                       <Banknote className="w-3.5 h-3.5 text-emerald-500" /> Payments Received (Rs. {
                         paymentsHistory
                           .filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate))
@@ -5873,17 +5873,17 @@ export function PerformanceCompliance({
                       {paymentsHistory
                         .filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate))
                         .map((pay, idx) => (
-                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs flex justify-between items-center text-slate-800">
+                          <div key={idx} className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 p-2.5 rounded-lg text-xs flex justify-between items-center text-slate-800 dark:text-gray-100">
                             <div>
-                              <div className="font-bold text-slate-800">Rs. {Number(pay.amount || 0).toLocaleString()}</div>
-                              <div className="text-[9px] text-slate-400 mt-0.5">Mode: {pay.paymentMode || "Direct"} | Recipient: {pay.receivedBy || "N/A"}</div>
+                              <div className="font-bold text-slate-800 dark:text-gray-100">Rs. {Number(pay.amount || 0).toLocaleString()}</div>
+                              <div className="text-[9px] text-slate-400 dark:text-gray-400 mt-0.5">Mode: {pay.paymentMode || "Direct"} | Recipient: {pay.receivedBy || "N/A"}</div>
                             </div>
                             <div className="text-right">
-                              <div className="text-[10px] text-slate-400 font-mono font-bold">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : ""}</div>
+                              <div className="text-[10px] text-slate-400 dark:text-gray-400 font-mono font-bold">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : ""}</div>
                               {pay.proofUrl && (
                                 <button
                                   onClick={() => window.open(pay.proofUrl, "_blank")}
-                                  className="text-[9px] uppercase tracking-wider font-extrabold text-emerald-600 hover:underline mt-1 block"
+                                  className="text-[9px] uppercase tracking-wider font-extrabold text-emerald-600 dark:text-emerald-300 hover:underline mt-1 block"
                                 >
                                   View Proof
                                 </button>
@@ -5892,7 +5892,7 @@ export function PerformanceCompliance({
                           </div>
                         ))}
                       {paymentsHistory.filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate)).length === 0 && (
-                        <div className="text-center py-6 text-slate-400 text-xs">No payments recovered from this branch.</div>
+                        <div className="text-center py-6 text-slate-400 dark:text-gray-400 text-xs">No payments recovered from this branch.</div>
                       )}
                     </div>
                   </div>
@@ -5909,37 +5909,37 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDashboardCategory(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
+                className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                <div className="flex justify-between items-start border-b border-slate-200 dark:border-gray-700 pb-4 mb-4">
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700">Consolidated Details</h3>
-                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">Consolidated Details</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 dark:text-gray-100 mt-1">
                       {selectedDashboardCategory === "staff" ? "Total Staff Directory" :
                         selectedDashboardCategory === "calls" ? "Filtered Calls History" :
                           selectedDashboardCategory === "tasks" ? "Completed Office Tasks Log" :
                             selectedDashboardCategory === "pendingTasks" ? "Pending & In-Progress Tasks" : "Payments Recovered Logs"}
                     </h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                    <p className="text-[10px] text-slate-400 dark:text-gray-400 font-bold uppercase tracking-wider mt-0.5">
                       Filtered by selected company, department &amp; date range
                     </p>
                   </div>
                   <button
                     onClick={() => setSelectedDashboardCategory(null)}
-                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-slate-800 text-xs">
+                <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-slate-800 dark:text-gray-100 text-xs">
                   {/* Staff List */}
                   {selectedDashboardCategory === "staff" && (
                     <div className="space-y-3">
-                      <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 font-semibold text-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 rounded-xl p-3 font-semibold text-slate-700 dark:text-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <span>Staff Member</span>
                         <span className="hidden sm:inline">Department</span>
                         <span className="text-center">Status</span>
@@ -5949,14 +5949,14 @@ export function PerformanceCompliance({
                         {visualStats.employeesData.map((emp: any) => {
                           const isActive = emp.sodCount > 0 || emp.eodCount > 0 || emp.callsCount > 0;
                           return (
-                            <div key={emp.id} className="bg-white border border-slate-105 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-center hover:bg-slate-50 transition-colors shadow-sm">
+                            <div key={emp.id} className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-105 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-center hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors shadow-sm">
                               <div>
-                                <div className="font-bold text-slate-800">{emp.name}</div>
+                                <div className="font-bold text-slate-800 dark:text-gray-100">{emp.name}</div>
                                 <div className="text-[10px] text-slate-405 font-mono truncate">{emp.email}</div>
                               </div>
-                              <span className="font-medium text-slate-600 hidden sm:inline">{emp.department}</span>
+                              <span className="font-medium text-slate-600 dark:text-gray-300 hidden sm:inline">{emp.department}</span>
                               <div className="text-center">
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isActive ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200" : "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-200 dark:border-gray-700"
                                   }`}>
                                   {isActive ? "Active" : "Inactive"}
                                 </span>
@@ -5967,7 +5967,7 @@ export function PerformanceCompliance({
                                     setSelectedDetailUser(emp);
                                     setSelectedDashboardCategory(null);
                                   }}
-                                  className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg hover:bg-indigo-100 uppercase tracking-wider"
+                                  className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 text-[10px] font-black rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-950/50 uppercase tracking-wider"
                                 >
                                   View Timeline
                                 </button>
@@ -5976,7 +5976,7 @@ export function PerformanceCompliance({
                           );
                         })}
                         {visualStats.employeesData.length === 0 && (
-                          <div className="text-center py-8 text-slate-400">No staff members match the current filters.</div>
+                          <div className="text-center py-8 text-slate-400 dark:text-gray-400">No staff members match the current filters.</div>
                         )}
                       </div>
                     </div>
@@ -5995,15 +5995,15 @@ export function PerformanceCompliance({
                           return matchDateFilter(call.callDate);
                         })
                         .map((call, idx) => (
-                          <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                          <div key={idx} className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                             <div className="flex justify-between items-start font-bold">
-                              <span className="text-slate-800">{call.bankName || "Unknown Bank"} - {call.branchName || "General"}</span>
-                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                              <span className="text-slate-800 dark:text-gray-100">{call.bankName || "Unknown Bank"} - {call.branchName || "General"}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
                             </div>
                             <div className="text-[11px] text-slate-650">Caller: <span className="font-semibold">{call.callerName || call.employeeName || "System"}</span> ({call.logType})</div>
-                            <div className="italic text-slate-500 mt-1">"{call.conversationDetails || call.remarks || "No conversation remarks"}"</div>
+                            <div className="italic text-slate-500 dark:text-gray-400 mt-1">"{call.conversationDetails || call.remarks || "No conversation remarks"}"</div>
                             {call.callStatus && (
-                              <span className="inline-block mt-1 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-150 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-150 text-[9px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">
                                 {call.callStatus}
                               </span>
                             )}
@@ -6016,7 +6016,7 @@ export function PerformanceCompliance({
                         if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
                         return matchDateFilter(call.callDate);
                       }).length === 0 && (
-                          <div className="text-center py-8 text-slate-400">No logged calls found.</div>
+                          <div className="text-center py-8 text-slate-400 dark:text-gray-400">No logged calls found.</div>
                         )}
                     </div>
                   )}
@@ -6081,15 +6081,15 @@ export function PerformanceCompliance({
                           const callerProfile = users.find(u => u.id?.toString() === callerId);
 
                           return (
-                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div key={idx} className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                               <div className="flex justify-between items-start font-bold">
-                                <span className="text-slate-800">Candidate: {candName}</span>
-                                <span className="text-[10px] text-slate-400 font-mono">{task.date ? new Date(task.date).toLocaleDateString("en-IN") : ""}</span>
+                                <span className="text-slate-800 dark:text-gray-100">Candidate: {candName}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{task.date ? new Date(task.date).toLocaleDateString("en-IN") : ""}</span>
                               </div>
                               <div className="text-[11px] text-slate-650">Logged By: <span className="font-semibold">{callerProfile?.name || "HR Agent"}</span> ({platform})</div>
-                              <div className="italic text-slate-500 mt-1">"{remarks}"</div>
+                              <div className="italic text-slate-500 dark:text-gray-400 mt-1">"{remarks}"</div>
                               {action && (
-                                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-sky-50 border border-sky-150 text-[9px] font-black text-sky-700 uppercase tracking-wide">
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 border dark:border-gray-700 border-sky-150 text-[9px] font-black text-sky-700 dark:text-sky-300 uppercase tracking-wide">
                                   {action}
                                 </span>
                               )}
@@ -6124,7 +6124,7 @@ export function PerformanceCompliance({
 
                         return mentionsCandidate;
                       }).length === 0 && (
-                          <div className="text-center py-8 text-slate-400">No interview calls found.</div>
+                          <div className="text-center py-8 text-slate-400 dark:text-gray-400">No interview calls found.</div>
                         )}
                     </div>
                   )}
@@ -6150,17 +6150,17 @@ export function PerformanceCompliance({
                           }
 
                           return (
-                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div key={idx} className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                               <div className="flex justify-between items-center">
-                                <span className="font-bold text-slate-800">{task.taskTitle}</span>
-                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-155">
+                                <span className="font-bold text-slate-800 dark:text-gray-100">{task.taskTitle}</span>
+                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-155">
                                   {task.status}
                                 </span>
                               </div>
-                              <div className="text-[10px] text-slate-500">
-                                Completed By: <span className="font-semibold text-slate-700">{task.empName}</span> | Type: {task.taskType}
+                              <div className="text-[10px] text-slate-500 dark:text-gray-400">
+                                Completed By: <span className="font-semibold text-slate-700 dark:text-gray-100">{task.empName}</span> | Type: {task.taskType}
                               </div>
-                              {task.description && <div className="text-[10px] text-slate-600 italic">"{task.description}"</div>}
+                              {task.description && <div className="text-[10px] text-slate-600 dark:text-gray-300 italic">"{task.description}"</div>}
 
                               {proofUrls.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
@@ -6168,7 +6168,7 @@ export function PerformanceCompliance({
                                     <button
                                       key={pIdx}
                                       onClick={() => setSelectedSelfie(pUrl)}
-                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                      className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                     >
                                       <Eye className="w-2.5 h-2.5" /> View Proof #{pIdx + 1}
                                     </button>
@@ -6179,7 +6179,7 @@ export function PerformanceCompliance({
                           );
                         })}
                       {filteredList.flatMap(dayItem => dayItem.tasks || []).filter(t => t.status === "Completed" || t.status === "Done").length === 0 && (
-                        <div className="text-center py-8 text-slate-400">No completed tasks found.</div>
+                        <div className="text-center py-8 text-slate-400 dark:text-gray-400">No completed tasks found.</div>
                       )}
                     </div>
                   )}
@@ -6205,17 +6205,17 @@ export function PerformanceCompliance({
                           }
 
                           return (
-                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div key={idx} className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                               <div className="flex justify-between items-center">
-                                <span className="font-bold text-slate-800">{task.taskTitle}</span>
-                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-150">
+                                <span className="font-bold text-slate-800 dark:text-gray-100">{task.taskTitle}</span>
+                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-150">
                                   {task.status || "Pending"}
                                 </span>
                               </div>
-                              <div className="text-[10px] text-slate-500">
-                                Assigned To: <span className="font-semibold text-slate-700">{task.empName}</span> | Type: {task.taskType}
+                              <div className="text-[10px] text-slate-500 dark:text-gray-400">
+                                Assigned To: <span className="font-semibold text-slate-700 dark:text-gray-100">{task.empName}</span> | Type: {task.taskType}
                               </div>
-                              {task.description && <div className="text-[10px] text-slate-600 italic">"{task.description}"</div>}
+                              {task.description && <div className="text-[10px] text-slate-600 dark:text-gray-300 italic">"{task.description}"</div>}
 
                               {proofUrls.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
@@ -6223,7 +6223,7 @@ export function PerformanceCompliance({
                                     <button
                                       key={pIdx}
                                       onClick={() => setSelectedSelfie(pUrl)}
-                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                      className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                                     >
                                       <Eye className="w-2.5 h-2.5" /> View Proof #{pIdx + 1}
                                     </button>
@@ -6234,7 +6234,7 @@ export function PerformanceCompliance({
                           );
                         })}
                       {filteredList.flatMap(dayItem => dayItem.tasks || []).filter(t => t.status !== "Completed" && t.status !== "Done").length === 0 && (
-                        <div className="text-center py-8 text-slate-400">No pending or in-progress tasks found.</div>
+                        <div className="text-center py-8 text-slate-400 dark:text-gray-400">No pending or in-progress tasks found.</div>
                       )}
                     </div>
                   )}
@@ -6251,20 +6251,20 @@ export function PerformanceCompliance({
                           return matchDateFilter(p.paymentDate);
                         })
                         .map((p, idx) => (
-                          <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                          <div key={idx} className="bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                             <div className="flex justify-between items-start font-bold">
-                              <span className="text-slate-800">{p.bankName || "Unknown Bank"} - {p.branchName || "General"}</span>
-                              <span className="text-emerald-700 font-serif font-black text-sm">Rs. {p.amountRecovered?.toLocaleString()}</span>
+                              <span className="text-slate-800 dark:text-gray-100">{p.bankName || "Unknown Bank"} - {p.branchName || "General"}</span>
+                              <span className="text-emerald-700 dark:text-emerald-300 font-serif font-black text-sm">Rs. {p.amountRecovered?.toLocaleString()}</span>
                             </div>
                             <div className="text-[10px] text-slate-550">
-                              Recovered By: <span className="font-semibold text-slate-700">{p.callerName || p.employeeName || "System"}</span> | Mode: {p.paymentMode || "Cash"}
+                              Recovered By: <span className="font-semibold text-slate-700 dark:text-gray-100">{p.callerName || p.employeeName || "System"}</span> | Mode: {p.paymentMode || "Cash"}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono">Date: {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-IN") : ""}</div>
+                            <div className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">Date: {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-IN") : ""}</div>
 
                             {p.proofUrl && (
                               <button
                                 onClick={() => setSelectedSelfie(p.proofUrl)}
-                                className="mt-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                className="mt-1 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
                               >
                                 <Eye className="w-2.5 h-2.5" /> View Receipt Proof
                               </button>
@@ -6277,7 +6277,7 @@ export function PerformanceCompliance({
                         if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
                         return matchDateFilter(p.paymentDate);
                       }).length === 0 && (
-                          <div className="text-center py-8 text-slate-400">No payment records found.</div>
+                          <div className="text-center py-8 text-slate-400 dark:text-gray-400">No payment records found.</div>
                         )}
                     </div>
                   )}
@@ -6288,18 +6288,18 @@ export function PerformanceCompliance({
           )}
         </div>
       ) : activeSubTab === "attendance-calendar" ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-6 shadow-sm flex flex-col text-slate-800">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 sm:p-6 shadow-sm flex flex-col text-slate-800 dark:text-gray-100">
           {/* Header & Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-gray-700 pb-3.5 mb-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-black text-slate-800 tracking-wide uppercase font-mono">
+              <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-gray-100 tracking-wide uppercase font-mono">
                 📅 Attendance Calendar: {monthsList[calendarMonth]} {calendarYear}
               </span>
             </div>
             {isOwner && (
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center w-full sm:w-auto">
                 <select
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 w-full sm:w-auto"
+                  className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 w-full sm:w-auto dark:[color-scheme:dark]"
                   value={selectedCompany}
                   onChange={(e) => {
                     setSelectedCompany(e.target.value);
@@ -6314,7 +6314,7 @@ export function PerformanceCompliance({
                   ))}
                 </select>
                 <select
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 w-full sm:w-auto"
+                  className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 w-full sm:w-auto dark:[color-scheme:dark]"
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
                 >
@@ -6344,16 +6344,16 @@ export function PerformanceCompliance({
           <div className="flex items-center justify-between mb-4 gap-2">
             <button
               onClick={handlePrevMonth}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
+              className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
             >
               ← Prev
             </button>
-            <span className="text-xs sm:text-sm font-black text-[#714B67] font-mono text-center">
+            <span className="text-xs sm:text-sm font-black text-[#714B67] dark:text-purple-300 font-mono text-center">
               {monthsList[calendarMonth]} {calendarYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
+              className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
             >
               Next →
             </button>
@@ -6361,8 +6361,8 @@ export function PerformanceCompliance({
 
           {loadingCalendar ? (
             <div className="h-64 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
-              <span className="text-xs font-semibold text-slate-500">Loading attendance calendar...</span>
+              <Loader2 className="w-8 h-8 text-[#714B67] dark:text-purple-300 animate-spin mb-2" />
+              <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">Loading attendance calendar...</span>
             </div>
           ) : (
             <div className="overflow-x-auto -mx-1 sm:mx-0">
@@ -6372,7 +6372,7 @@ export function PerformanceCompliance({
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
                     <div
                       key={day}
-                      className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 sm:py-1.5 rounded-lg ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
+                      className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 sm:py-1.5 rounded-lg ${idx === 0 ? "text-rose-500 bg-rose-50 dark:bg-rose-950/50" : "text-slate-500 dark:text-gray-400 bg-slate-50 dark:bg-gray-800"
                         }`}
                     >
                       {day}
@@ -6389,34 +6389,34 @@ export function PerformanceCompliance({
           )}
 
           {/* Legend */}
-          <div className="mt-6 border-t border-slate-100 pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between text-[10px] font-bold text-slate-500">
+          <div className="mt-6 border-t border-slate-100 dark:border-gray-700 pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between text-[10px] font-bold text-slate-500 dark:text-gray-400">
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-300 block"></span>
+                <span className="w-3 h-3 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-300 block"></span>
                 <span>Present</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-rose-100 border border-rose-300 block"></span>
+                <span className="w-3 h-3 rounded-full bg-rose-100 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-300 block"></span>
                 <span>Absent</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-amber-100 border border-amber-300 block"></span>
+                <span className="w-3 h-3 rounded-full bg-amber-100 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 block"></span>
                 <span>Leave</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-300 block"></span>
+                <span className="w-3 h-3 rounded-full bg-slate-100 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 block"></span>
                 <span>Holiday (Sunday)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
+                <span className="w-3 h-3 rounded-full bg-rose-600 border dark:border-gray-700 border-rose-700 block"></span>
                 <span>Absent Fine (Imposed)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-indigo-55 border border-indigo-300 block"></span>
+                <span className="w-3 h-3 rounded-full bg-indigo-55 border dark:border-gray-700 border-indigo-300 block"></span>
                 <span>Pending (Today)</span>
               </div>
             </div>
-            <div className="text-[9px] text-slate-400 font-mono">
+            <div className="text-[9px] text-slate-400 dark:text-gray-400 font-mono">
               All Sundays are automatically marked as Holidays.
             </div>
           </div>
@@ -6424,8 +6424,8 @@ export function PerformanceCompliance({
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white border border-[#E8E4DF] rounded-xl p-3 sm:p-4 shadow-sm mb-6 gap-3">
-            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm mb-6 gap-3">
+            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A] dark:text-gray-100">
               📋 {activeSubTab === "sod" ? "Start of day (SOD) registry" : "End of day (EOD) registry"}
             </span>
 
@@ -6440,7 +6440,7 @@ export function PerformanceCompliance({
                   }}
                   className={`w-full sm:w-auto flex items-center justify-center gap-2 border px-3 sm:px-3.5 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    : "bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 border-[#E8E4DF] dark:border-gray-700 text-[#1C1C1A] dark:text-gray-100"
                     }`}
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -6458,15 +6458,15 @@ export function PerformanceCompliance({
                       className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 sm:hidden animate-fadeIn"
                       onClick={() => setShowFilters(false)}
                     />
-                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[320px] max-h-[88vh] overflow-y-auto space-y-4 text-left normal-case font-sans animate-fadeIn">
-                      <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                        <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
+                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[320px] max-h-[88vh] overflow-y-auto space-y-4 text-left normal-case font-sans animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-2">
+                        <span className="text-xs font-bold text-[#1C1C1A] dark:text-gray-100 tracking-wider uppercase font-mono flex items-center gap-1.5">
                           <Filter className="w-3.5 h-3.5 text-[#C9A84C]" /> Filter Reports
                         </span>
                         <button
                           type="button"
                           onClick={() => setShowFilters(false)}
-                          className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
+                          className="text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 transition-colors p-1"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -6476,9 +6476,9 @@ export function PerformanceCompliance({
                         {/* Company Dropdown (Owner/Director/HR only) */}
                         {isOwner && (
                           <div>
-                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Company</label>
                             <select
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                               value={selectedCompany}
                               onChange={(e) => {
                                 setSelectedCompany(e.target.value);
@@ -6498,9 +6498,9 @@ export function PerformanceCompliance({
                         {/* Department Dropdown */}
                         {isOwner && (
                           <div>
-                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Department</label>
                             <select
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                               value={selectedDept}
                               onChange={(e) => {
                                 setSelectedDept(e.target.value);
@@ -6518,9 +6518,9 @@ export function PerformanceCompliance({
                         {/* Employee Dropdown */}
                         {isOwner && (
                           <div>
-                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Employee</label>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Employee</label>
                             <select
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                               value={selectedUser}
                               onChange={(e) => setSelectedUser(e.target.value)}
                             >
@@ -6543,9 +6543,9 @@ export function PerformanceCompliance({
 
                         {/* Date Preset Filter */}
                         <div>
-                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Range Preset</label>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Date Range Preset</label>
                           <select
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                             value={dateFilterType}
                             onChange={(e: any) => {
                               setDateFilterType(e.target.value);
@@ -6566,21 +6566,21 @@ export function PerformanceCompliance({
 
                         {/* Custom Range Inputs */}
                         {dateFilterType === "custom" && (
-                          <div className="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                          <div className="space-y-2 bg-slate-50 dark:bg-gray-800 p-2.5 rounded-xl border border-slate-200 dark:border-gray-700">
                             <div>
-                              <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
+                              <label className="text-[8px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Start Date</label>
                               <input
                                 type="date"
-                                className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                                className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                                 value={startDateFilter}
                                 onChange={(e) => setStartDateFilter(e.target.value)}
                               />
                             </div>
                             <div>
-                              <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
+                              <label className="text-[8px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">End Date</label>
                               <input
                                 type="date"
-                                className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                                className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                                 value={endDateFilter}
                                 onChange={(e) => setEndDateFilter(e.target.value)}
                               />
@@ -6590,9 +6590,9 @@ export function PerformanceCompliance({
 
                         {/* User Status Filter */}
                         <div>
-                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">User Status</label>
                           <select
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                             value={userStatusFilter}
                             onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
                           >
@@ -6617,7 +6617,7 @@ export function PerformanceCompliance({
                             setUserStatusFilter("active");
                             setShowFilters(false);
                           }}
-                          className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[11px] font-bold transition-all border border-[#E8E4DF]"
+                          className="flex-1 bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 text-[#6B665E] dark:text-gray-300 py-2.5 rounded-xl text-[11px] font-bold transition-all border border-[#E8E4DF] dark:border-gray-700"
                         >
                           Clear All
                         </button>
@@ -6643,14 +6643,14 @@ export function PerformanceCompliance({
                     setShowFilters(false);
                   }}
                   className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 border px-3 sm:px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showColumnPicker
-                    ? "bg-[#714B67] border-[#714B67] text-white font-black"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    ? "bg-[#714B67] border-[#714B67] dark:border-gray-700 text-white font-black"
+                    : "bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 border-[#E8E4DF] dark:border-gray-700 text-[#1C1C1A] dark:text-gray-100"
                     }`}
                   title="Toggle columns for data export"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">Columns ({Object.values(selectedExportColumns).filter(Boolean).length}/{availableColumnsList.length})</span>
-                  <ChevronDown className="w-3 h-3 text-[#9C9890] shrink-0" />
+                  <ChevronDown className="w-3 h-3 text-[#9C9890] dark:text-gray-300 shrink-0" />
                 </button>
 
                 {/* Floating Column Picker Popover / Mobile Modal */}
@@ -6661,22 +6661,22 @@ export function PerformanceCompliance({
                       className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 sm:hidden animate-fadeIn"
                       onClick={() => setShowColumnPicker(false)}
                     />
-                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[340px] max-h-[88vh] overflow-y-auto space-y-3.5 text-left normal-case font-sans animate-fadeIn">
-                      <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                        <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
-                          <SlidersHorizontal className="w-3.5 h-3.5 text-[#714B67]" /> Select Export Columns
+                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[340px] max-h-[88vh] overflow-y-auto space-y-3.5 text-left normal-case font-sans animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-2">
+                        <span className="text-xs font-bold text-[#1C1C1A] dark:text-gray-100 tracking-wider uppercase font-mono flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-[#714B67] dark:text-purple-300" /> Select Export Columns
                         </span>
                         <button
                           type="button"
                           onClick={() => setShowColumnPicker(false)}
-                          className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
+                          className="text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 transition-colors p-1"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-[#6B665E]">
+                        <span className="text-[#6B665E] dark:text-gray-300">
                           {Object.values(selectedExportColumns).filter(Boolean).length} of {availableColumnsList.length} Selected
                         </span>
                         <div className="flex gap-2">
@@ -6687,7 +6687,7 @@ export function PerformanceCompliance({
                               availableColumnsList.forEach(c => allOn[c.key] = true);
                               setSelectedExportColumns(allOn);
                             }}
-                            className="text-[#714B67] hover:underline font-extrabold"
+                            className="text-[#714B67] dark:text-purple-300 hover:underline font-extrabold"
                           >
                             Select All
                           </button>
@@ -6699,7 +6699,7 @@ export function PerformanceCompliance({
                               availableColumnsList.forEach(c => allOff[c.key] = false);
                               setSelectedExportColumns(allOff);
                             }}
-                            className="text-rose-600 hover:underline font-extrabold"
+                            className="text-rose-600 dark:text-rose-300 hover:underline font-extrabold"
                           >
                             Clear
                           </button>
@@ -6707,15 +6707,15 @@ export function PerformanceCompliance({
                       </div>
 
                       {/* Column Toggle Checkboxes List */}
-                      <div className="max-h-60 sm:max-h-64 overflow-y-auto space-y-1.5 pr-1 border-t border-b border-[#E8E4DF] py-2.5">
+                      <div className="max-h-60 sm:max-h-64 overflow-y-auto space-y-1.5 pr-1 border-t border-b border-[#E8E4DF] dark:border-gray-700 py-2.5">
                         {availableColumnsList.map((col) => {
                           const isChecked = !!selectedExportColumns[col.key];
                           return (
                             <label
                               key={col.key}
                               className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${isChecked
-                                  ? "bg-purple-50/70 border-purple-200 text-purple-950 font-bold"
-                                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 font-medium"
+                                  ? "bg-purple-50/70 dark:bg-purple-950/50 border-purple-200 text-purple-950 font-bold"
+                                  : "bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800 font-medium"
                                 }`}
                             >
                               <span className="flex items-center gap-2">
@@ -6728,11 +6728,11 @@ export function PerformanceCompliance({
                                       [col.key]: e.target.checked
                                     }));
                                   }}
-                                  className="rounded text-[#714B67] focus:ring-[#714B67]"
+                                  className="rounded text-[#714B67] dark:text-purple-300 focus:ring-[#714B67] dark:bg-gray-800 dark:[color-scheme:dark]"
                                 />
                                 {col.label}
                               </span>
-                              {isChecked && <span className="text-[10px] text-purple-700 font-mono font-black">Active</span>}
+                              {isChecked && <span className="text-[10px] text-purple-700 dark:text-purple-300 font-mono font-black">Active</span>}
                             </label>
                           );
                         })}
@@ -6758,32 +6758,32 @@ export function PerformanceCompliance({
           </div>
 
           {/* Data Table / List */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
             {loading ? (
               <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mx-auto mb-2" />
-                <span className="text-xs font-mono font-black text-slate-400 uppercase tracking-widest">Loading reports...</span>
+                <Loader2 className="w-8 h-8 text-[#714B67] dark:text-purple-300 animate-spin mx-auto mb-2" />
+                <span className="text-xs font-mono font-black text-slate-400 dark:text-gray-400 uppercase tracking-widest">Loading reports...</span>
               </div>
             ) : filteredList.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <span className="text-xs font-bold text-slate-400">No {activeSubTab.toUpperCase()} submissions found for the selected criteria.</span>
+                <span className="text-xs font-bold text-slate-400 dark:text-gray-400">No {activeSubTab.toUpperCase()} submissions found for the selected criteria.</span>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse min-w-[800px]">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
+                    <tr className="border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-slate-450 font-black uppercase font-mono tracking-wider">
                       {isOwner && <th className="py-3.5 px-4 text-left">Employee</th>}
                       <th className="py-3.5 px-4 text-left">Date</th>
                       <th className="py-3.5 px-4 text-left">SOD Time</th>
                       <th className="py-3.5 px-4 text-left">EOD Time</th>
-                      <th className="py-3.5 px-4 text-left cursor-pointer hover:text-[#714B67]" title="Click duration to see detailed tasks">Total Duration</th>
+                      <th className="py-3.5 px-4 text-left cursor-pointer hover:text-[#714B67] dark:hover:text-purple-300" title="Click duration to see detailed tasks">Total Duration</th>
                       <th className="py-3.5 px-4 text-left">Status</th>
                       <th className="py-3.5 px-4 text-center">Selfies</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-650">
                     {filteredList.map((item: any) => {
                       const getDuration = (sod: any, eod: any) => {
                         if (!sod || !eod) return "-";
@@ -6819,16 +6819,16 @@ export function PerformanceCompliance({
                         <React.Fragment key={rowKey}>
                           <tr
                             onClick={toggleRow}
-                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isInactiveRow
-                                ? "bg-rose-50/70 border-l-2 border-l-rose-400"
-                                : isExpanded ? "bg-slate-50/30 font-bold" : ""
+                            className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/50 cursor-pointer transition-all ${isInactiveRow
+                                ? "bg-rose-50/70 dark:bg-rose-950/50 border-l-2 border-l-rose-400"
+                                : isExpanded ? "bg-slate-50/30 dark:bg-slate-950/50 font-bold" : ""
                               }`}
                           >
                             {isOwner && (
                               <td className="py-3.5 px-4">
                                 <div className="flex flex-col">
-                                  <span className="font-black text-slate-800">{item.employee?.name || "Unknown"}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono font-bold">
+                                  <span className="font-black text-slate-800 dark:text-gray-100">{item.employee?.name || "Unknown"}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono font-bold">
                                     {item.employee?.email || ""} {item.employee?.department ? `| ${item.employee.department}` : ""}
                                   </span>
                                   {(() => {
@@ -6836,7 +6836,7 @@ export function PerformanceCompliance({
                                     const dbUser3 = users.find((u: any) => u.id?.toString() === empId3);
                                     const st3 = (dbUser3?.status || item.employee?.status || "active").toLowerCase();
                                     return (st3 === "inactive" || st3 === "archived") ? (
-                                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-200">INACTIVE</span>
+                                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200">INACTIVE</span>
                                     ) : null;
                                   })()}
                                 </div>
@@ -6844,44 +6844,44 @@ export function PerformanceCompliance({
                             )}
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               <div className="flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
                                 <span>{item.date.toLocaleDateString()}</span>
                               </div>
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               {item.sod ? (
-                                <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-300 font-bold">
                                   <Clock className="w-3.5 h-3.5" />
                                   <span>{formatTimeTo12Hour(item.sod.createdAt)}</span>
                                 </div>
                               ) : (
-                                <span className="text-slate-400 font-bold">—</span>
+                                <span className="text-slate-400 dark:text-gray-400 font-bold">—</span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               {item.eod ? (
-                                <div className="flex items-center gap-1.5 text-[#714B67] font-bold">
+                                <div className="flex items-center gap-1.5 text-[#714B67] dark:text-purple-300 font-bold">
                                   <Clock className="w-3.5 h-3.5" />
                                   <span>{formatTimeTo12Hour(item.eod.createdAt)}</span>
                                 </div>
                               ) : (
-                                <span className="text-slate-400 font-bold">—</span>
+                                <span className="text-slate-400 dark:text-gray-400 font-bold">—</span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className="text-xs font-black px-2.5 py-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-800 shadow-sm">
+                              <span className="text-xs font-black px-2.5 py-1 rounded-lg border bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-800 dark:text-gray-100 shadow-sm">
                                 {durationStr}
                               </span>
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               {item.sod && item.eod ? (
-                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Completed</span>
+                                <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Completed</span>
                               ) : item.sod ? (
-                                <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">SOD Active</span>
+                                <span className="bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">SOD Active</span>
                               ) : item.eod ? (
-                                <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Only EOD</span>
+                                <span className="bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Only EOD</span>
                               ) : (
-                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Tasks Only</span>
+                                <span className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Tasks Only</span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap text-center">
@@ -6892,10 +6892,10 @@ export function PerformanceCompliance({
                                       e.stopPropagation();
                                       setSelectedSelfie(item.sod.selfieUrl);
                                     }}
-                                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded-lg border border-slate-250"
+                                    className="p-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-655 rounded-lg border dark:border-gray-700 border-slate-250"
                                     title="View SOD Selfie"
                                   >
-                                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                    <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                                   </button>
                                 )}
                                 {item.eod?.selfieUrl && (
@@ -6904,14 +6904,14 @@ export function PerformanceCompliance({
                                       e.stopPropagation();
                                       setSelectedSelfie(item.eod.selfieUrl);
                                     }}
-                                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded-lg border border-slate-250"
+                                    className="p-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-655 rounded-lg border dark:border-gray-700 border-slate-250"
                                     title="View EOD Selfie"
                                   >
-                                    <Eye className="w-3.5 h-3.5 text-[#714B67]" />
+                                    <Eye className="w-3.5 h-3.5 text-[#714B67] dark:text-purple-300" />
                                   </button>
                                 )}
                                 {!item.sod?.selfieUrl && !item.eod?.selfieUrl && (
-                                  <span className="text-slate-400">—</span>
+                                  <span className="text-slate-400 dark:text-gray-400">—</span>
                                 )}
                               </div>
                             </td>
@@ -6920,9 +6920,9 @@ export function PerformanceCompliance({
 
 
                           {isExpanded && (
-                            <tr className="bg-slate-50/50">
-                              <td colSpan={isOwner ? 7 : 6} className="p-4 border-t border-b border-slate-200">
-                                <div className="space-y-4 text-left font-normal text-slate-700">
+                            <tr className="bg-slate-50/50 dark:bg-slate-950/50">
+                              <td colSpan={isOwner ? 7 : 6} className="p-4 border-t border-b border-slate-200 dark:border-gray-700">
+                                <div className="space-y-4 text-left font-normal text-slate-700 dark:text-gray-100">
                                   <div>
                                     <h4 className="text-[10px] font-black uppercase font-mono tracking-wider text-slate-450 mb-2">
                                       Daily Tasks & activity Logs
@@ -6930,17 +6930,17 @@ export function PerformanceCompliance({
                                     {item.tasks && item.tasks.length > 0 ? (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {item.tasks.map((task: any) => (
-                                          <div key={task.id} className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col gap-1.5">
+                                          <div key={task.id} className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col gap-1.5">
                                             <div className="flex items-center justify-between">
-                                              <span className="font-bold text-slate-800 text-xs">{task.taskTitle}</span>
-                                              <span className={`px-2 py-0.5 text-[9px] font-black tracking-wider uppercase font-mono rounded ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                                task.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                                                  "bg-slate-105 text-slate-600 border border-slate-200"
+                                              <span className="font-bold text-slate-800 dark:text-gray-100 text-xs">{task.taskTitle}</span>
+                                              <span className={`px-2 py-0.5 text-[9px] font-black tracking-wider uppercase font-mono rounded ${task.status === "Completed" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-100" :
+                                                task.status === "In Progress" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-100" :
+                                                  "bg-slate-105 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-700"
                                                 }`}>
                                                 {task.status}
                                               </span>
                                             </div>
-                                            <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-gray-400">
                                               <span>Type: <strong className="text-slate-505">{task.taskType}</strong></span>
                                               {task.createdAt && (
                                                 <span>
@@ -6953,17 +6953,17 @@ export function PerformanceCompliance({
                                             {(() => {
                                               const workDetails = getTaskWorkDetails(task);
                                               if (!workDetails.length) return null;
-                                              return <div className="grid grid-cols-1 gap-1 rounded-lg border border-purple-100 bg-purple-50/60 p-2 text-[10px] sm:grid-cols-2">
-                                                {workDetails.map((detail) => <div key={detail.label} className={detail.label === "Remark" || detail.label === "Case Details" ? "sm:col-span-2" : ""}><span className="font-black text-purple-700">{detail.label}:</span> <span className="font-semibold text-slate-700">{detail.value}</span></div>)}
+                                              return <div className="grid grid-cols-1 gap-1 rounded-lg border dark:border-gray-700 border-purple-100 bg-purple-50/60 dark:bg-purple-950/50 p-2 text-[10px] sm:grid-cols-2">
+                                                {workDetails.map((detail) => <div key={detail.label} className={detail.label === "Remark" || detail.label === "Case Details" ? "sm:col-span-2" : ""}><span className="font-black text-purple-700 dark:text-purple-300">{detail.label}:</span> <span className="font-semibold text-slate-700 dark:text-gray-100">{detail.value}</span></div>)}
                                               </div>;
                                             })()}
                                             {task.description && getTaskWorkDetails(task).length === 0 && (
-                                              <p className="text-[10px] text-slate-505 bg-slate-55 p-2 rounded italic border border-slate-100">
+                                              <p className="text-[10px] text-slate-505 bg-slate-55 p-2 rounded italic border border-slate-100 dark:border-gray-700">
                                                 {task.description}
                                               </p>
                                             )}
                                             {cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes) && (
-                                              <div className="text-[10px] text-indigo-800 bg-indigo-50/70 p-2 rounded border border-indigo-100">
+                                              <div className="text-[10px] text-indigo-800 dark:text-indigo-300 bg-indigo-50/70 dark:bg-indigo-950/50 p-2 rounded border dark:border-gray-700 border-indigo-100">
                                                 <span className="font-black uppercase tracking-wider text-[9px] block mb-0.5">Progress Notes</span>
                                                 <span className="whitespace-pre-wrap break-words">
                                                   {cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes)}
@@ -6995,7 +6995,7 @@ export function PerformanceCompliance({
                                                         e.stopPropagation();
                                                         setSelectedSelfie(pUrl);
                                                       }}
-                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[9px] font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                                                      className="bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-250 text-[9px] font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
                                                       title={`View Task Proof #${index + 1}`}
                                                     >
                                                       <Eye className="w-3 h-3" />
@@ -7006,8 +7006,8 @@ export function PerformanceCompliance({
                                               );
                                             })()}
                                             {task.scheduledAt && new Date(task.scheduledAt).toDateString() !== item.date.toDateString() ? (
-                                              <div className="mt-1.5 bg-sky-50 border border-sky-300 text-[10.5px] font-black text-sky-900 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-                                                <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
+                                              <div className="mt-1.5 bg-sky-50 dark:bg-sky-950/50 border dark:border-gray-700 border-sky-300 text-[10.5px] font-black text-sky-900 dark:text-sky-300 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                                <CalendarClock className="w-4 h-4 text-sky-600 dark:text-sky-300 shrink-0" />
                                                 <span>➡️ Forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                                               </div>
                                             ) : null}
@@ -7015,20 +7015,20 @@ export function PerformanceCompliance({
                                         ))}
                                       </div>
                                     ) : (
-                                      <div className="text-slate-455 italic text-[10px] py-1 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                      <div className="text-slate-455 italic text-[10px] py-1 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">
                                         No dynamic tasks logged for this day.
                                       </div>
                                     )}
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200/80">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t dark:border-gray-700 border-slate-200/80">
                                     {/* SOD Block */}
                                     <div className="space-y-1.5">
-                                      <span className="text-[10px] uppercase font-mono font-bold text-emerald-600 flex items-center gap-1">
+                                      <span className="text-[10px] uppercase font-mono font-bold text-emerald-600 dark:text-emerald-300 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-505"></span> Start of Day (SOD)
                                       </span>
                                       {item.sod ? (
-                                        <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 shadow-sm">
+                                        <div className="text-[11px] text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 space-y-1.5 shadow-sm">
                                           <div><strong>Planned Task Type:</strong> {item.sod.taskType}</div>
                                           {item.sod.projectName && <div><strong>Project Name:</strong> {item.sod.projectName}</div>}
                                           <div><strong>Summary:</strong> {item.sod.taskSummary}</div>
@@ -7047,21 +7047,21 @@ export function PerformanceCompliance({
                                           )}
                                         </div>
                                       ) : (
-                                        <div className="text-[10px] italic text-slate-400 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">No SOD submitted.</div>
+                                        <div className="text-[10px] italic text-slate-400 dark:text-gray-400 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">No SOD submitted.</div>
                                       )}
                                     </div>
 
                                     {/* EOD Block */}
                                     <div className="space-y-1.5">
-                                      <span className="text-[10px] uppercase font-mono font-bold text-[#714B67] flex items-center gap-1">
+                                      <span className="text-[10px] uppercase font-mono font-bold text-[#714B67] dark:text-purple-300 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#714B67]"></span> End of Day (EOD)
                                       </span>
                                       {item.eod ? (
-                                        <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 shadow-sm">
+                                        <div className="text-[11px] text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 space-y-1.5 shadow-sm">
                                           <div><strong>Completed Work:</strong> {item.eod.completedWork}</div>
                                           <div><strong>Pending Work:</strong> {item.eod.pendingWork}</div>
                                           <div><strong>Tomorrow's Plan:</strong> {item.eod.tomorrowPlan}</div>
-                                          {item.eod.issues && <div className="text-rose-700"><strong>Issues:</strong> {item.eod.issues}</div>}
+                                          {item.eod.issues && <div className="text-rose-700 dark:text-rose-300"><strong>Issues:</strong> {item.eod.issues}</div>}
                                           {item.eod.latitude && (
                                             <a
                                               href={`https://www.google.com/maps/search/?api=1&query=${item.eod.latitude},${item.eod.longitude}`}
@@ -7076,7 +7076,7 @@ export function PerformanceCompliance({
                                           )}
                                         </div>
                                       ) : (
-                                        <div className="text-[10px] italic text-slate-400 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">No EOD submitted.</div>
+                                        <div className="text-[10px] italic text-slate-400 dark:text-gray-400 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">No EOD submitted.</div>
                                       )}
                                     </div>
 
@@ -7086,9 +7086,9 @@ export function PerformanceCompliance({
                                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-550"></span> Field Visits ({item.fieldVisits ? item.fieldVisits.length : 0})
                                       </span>
                                       {item.fieldVisits && item.fieldVisits.length > 0 ? (
-                                        <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-2 shadow-sm max-h-[160px] overflow-y-auto">
+                                        <div className="text-[11px] text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 space-y-2 shadow-sm max-h-[160px] overflow-y-auto">
                                           {item.fieldVisits.map((v: any, vIdx: number) => (
-                                            <div key={v.id || vIdx} className={`${vIdx > 0 ? "pt-2 border-t border-slate-100" : ""}`}>
+                                            <div key={v.id || vIdx} className={`${vIdx > 0 ? "pt-2 border-t border-slate-100 dark:border-gray-700" : ""}`}>
                                               <div><strong>Client:</strong> {v.client_name || "N/A"}</div>
                                               <div><strong>Purpose:</strong> {v.purpose || "N/A"}</div>
                                               <div><strong>Distance:</strong> {v.distance_travelled || 0} KM</div>
@@ -7102,7 +7102,7 @@ export function PerformanceCompliance({
                                           ))}
                                         </div>
                                       ) : (
-                                        <div className="text-[10px] italic text-slate-400 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">No Field Visits logged.</div>
+                                        <div className="text-[10px] italic text-slate-400 dark:text-gray-400 bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">No Field Visits logged.</div>
                                       )}
                                     </div>
                                   </div>
@@ -7128,14 +7128,14 @@ export function PerformanceCompliance({
           onClick={() => setSelectedSelfie(null)}
         >
           <div
-            className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full border border-slate-200 relative animate-scaleIn animate-duration-200 flex flex-col max-h-[90vh]"
+            className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full border border-slate-200 dark:border-gray-700 relative animate-scaleIn animate-duration-200 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h4 className="text-sm font-black text-[#714B67] uppercase font-mono tracking-wider">Document / Proof Viewer</h4>
+            <div className="p-4 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-gray-800">
+              <h4 className="text-sm font-black text-[#714B67] dark:text-purple-300 uppercase font-mono tracking-wider">Document / Proof Viewer</h4>
               <button
                 onClick={() => setSelectedSelfie(null)}
-                className="p-1.5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 transition-all"
+                className="p-1.5 rounded-full bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 text-slate-700 dark:text-gray-100 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -7161,7 +7161,7 @@ export function PerformanceCompliance({
                   return (
                     <iframe
                       src={selfieSrc}
-                      className="w-full h-[70vh] rounded bg-white"
+                      className="w-full h-[70vh] rounded bg-white dark:bg-gray-900"
                       title="PDF Document"
                     />
                   );
@@ -7247,7 +7247,7 @@ function FineEmployeeSearchCombobox({
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={isOpen ? query : (selectedEmpObject ? `${selectedEmpObject.name} ${selectedEmpObject.role ? `(${selectedEmpObject.role})` : ''}` : "")}
@@ -7260,7 +7260,7 @@ function FineEmployeeSearchCombobox({
             setIsOpen(true);
           }}
           placeholder="🔍 Type to search employee by name/role..."
-          className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-7 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500 shadow-2xs"
+          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-xl pl-8 pr-7 py-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-500 shadow-2xs dark:[color-scheme:dark]"
         />
         {selectedEmployee && !isOpen && (
           <button
@@ -7269,7 +7269,7 @@ function FineEmployeeSearchCombobox({
               onSelectEmployee(null);
               setQuery("");
             }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 text-xs font-bold"
           >
             ✕
           </button>
@@ -7277,7 +7277,7 @@ function FineEmployeeSearchCombobox({
       </div>
 
       {isOpen && (
-        <div className="absolute z-[99999] left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar p-1 animate-in fade-in duration-150">
+        <div className="absolute z-[99999] left-0 top-full mt-1 w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar p-1 animate-in fade-in duration-150">
           {filtered.map((emp) => {
             const isSelected = String(emp.id) === String(selectedEmployee?.id);
             return (
@@ -7289,20 +7289,20 @@ function FineEmployeeSearchCombobox({
                   setQuery("");
                   setIsOpen(false);
                 }}
-                className={`w-full text-left p-2.5 hover:bg-rose-50 rounded-lg transition-colors flex items-center justify-between gap-2 text-xs ${isSelected ? 'bg-rose-50 text-rose-900 font-black' : ''}`}
+                className={`w-full text-left p-2.5 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors flex items-center justify-between gap-2 text-xs ${isSelected ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-900 dark:text-rose-300 font-black' : ''}`}
               >
                 <div className="truncate">
-                  <span className="font-bold text-slate-800 block truncate">{emp.name || "Employee"}</span>
-                  <span className="text-[10px] text-slate-400 font-medium truncate block">{emp.role || "User"} {emp.email ? `• ${emp.email}` : ""}</span>
+                  <span className="font-bold text-slate-800 dark:text-gray-100 block truncate">{emp.name || "Employee"}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium truncate block">{emp.role || "User"} {emp.email ? `• ${emp.email}` : ""}</span>
                 </div>
                 {isSelected && (
-                  <span className="text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded shrink-0">Selected</span>
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/50 px-2 py-0.5 rounded shrink-0">Selected</span>
                 )}
               </button>
             );
           })}
           {filtered.length === 0 && (
-            <div className="p-3 text-center text-xs text-slate-400 font-medium">
+            <div className="p-3 text-center text-xs text-slate-400 dark:text-gray-400 font-medium">
               No matching employees found
             </div>
           )}
@@ -7941,11 +7941,11 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
   return (
     <>
-      <div className="space-y-6 sm:space-y-8 animate-fadeIn text-slate-800">
+      <div className="space-y-6 sm:space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-850">Leave Management Hub</h1>
-            <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">
+            <h1 className="text-lg sm:text-xl font-black text-slate-850 dark:text-gray-100">Leave Management Hub</h1>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 sm:mt-1">
               {canApprove
                 ? "Review, approve, and track department-level or company-level leave applications."
                 : "Submit casual, sick, or unpaid leave requests and track approval history"}
@@ -7966,30 +7966,30 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
           {/* Form View for Applicants */}
           {canApply && (
-            <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between">
+            <div className="lg:col-span-5 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between">
               <div>
-                <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+                <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono pb-2 border-b border-slate-100 dark:border-gray-700 mb-4 flex items-center justify-between">
                   <span>📋 Apply for Leave Request</span>
                 </h3>
 
                 <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
+                  <div className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-lg p-3 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-indigo-500" />
-                      <span className="text-xs font-black text-slate-850 uppercase tracking-wide">
+                      <span className="text-xs font-black text-slate-850 dark:text-gray-100 uppercase tracking-wide">
                         Applicant Name: {sessionUser?.name || "Employee"}
                       </span>
                     </div>
-                    <div className="bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 font-mono font-bold">
+                    <div className="bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 dark:text-indigo-300 font-mono font-bold">
                       {sessionUser?.role || "Staff"}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leave Type *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Leave Type *</label>
                       <select
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={leaveType}
                         onChange={(e) => {
                           setLeaveType(e.target.value);
@@ -8007,22 +8007,22 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
                     {leaveType === "Other" ? (
                       <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Leave Type *</label>
+                        <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Specify Leave Type *</label>
                         <input
                           type="text"
                           placeholder="Custom leave type..."
-                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                           value={customLeaveType}
                           onChange={(e) => setCustomLeaveType(e.target.value)}
                         />
                       </div>
                     ) : (
                       <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
+                        <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Reason for Leave *</label>
                         <input
                           type="text"
                           placeholder="Short description..."
-                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                           value={reason}
                           onChange={(e) => setReason(e.target.value)}
                         />
@@ -8032,11 +8032,11 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
                   {leaveType === "Other" && (
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Reason for Leave *</label>
                       <input
                         type="text"
                         placeholder="Short description..."
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                       />
@@ -8045,26 +8045,26 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Start Date *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">Start Date *</label>
                       <input
                         type="date"
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">End Date *</label>
+                      <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">End Date *</label>
                       <input
                         type="date"
-                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-900 dark:text-gray-100 mt-1.5 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex justify-end">
+                  <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end">
                     <button
                       type="submit"
                       disabled={submitting}
@@ -8079,18 +8079,18 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
           )}
 
           {/* ── Absent Fines History Section (Right Side - Height Matched with Scrollbar) ── */}
-          <div id="absent-fines-section" className={`${canApply ? "lg:col-span-7" : "lg:col-span-12"} bg-white border border-rose-200/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full`}>
+          <div id="absent-fines-section" className={`${canApply ? "lg:col-span-7" : "lg:col-span-12"} bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-200/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full`}>
             <div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-rose-100 mb-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b dark:border-gray-700 border-rose-100 mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 bg-rose-100 text-rose-700 rounded-xl">
+                  <div className="p-2 bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-xl">
                     <AlertTriangle className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-rose-950 uppercase tracking-wide">
                       ⚠️ Absent Fines & Deductions History
                     </h3>
-                    <p className="text-[10px] text-rose-600 font-medium">
+                    <p className="text-[10px] text-rose-600 dark:text-rose-300 font-medium">
                       Imposed absence fines & compliance deductions
                     </p>
                   </div>
@@ -8102,7 +8102,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                       <select
                         value={fineEmployeeFilter}
                         onChange={(e) => setFineEmployeeFilter(e.target.value)}
-                        className="text-[10px] font-bold text-slate-800 bg-white border border-rose-200 rounded-xl px-2.5 py-1 focus:outline-none focus:border-rose-400 shadow-2xs cursor-pointer"
+                        className="text-[10px] font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-200 rounded-xl px-2.5 py-1 focus:outline-none focus:border-rose-400 shadow-2xs cursor-pointer dark:[color-scheme:dark]"
                       >
                         <option value="All">👥 All Employees</option>
                         {fineEmployeeOptions.filter(n => n !== "All").map((name, i) => (
@@ -8110,9 +8110,9 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                         ))}
                       </select>
                     )}
-                    <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl">
-                      <span className="text-[10px] font-bold text-rose-700">Total:</span>
-                      <span className="text-xs font-black text-rose-800 bg-rose-200/70 px-2 py-0.5 rounded-md">
+                    <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 px-2.5 py-1 rounded-xl">
+                      <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">Total:</span>
+                      <span className="text-xs font-black text-rose-800 dark:text-rose-300 bg-rose-200/70 dark:bg-rose-950/50 px-2 py-0.5 rounded-md">
                         ₹{filteredMyFines.reduce((sum, f) => sum + (Number(f.amount) || 0), 0).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -8121,16 +8121,16 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
               </div>
 
               {loadingFines ? (
-                <div className="p-4 text-center text-xs font-bold text-slate-400">Loading fine history...</div>
+                <div className="p-4 text-center text-xs font-bold text-slate-400 dark:text-gray-400">Loading fine history...</div>
               ) : displayFines.length === 0 ? (
-                <div className="p-4 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-xs font-semibold text-slate-500">
+                <div className="p-4 text-center bg-slate-50/50 dark:bg-slate-950/50 rounded-xl border border-dashed border-slate-200 dark:border-gray-700 text-xs font-semibold text-slate-500 dark:text-gray-400">
                   ✅ Great news! No absence fines recorded.
                 </div>
               ) : (
                 <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[300px]">
                   <table className="w-full text-left text-xs border-collapse min-w-[480px]">
                     <thead>
-                      <tr className="bg-rose-50/80 text-rose-950 text-[10px] uppercase font-black tracking-wider border-b border-rose-100 sticky top-0 bg-rose-50 z-10">
+                      <tr className="bg-rose-50/80 dark:bg-rose-950/50 text-rose-950 text-[10px] uppercase font-black tracking-wider border-b dark:border-gray-700 border-rose-100 sticky top-0 bg-rose-50 z-10">
                         {canApprove && <th className="py-2 px-2">Employee</th>}
                         <th className="py-2 px-2">Absence Date</th>
                         <th className="py-2 px-2">Fine Amount</th>
@@ -8138,7 +8138,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                         {canRemoveFine && <th className="py-2 px-2 text-right">Action</th>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-800 dark:text-gray-100">
                       {displayFines.map((fine: any) => {
                         const isExpanded = expandedFineId === fine.id;
                         const colSpanCount = (canApprove ? 4 : 3) + (canRemoveFine ? 1 : 0);
@@ -8146,33 +8146,33 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                           <React.Fragment key={fine.id}>
                             <tr
                               onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
-                              className={`hover:bg-rose-50/50 transition-all cursor-pointer ${isExpanded ? "bg-rose-50/60" : ""
+                              className={`hover:bg-rose-50/50 dark:hover:bg-rose-950/50 transition-all cursor-pointer ${isExpanded ? "bg-rose-50/60 dark:bg-rose-950/50" : ""
                                 }`}
                               title="Click to view complete fine reason"
                             >
                               {canApprove && (
                                 <td className="py-2 px-2">
-                                  <span className="font-bold text-slate-900 block truncate max-w-[110px]">
+                                  <span className="font-bold text-slate-900 dark:text-gray-100 block truncate max-w-[110px]">
                                     {fine.employeeInfo?.name || "Employee"}
                                   </span>
                                 </td>
                               )}
-                              <td className="py-2 px-2 font-bold text-slate-900 whitespace-nowrap">
+                              <td className="py-2 px-2 font-bold text-slate-900 dark:text-gray-100 whitespace-nowrap">
                                 📅 {fine.daysCount > 1
                                   ? `${new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} to ${new Date(fine.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} (${fine.daysCount} Days)`
                                   : new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                               </td>
                               <td className="py-2 px-2 whitespace-nowrap">
-                                <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded font-black border border-rose-200 text-[11px]">
+                                <span className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 rounded font-black border dark:border-gray-700 border-rose-200 text-[11px]">
                                   ₹{Number(fine.totalAmount).toLocaleString('en-IN')}
                                   {fine.daysCount > 1 && (
-                                    <span className="text-[10px] text-rose-600 font-bold ml-1">
+                                    <span className="text-[10px] text-rose-600 dark:text-rose-300 font-bold ml-1">
                                       (₹{fine.perDayAmount}/day)
                                     </span>
                                   )}
                                 </span>
                               </td>
-                              <td className="py-2 px-2 text-slate-700 max-w-[150px] truncate" title={fine.reason}>
+                              <td className="py-2 px-2 text-slate-700 dark:text-gray-100 max-w-[150px] truncate" title={fine.reason}>
                                 {fine.reason}
                               </td>
                               {canRemoveFine && (
@@ -8182,7 +8182,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                       e.stopPropagation();
                                       handleDeleteFine(fine);
                                     }}
-                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[10px] font-bold transition-all flex items-center gap-1 ml-auto"
+                                    className="px-2 py-1 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200 rounded text-[10px] font-bold transition-all flex items-center gap-1 ml-auto"
                                     title="Remove / Delete Fine"
                                   >
                                     🗑️ Remove
@@ -8191,11 +8191,11 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                               )}
                             </tr>
                             {isExpanded && (
-                              <tr className="bg-rose-50/40 border-b border-rose-200/60">
+                              <tr className="bg-rose-50/40 dark:bg-rose-950/50 border-b dark:border-gray-700 border-rose-200/60">
                                 <td colSpan={colSpanCount} className="px-3 py-2.5">
-                                  <div className="bg-white border border-rose-200 rounded-xl p-3 shadow-xs space-y-2 animate-fadeIn">
+                                  <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-200 rounded-xl p-3 shadow-xs space-y-2 animate-fadeIn">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[10px] uppercase font-black tracking-wider text-rose-700 font-mono flex items-center gap-1">
+                                      <span className="text-[10px] uppercase font-black tracking-wider text-rose-700 dark:text-rose-300 font-mono flex items-center gap-1">
                                         <span>📝</span> Complete Fine Reason
                                       </span>
                                       <button
@@ -8203,24 +8203,24 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                           e.stopPropagation();
                                           setExpandedFineId(null);
                                         }}
-                                        className="text-[10px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200/60 transition-colors"
+                                        className="text-[10px] font-bold text-rose-600 dark:text-rose-300 hover:text-rose-800 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 px-2 py-0.5 rounded-md border dark:border-gray-700 border-rose-200/60 transition-colors"
                                       >
                                         Close ✕
                                       </button>
                                     </div>
-                                    <p className="text-xs text-slate-800 font-semibold leading-relaxed bg-rose-50/50 p-2.5 rounded-lg border border-rose-100/80 whitespace-pre-wrap break-words">
+                                    <p className="text-xs text-slate-800 dark:text-gray-100 font-semibold leading-relaxed bg-rose-50/50 dark:bg-rose-950/50 p-2.5 rounded-lg border dark:border-gray-700 border-rose-100/80 whitespace-pre-wrap break-words">
                                       {fine.reason}
                                     </p>
-                                    <div className="text-[10px] text-slate-500 font-medium pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-rose-100/60">
+                                    <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium pt-2 flex flex-wrap items-center justify-between gap-2 border-t dark:border-gray-700 border-rose-100/60">
                                       <div className="flex flex-wrap items-center gap-3">
                                         {fine.employeeInfo?.name && (
-                                          <span>Employee: <strong className="text-slate-800">{fine.employeeInfo.name}</strong></span>
+                                          <span>Employee: <strong className="text-slate-800 dark:text-gray-100">{fine.employeeInfo.name}</strong></span>
                                         )}
                                         {fine.imposedByInfo?.name && (
-                                          <span>Imposed By: <strong className="text-slate-800">{fine.imposedByInfo.name}</strong></span>
+                                          <span>Imposed By: <strong className="text-slate-800 dark:text-gray-100">{fine.imposedByInfo.name}</strong></span>
                                         )}
                                         {fine.createdAt && (
-                                          <span>Date Recorded: <strong className="text-slate-800">{new Date(fine.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
+                                          <span>Date Recorded: <strong className="text-slate-800 dark:text-gray-100">{new Date(fine.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
                                         )}
                                       </div>
                                       {canRemoveFine && (
@@ -8229,7 +8229,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                             e.stopPropagation();
                                             handleDeleteFine(fine);
                                           }}
-                                          className="flex items-center gap-1 text-[10px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 border border-rose-300 px-2.5 py-1 rounded-md transition-all shadow-2xs"
+                                          className="flex items-center gap-1 text-[10px] font-black text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/50 hover:bg-rose-200 dark:hover:bg-rose-950/50 border dark:border-gray-700 border-rose-300 px-2.5 py-1 rounded-md transition-all shadow-2xs"
                                         >
                                           🗑️ Remove Fine
                                         </button>
@@ -8251,20 +8251,20 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
         </div>
 
         {/* List of Leave Requests */}
-        <div className="bg-white border border-[#E8E4DF] rounded-xl p-4 sm:p-6 shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative">
+        <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-4 sm:p-6 shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase font-mono pb-2 border-b border-[#E8E4DF] dark:border-gray-700 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative">
             <div className="flex items-center gap-2 flex-wrap">
-              <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+              <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A] dark:text-gray-100">
                 📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
               </span>
-              <span className="px-2.5 py-1 text-[10px] font-black rounded-lg bg-purple-50 text-purple-900 border border-purple-200 tracking-normal normal-case flex items-center gap-1 shadow-2xs">
+              <span className="px-2.5 py-1 text-[10px] font-black rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 border dark:border-gray-700 border-purple-200 tracking-normal normal-case flex items-center gap-1 shadow-2xs">
                 📅 {getActivePeriodLabel()}
               </span>
             </div>
 
             <div className="relative flex items-center gap-2 flex-wrap">
               {/* Quick Filter Pill Buttons */}
-              <div className="flex flex-wrap items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold normal-case">
+              <div className="flex flex-wrap items-center gap-1 bg-[#F5F2EC] dark:bg-gray-800 p-1 rounded-xl border border-[#E8E4DF] dark:border-gray-700 text-[10px] font-bold normal-case">
                 <button
                   type="button"
                   onClick={() => {
@@ -8272,7 +8272,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                     setFilterStartDate("");
                     setFilterEndDate("");
                   }}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
                 >
                   Current Month
                 </button>
@@ -8283,7 +8283,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                     setFilterStartDate("");
                     setFilterEndDate("");
                   }}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
                 >
                   Last Month
                 </button>
@@ -8294,7 +8294,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                     setFilterStartDate("");
                     setFilterEndDate("");
                   }}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
                 >
                   All Time
                 </button>
@@ -8305,7 +8305,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 border px-3.5 py-1.5 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                   ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  : "bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 border-[#E8E4DF] dark:border-gray-700 text-[#1C1C1A] dark:text-gray-100"
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -8318,13 +8318,13 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
               {/* Floating Filter Popover / Mobile Modal */}
               {showFilters && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:static sm:z-auto" onClick={() => setShowFilters(false)}>
-                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] rounded-2xl p-5 w-full max-w-[340px] sm:w-[320px] space-y-4 text-left normal-case font-sans sm:absolute sm:right-0 sm:top-full sm:mt-3 sm:z-50" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
+                  <div className="bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] rounded-2xl p-5 w-full max-w-[340px] sm:w-[320px] space-y-4 text-left normal-case font-sans sm:absolute sm:right-0 sm:top-full sm:mt-3 sm:z-50" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] dark:text-gray-100 tracking-wider uppercase font-mono">Filter Registry</span>
                       <button
                         type="button"
                         onClick={() => setShowFilters(false)}
-                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
+                        className="text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 transition-colors p-1"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -8332,9 +8332,9 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
                     <div className="space-y-4 text-xs">
                       <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Select Employee</label>
                         <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                           value={filterUser}
                           onChange={(e) => setFilterUser(e.target.value)}
                         >
@@ -8348,9 +8348,9 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                       </div>
 
                       <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Period Filter</label>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Date Period Filter</label>
                         <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                           value={datePreset}
                           onChange={(e) => {
                             const val = e.target.value as any;
@@ -8369,21 +8369,21 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                       </div>
 
                       {datePreset === "custom" && (
-                        <div className="p-3 bg-[#F5F2EC] rounded-xl border border-[#E8E4DF] space-y-3">
+                        <div className="p-3 bg-[#F5F2EC] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700 space-y-3">
                           <div>
-                            <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">Start Date (From)</label>
+                            <label className="text-[9px] uppercase font-bold text-[#6B665E] dark:text-gray-300 font-mono tracking-widest block mb-1">Start Date (From)</label>
                             <input
                               type="date"
-                              className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                              className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                               value={filterStartDate}
                               onChange={(e) => setFilterStartDate(e.target.value)}
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">End Date (To)</label>
+                            <label className="text-[9px] uppercase font-bold text-[#6B665E] dark:text-gray-300 font-mono tracking-widest block mb-1">End Date (To)</label>
                             <input
                               type="date"
-                              className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                              className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                               value={filterEndDate}
                               onChange={(e) => setFilterEndDate(e.target.value)}
                             />
@@ -8392,9 +8392,9 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                       )}
 
                       <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">Status</label>
                         <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] dark:[color-scheme:dark]"
                           value={filterStatus}
                           onChange={(e) => setFilterStatus(e.target.value)}
                         >
@@ -8417,7 +8417,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                           setFilterStatus("All");
                           setShowFilters(false);
                         }}
-                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                        className="flex-1 bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 text-[#6B665E] dark:text-gray-300 py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF] dark:border-gray-700"
                       >
                         Reset Default
                       </button>
@@ -8437,14 +8437,14 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
           {loadingList ? (
             <div className="h-48 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
-              <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
+              <Loader2 className="w-8 h-8 text-[#714B67] dark:text-purple-300 animate-spin mb-2" />
+              <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">Loading leave requests...</span>
             </div>
           ) : (
             <>
 
               {filteredLeaves.length === 0 ? (
-                <div className="h-48 flex flex-col items-center justify-center text-slate-400">
+                <div className="h-48 flex flex-col items-center justify-center text-slate-400 dark:text-gray-400">
                   <Calendar className="w-8 h-8 mb-2" />
                   <span className="text-xs font-semibold">No matching leave requests found.</span>
                 </div>
@@ -8452,7 +8452,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                 <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[360px]">
                   <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 z-10">
+                      <tr className="border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 dark:bg-gray-800 z-10">
                         {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
                         <th className="py-3.5 px-4 text-left">Type</th>
                         <th className="py-3.5 px-4 text-left">Duration</th>
@@ -8463,7 +8463,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                         {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                    <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-650">
                       {filteredLeaves.map((leave: any) => {
                         const start = new Date(leave.startDate);
                         const end = new Date(leave.endDate);
@@ -8483,37 +8483,37 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                           : isPendingRecommenderApproval && (isOwnerOrDirector || isDirectReportManager || isManager);
 
                         return (
-                          <tr key={leave.id} className="hover:bg-slate-50/50">
+                          <tr key={leave.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/50">
                             {canApprove && (
                               <td className="py-3.5 px-4">
                                 <div className="flex flex-col">
-                                  <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
+                                  <span className="font-black text-slate-800 dark:text-gray-100">{leave.employee?.name || "Unknown"}</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono font-bold">{leave.employee?.email || ""}</span>
                                 </div>
                               </td>
                             )}
                             <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 border dark:border-gray-700 border-indigo-100">
                                 {leave.type}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
+                            <td className="py-3.5 px-4 whitespace-nowrap text-slate-700 dark:text-gray-100">
                               {start.toLocaleDateString()} to {end.toLocaleDateString()}
                             </td>
-                            <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
+                            <td className="py-3.5 px-4 text-center text-slate-700 dark:text-gray-100 font-mono">
                               {leave.days}
                             </td>
-                            <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
+                            <td className="py-3.5 px-4 max-w-xs truncate text-slate-600 dark:text-gray-300" title={leave.reason}>
                               {leave.reason}
                             </td>
                             <td className="py-3.5 px-4 text-center whitespace-nowrap">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200"
                                 : leave.status === "Rejected"
-                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                  ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200"
                                   : leave.status === "Pending HR Approval"
-                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border dark:border-gray-700 border-blue-200"
+                                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-200"
                                 }`}>
                                 {leave.status}
                               </span>
@@ -8525,7 +8525,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                 {showActions ? (
                                   <div className="flex items-center gap-2">
                                     <input
-                                      className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                                      className="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2 py-1 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                                       placeholder="remarks..."
                                       value={actionRemarks[leave.id] || ""}
                                       onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
@@ -8555,7 +8555,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
                             {/* processed info for Employees */}
                             {!canApprove && (
-                              <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
+                              <td className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-[11px] italic max-w-xs truncate">
                                 {!["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(leave.status) ? (
                                   <span>
                                     By: {leave.approvedBy?.name || "HR/Manager"}
@@ -8583,16 +8583,16 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
       {/* ── Impose Absent Fine Modal ── */}
       {showFineModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-rose-100">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border dark:border-gray-700 border-rose-100">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-rose-50 rounded-t-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-700 bg-rose-50 dark:bg-rose-950/50 rounded-t-2xl">
               <div>
-                <h2 className="text-base font-black text-rose-700">⚠️ Impose Absent Fine</h2>
+                <h2 className="text-base font-black text-rose-700 dark:text-rose-300">⚠️ Impose Absent Fine</h2>
                 <p className="text-[11px] text-rose-500 mt-0.5">Fine for unauthorized absence without leave notification</p>
               </div>
               <button
                 onClick={() => setShowFineModal(false)}
-                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 text-xl font-bold p-1"
               >✕</button>
             </div>
 
@@ -8601,7 +8601,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
               {/* Employee Select */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1.5">
                   Select Employee * ({allSelectableEmployees.length} total)
                 </label>
                 <FineEmployeeSearchCombobox
@@ -8614,10 +8614,10 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
               {/* Date Range */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">From Date *</label>
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">From Date *</label>
                   <input
                     type="date"
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-500 dark:[color-scheme:dark]"
                     value={fineFromDate}
                     max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => {
@@ -8629,10 +8629,10 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">To Date *</label>
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">To Date *</label>
                   <input
                     type="date"
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-500 dark:[color-scheme:dark]"
                     value={fineToDate}
                     min={fineFromDate}
                     onChange={(e) => setFineToDate(e.target.value)}
@@ -8642,14 +8642,14 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
               {/* Fine Amount per day */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Per Day Fine Amount (₹)</label>
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1.5">Per Day Fine Amount (₹)</label>
                 <div className="flex items-center gap-2">
                   {[250, 500, 1000, 2000].map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setFineAmount(amt)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-black border transition-all ${fineAmount === amt ? "bg-rose-600 text-white border-rose-600 shadow-xs" : "bg-white text-slate-600 border-slate-300 hover:border-rose-400"}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-black border transition-all ${fineAmount === amt ? "bg-rose-600 text-white border-rose-600 shadow-xs" : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-300 border-slate-300 dark:border-gray-700 hover:border-rose-400"}`}
                     >
                       ₹{amt}
                     </button>
@@ -8657,7 +8657,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                   <input
                     type="number"
                     min={1}
-                    className="w-24 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    className="w-24 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-500 dark:[color-scheme:dark]"
                     value={fineAmount}
                     onChange={(e) => setFineAmount(Number(e.target.value))}
                     placeholder="Custom"
@@ -8667,7 +8667,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
               {/* Reason */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-700 tracking-wider mb-1.5">Reason for Fine *</label>
+                <label className="block text-[10px] uppercase font-black text-slate-700 dark:text-gray-100 tracking-wider mb-1.5">Reason for Fine *</label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {[
                     "Absent without prior notification",
@@ -8681,7 +8681,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                       onClick={() => setFineReason(preset)}
                       className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border transition-all ${fineReason === preset
                         ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
-                        : "bg-slate-100 text-slate-900 border-slate-300 hover:bg-slate-200"
+                        : "bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-gray-100 border-slate-300 dark:border-gray-700 hover:bg-slate-200 dark:hover:bg-gray-800"
                         }`}
                     >
                       {preset}
@@ -8689,7 +8689,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                   ))}
                 </div>
                 <textarea
-                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-950 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-rose-500 resize-none shadow-2xs"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-950 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-400 placeholder:font-normal focus:outline-none focus:border-rose-500 resize-none shadow-2xs dark:[color-scheme:dark]"
                   rows={2}
                   value={fineReason}
                   onChange={(e) => setFineReason(e.target.value)}
@@ -8699,12 +8699,12 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
               {/* Fine Summary Breakdown */}
               {fineEmployee && fineFromDate && fineTotalDays > 0 && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-xs font-black text-rose-900">
+                <div className="bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 rounded-xl p-3.5 space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-rose-900 dark:text-rose-300">
                     <span>Fine Summary ({fineTotalDays} Day{fineTotalDays > 1 ? "s" : ""})</span>
-                    <span className="text-sm text-rose-700 font-extrabold">Total: ₹{totalFineCalculated.toLocaleString('en-IN')}</span>
+                    <span className="text-sm text-rose-700 dark:text-rose-300 font-extrabold">Total: ₹{totalFineCalculated.toLocaleString('en-IN')}</span>
                   </div>
-                  <p className="text-[11px] text-rose-700 leading-relaxed font-semibold">
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed font-semibold">
                     ₹<span className="font-black">{fineAmount}</span>/day × <span className="font-black">{fineTotalDays} Day(s)</span> = <span className="font-black">₹{totalFineCalculated.toLocaleString('en-IN')}</span> fine will be imposed on <span className="font-black">{fineEmployee.name}</span> for absence ({fineFromDate} {fineToDate && fineToDate !== fineFromDate ? `to ${fineToDate}` : ""}).
                     An email notification with complete details will be sent to <span className="font-black">{fineEmployee.name}</span>.
                   </p>
@@ -8716,7 +8716,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
             <div className="px-6 pb-5 flex gap-3">
               <button
                 onClick={() => setShowFineModal(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-black transition-all"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-black transition-all"
               >
                 Cancel
               </button>

@@ -2,15 +2,21 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2, RefreshCw, Radio, Clock3, Navigation, Maximize2, Minimize2 } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+import type { Map as MapboxMap, Marker } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { getTrackingMarkerOffsets } from "@/lib/trackingMarkerLayout";
 
 export default function LiveTrackingMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapShellRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<any>(null);
-  const markersLayer = useRef<any>(null);
-  const L_ref = useRef<any>(null);
+  const mapInstance = useRef<MapboxMap | null>(null);
+  const markers = useRef<Marker[]>([]);
+  const mapboxRef = useRef<typeof import("mapbox-gl").default | null>(null);
   const hasFittedBounds = useRef(false);
+
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapStyle, setMapStyle] = useState("streets-v12");
 
   const [pins, setPins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +49,7 @@ export default function LiveTrackingMap() {
     const timer = setInterval(() => setClockTick(Date.now()), 60 * 1000);
     const handleFullscreenChange = () => {
       setIsFullscreen(document.fullscreenElement === mapShellRef.current);
-      window.setTimeout(() => mapInstance.current?.invalidateSize(), 100);
+      window.setTimeout(() => mapInstance.current?.resize(), 100);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
@@ -84,88 +90,95 @@ export default function LiveTrackingMap() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize Map
+  // Load the browser-only SDK after the map container mounts.
   useEffect(() => {
     if (!isMounted || !mapRef.current) return;
+    let cancelled = false;
+    let resizeObserver: ResizeObserver | undefined;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    if (!token) {
+      setMapError("Map access is not configured. Please contact your administrator.");
+      return;
+    }
 
-    // Only load Leaflet on the client side
-    import("leaflet").then((L) => {
-      L_ref.current = L;
-
-      if (!mapInstance.current && mapRef.current) {
-        mapInstance.current = L.map(mapRef.current, {
-          minZoom: 3,
-          maxZoom: 22,
-          zoomSnap: 0.5,
-          zoomDelta: 1,
-          wheelPxPerZoomLevel: 45,
-          scrollWheelZoom: true,
-          doubleClickZoom: true
-        }).setView([20.5937, 78.9629], 5);
-        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxNativeZoom: 19,
-          maxZoom: 22
-        });
-        
-        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-          maxNativeZoom: 19,
-          maxZoom: 22
-        });
-
-        streetLayer.addTo(mapInstance.current);
-
-        const baseMaps = {
-          "Street View": streetLayer,
-          "Satellite View": satelliteLayer
-        };
-
-        L.control.layers(baseMaps, undefined, { position: 'topleft' }).addTo(mapInstance.current);
-
-        markersLayer.current = L.layerGroup().addTo(mapInstance.current);
-      }
+    import("mapbox-gl").then(({ default: mapboxgl }) => {
+      if (cancelled || !mapRef.current) return;
+      const map = new mapboxgl.Map({
+        container: mapRef.current,
+        accessToken: token,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [78.9629, 20.5937],
+        zoom: 5,
+        minZoom: 3,
+        maxZoom: 22,
+      });
+      mapboxRef.current = mapboxgl;
+      mapInstance.current = map;
+      map.addControl(new mapboxgl.NavigationControl(), "top-left");
+      map.on("load", () => {
+        if (!cancelled) {
+          setMapReady(true);
+          setMapError(null);
+        }
+      });
+      map.on("error", () => {
+        if (!cancelled) setMapError("Map could not load. Check your connection and map access, then reload.");
+      });
+      map.on("idle", () => {
+        if (!cancelled) setMapError(null);
+      });
+      resizeObserver = new ResizeObserver(() => map.resize());
+      resizeObserver.observe(mapRef.current);
+    }).catch(() => {
+      if (!cancelled) setMapError("Map could not start. Please reload and try again.");
     });
 
     return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-        hasFittedBounds.current = false;
-      }
+      cancelled = true;
+      resizeObserver?.disconnect();
+      markers.current.forEach(marker => marker.remove());
+      markers.current = [];
+      mapInstance.current?.remove();
+      mapInstance.current = null;
+      mapboxRef.current = null;
+      hasFittedBounds.current = false;
+      setMapReady(false);
     };
   }, [isMounted]);
 
+  useEffect(() => {
+    if (mapReady) mapInstance.current?.setStyle(`mapbox://styles/mapbox/${mapStyle}`);
+  }, [mapStyle, mapReady]);
+
   // Update Markers when pins change
   useEffect(() => {
-    if (!L_ref.current || !mapInstance.current || !markersLayer.current) return;
+    if (!mapReady || !mapboxRef.current || !mapInstance.current) return;
 
-    const L = L_ref.current;
+    const mapboxgl = mapboxRef.current;
     
     // Clear old markers
-    markersLayer.current.clearLayers();
+    markers.current.forEach(marker => marker.remove());
+    markers.current = [];
 
-    const bounds = L.latLngBounds();
+    const bounds = new mapboxgl.LngLatBounds();
     let hasPins = false;
 
     pins.forEach(pin => {
-      if (pin.lat && pin.lng) {
+      const lat = Number(pin.lat);
+      const lng = Number(pin.lng);
+      if (pin.lat != null && pin.lng != null && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
         hasPins = true;
         const status = getPinStatus(pin);
         const initials = String(pin.name || "NA").split(" ").slice(0, 2).map((part: string) => part[0]).join("").toUpperCase();
-        const customIcon = L.divIcon({
-          className: "live-employee-marker",
-          html: `<div style="position:relative;width:42px;height:42px;display:flex;align-items:center;justify-content:center">
+        const element = document.createElement("div");
+        element.className = "live-employee-marker";
+        element.innerHTML = `<div style="position:relative;width:42px;height:42px;display:flex;align-items:center;justify-content:center">
             ${status.pulse ? `<span style="position:absolute;width:42px;height:42px;border-radius:50%;background:${status.color};opacity:.22;animation:liveMapPulse 1.8s ease-out infinite"></span>` : ""}
-            <div style="position:relative;width:32px;height:32px;border-radius:50%;background:${status.color};border:3px solid white;box-shadow:0 3px 12px rgba(15,23,42,.28);display:flex;align-items:center;justify-content:center;color:white;font:bold 10px Arial">${initials}</div>
+            <div style="position:relative;width:32px;height:32px;border-radius:50%;background:${status.color};border:3px solid white;box-shadow:0 3px 12px rgba(15,23,42,.28);display:flex;align-items:center;justify-content:center;color:white;font:bold 10px Arial">${initials.replace(/[<>&"']/g, "")}</div>
             <span style="position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-radius:50%;background:${status.color};border:2px solid white"></span>
-          </div>`,
-          iconSize: [42, 42],
-          iconAnchor: [21, 21],
-          popupAnchor: [0, -20]
-        });
-        const marker = L.marker([pin.lat, pin.lng], { icon: customIcon });
-        
+          </div>`;
+        const marker = new mapboxgl.Marker({ element, anchor: "center" }).setLngLat([lng, lat]);
+
         const popupContent = `
           <div style="min-width: 150px; font-family: sans-serif;">
             <h4 style="font-weight: bold; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
@@ -174,31 +187,63 @@ export default function LiveTrackingMap() {
             <p style="font-size: 10px; color: #64748b; margin: 2px 0;">Role: <strong style="color: #334155;">${String(pin.role || "Employee").replace(/[<>&"']/g, "")}</strong></p>
             <p style="font-size: 10px; color: #64748b; margin: 2px 0;">Activity: <strong style="color: #4f46e5;">${String(pin.type || "Location update").replace(/[<>&"']/g, "")}</strong></p>
             <p style="font-size:10px;color:${status.color};font-weight:700;margin:5px 0 0;">● ${status.label}</p>
+            <p style="font-size:9px;color:#64748b;margin-top:5px;">GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
             <p style="font-size: 9px; color: #94a3b8; margin-top: 6px; background: #f8fafc; padding: 4px; border-radius: 4px;">
               Updated: ${formatLastSeen(pin.lastUpdate)}
             </p>
           </div>
         `;
         
-        marker.bindPopup(popupContent);
-        marker.on("click", () => setSelectedPin(pin));
-        markersLayer.current.addLayer(marker);
-        bounds.extend([pin.lat, pin.lng]);
+        marker.setPopup(new mapboxgl.Popup({ offset: 22 }).setHTML(popupContent));
+        element.addEventListener("click", () => setSelectedPin(pin));
+        marker.addTo(mapInstance.current!);
+        markers.current.push(marker);
+        bounds.extend([lng, lat]);
       }
     });
 
+    const map = mapInstance.current;
+    const spreadMarkers = () => {
+      const offsets = getTrackingMarkerOffsets(markers.current.map(marker => map.project(marker.getLngLat())));
+      markers.current.forEach((marker, index) => {
+        marker.setOffset(offsets[index]);
+        const separated = offsets[index].some(value => Math.abs(value) > 1);
+        marker.getElement().title = separated ? "Nearby employee pins are spaced apart. Click for location details." : "Click for employee details";
+      });
+    };
+    spreadMarkers();
+    map.on("move", spreadMarkers);
+    map.on("resize", spreadMarkers);
+
     // Auto fit bounds if there are pins
     if (hasPins && !hasFittedBounds.current) {
-      mapInstance.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      mapInstance.current.fitBounds(bounds, { padding: { top: 110, bottom: 110, left: 100, right: window.innerWidth >= 1280 ? 340 : 100 }, maxZoom: 14 });
       hasFittedBounds.current = true;
     }
-  }, [pins, clockTick]);
+    return () => {
+      map.off("move", spreadMarkers);
+      map.off("resize", spreadMarkers);
+    };
+  }, [pins, clockTick, mapReady]);
 
   const liveCount = pins.filter(pin => getPinStatus(pin).label === "Live now").length;
 
+  const showAllEmployees = () => {
+    const map = mapInstance.current;
+    const mapboxgl = mapboxRef.current;
+    if (!map || !mapboxgl || !markers.current.length) return;
+    const bounds = new mapboxgl.LngLatBounds();
+    markers.current.forEach(marker => bounds.extend(marker.getLngLat()));
+    setSelectedPin(null);
+    map.fitBounds(bounds, { padding: { top: 110, bottom: 110, left: 100, right: window.innerWidth >= 1280 ? 340 : 100 }, maxZoom: 16 });
+  };
+
   const focusEmployee = (pin: any) => {
+    const lat = Number(pin.lat);
+    const lng = Number(pin.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
     setSelectedPin(pin);
-    mapInstance.current?.flyTo([pin.lat, pin.lng], 15, { duration: 1.2 });
+    mapInstance.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 });
   };
 
   if (!isMounted) return null;
@@ -213,6 +258,9 @@ export default function LiveTrackingMap() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={showAllEmployees} disabled={!mapReady || !pins.length} className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 disabled:opacity-50">
+            Show all employees
+          </button>
           <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -225,7 +273,7 @@ export default function LiveTrackingMap() {
           <button
             onClick={fetchLocations}
             disabled={refreshing}
-            className="px-3 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 text-[10px] font-black uppercase shadow-md transition-all disabled:opacity-50"
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 text-[10px] font-black uppercase shadow-md transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -234,18 +282,28 @@ export default function LiveTrackingMap() {
       </div>
 
       <div ref={mapShellRef} className={`bg-white border border-slate-200 shadow-sm overflow-hidden flex-1 relative flex ${isFullscreen ? "rounded-none min-h-screen" : "rounded-2xl min-h-[600px]"}`}>
-        {loading && pins.length === 0 ? (
+        {((loading && pins.length === 0) || (!mapReady && !mapError)) ? (
           <div className="w-full h-full flex items-center justify-center bg-slate-50/80 absolute inset-0 z-[1000]">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Locating Fleet...</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{mapReady ? "Locating Fleet..." : "Loading map..."}</p>
             </div>
           </div>
         ) : null}
         
+        {mapError && <div role="alert" className="absolute top-28 left-3 right-3 z-[700] rounded-lg border border-rose-200 bg-white p-3 text-xs text-rose-700">{mapError}</div>}
+        <select
+          aria-label="Map view"
+          value={mapStyle}
+          onChange={event => setMapStyle(event.target.value)}
+          className="absolute z-[600] top-3 left-28 rounded-lg bg-white border border-slate-300 shadow-md px-2 py-2 text-xs text-slate-700"
+        >
+          <option value="streets-v12">Street View</option>
+          <option value="satellite-streets-v12">Satellite View</option>
+        </select>
         {/* Map Container */}
         <style>{`@keyframes liveMapPulse { 0% { transform:scale(.75); opacity:.35 } 75%,100% { transform:scale(1.45); opacity:0 } } .live-employee-marker { background:transparent!important; border:none!important; }`}</style>
-        <div ref={mapRef} className="flex-1 w-full h-full z-0" style={{ minHeight: '600px' }}></div>
+        <div ref={mapRef} className="flex-1 w-full z-0" style={{ minHeight: '600px' }}></div>
 
         <button
           onClick={toggleFullscreen}
@@ -255,7 +313,7 @@ export default function LiveTrackingMap() {
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
 
-        <div className="absolute z-[500] top-3 right-3 bottom-3 w-64 hidden xl:flex flex-col rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl overflow-hidden">
+        <div className="absolute z-[500] top-3 right-3 bottom-14 w-64 hidden xl:flex flex-col rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl overflow-hidden">
           <div className="px-3.5 py-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Field Team</span>
@@ -283,10 +341,11 @@ export default function LiveTrackingMap() {
           </div>
         </div>
 
-        <div className="absolute z-[500] left-3 bottom-3 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-md px-3 py-2 flex items-center gap-3 text-[8px] font-bold text-slate-600">
+        <div className="absolute z-[500] left-3 bottom-10 rounded-lg bg-white/95 backdrop-blur border border-slate-200 shadow-md px-3 py-2 flex items-center gap-3 text-[8px] font-bold text-slate-600">
           <span className="flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-emerald-500" /> Live</span>
           <span className="flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-amber-500" /> Recent</span>
           <span className="flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-slate-400" /> Earlier/Out</span>
+          <span>Nearby pins spaced apart</span>
         </div>
       </div>
     </div>

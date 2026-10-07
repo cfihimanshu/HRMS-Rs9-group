@@ -175,10 +175,10 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
   // LAUNCHER VIEW
   if (activeSubModule === "launcher") {
     return (
-      <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
+      <div className="space-y-6 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] dark:border-gray-700 pb-5">
           <div>
-            <span className="text-[9px] uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-1">
+            <span className="text-[9px] uppercase tracking-widest text-emerald-600 dark:text-emerald-300 font-bold flex items-center gap-1">
               <LayoutGrid className="w-3 h-3 text-[#C9A84C]" /> App Modules
             </span>
             <h2 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -237,7 +237,7 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
             onClick={() => setActiveSubModule("guard-attendance")}
             className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-violet-200 transition-all duration-300 cursor-pointer"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-violet-50 to-indigo-100 dark:from-violet-950/50 dark:to-indigo-900/50 text-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-50 to-indigo-100 dark:from-violet-950/50 dark:to-indigo-900/50 text-violet-600 dark:text-violet-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <CalendarCheck size={28} strokeWidth={2} />
             </div>
             <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Guard Attendance &amp; Payout</span>
@@ -248,7 +248,7 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
             onClick={() => setActiveSubModule("guard-master")}
             className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-sky-200 transition-all duration-300 cursor-pointer"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-950/50 dark:to-blue-900/50 text-sky-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm"><Users size={28} strokeWidth={2}/></div>
+            <div className="w-16 h-16 bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-950/50 dark:to-blue-900/50 text-sky-600 dark:text-sky-300 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm"><Users size={28} strokeWidth={2}/></div>
             <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Guard Master</span>
             <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Name, Mobile &amp; Monthly Salary</span>
           </button>
@@ -259,9 +259,9 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
 
   // INNER MODULE VIEW
   return (
-    <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
+    <div className="space-y-6 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] dark:border-gray-700 pb-5">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveSubModule("launcher")}
@@ -271,7 +271,7 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <span className="text-[9px] uppercase tracking-widest text-emerald-600 font-bold flex items-center gap-1">
+            <span className="text-[9px] uppercase tracking-widest text-emerald-600 dark:text-emerald-300 font-bold flex items-center gap-1">
               <LayoutGrid className="w-3 h-3 text-[#C9A84C]" /> Security / {activeSubModule.replace('-', ' ')}
             </span>
             <h2 className="text-xl font-light tracking-wide font-serif capitalize" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -326,16 +326,16 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
         <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-5 shadow-sm animate-slide-down">
           <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-800 pb-3 mb-4">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-indigo-600" /> Register New NBFC
+              <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> Register New NBFC
             </h3>
-            <button onClick={() => setShowAddNbfcForm(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <button onClick={() => setShowAddNbfcForm(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
           <form onSubmit={handleAddNbfcSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Name *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">NBFC Name *</label>
                 <input
                   required
                   type="text"
@@ -352,18 +352,18 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
                     }
                     setNbfcForm({ ...nbfcForm, nbfcName: val, nbfcCode: autoCode });
                   }}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Code (Auto / Editable) *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">NBFC Code (Auto / Editable) *</label>
                 <input
                   required
                   type="text"
                   placeholder="e.g. BAJAJ"
                   value={nbfcForm.nbfcCode}
                   onChange={e => setNbfcForm({ ...nbfcForm, nbfcCode: e.target.value.toUpperCase() })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
             </div>
@@ -381,21 +381,21 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
         <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-5 shadow-sm animate-slide-down">
           <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-800 pb-3 mb-4">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-              <Network className="w-4 h-4 text-violet-600" /> {editNbfcBranchId ? "✏️ Edit NBFC Branch Details" : "Register New NBFC Branch"}
+              <Network className="w-4 h-4 text-violet-600 dark:text-violet-300" /> {editNbfcBranchId ? "✏️ Edit NBFC Branch Details" : "Register New NBFC Branch"}
             </h3>
-            <button onClick={() => { setShowAddNbfcBranchForm(false); setEditNbfcBranchId(null); setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <button onClick={() => { setShowAddNbfcBranchForm(false); setEditNbfcBranchId(null); setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
           <form onSubmit={handleAddNbfcBranchSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select NBFC *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Select NBFC *</label>
                 <select
                   required
                   value={nbfcBranchForm.nbfcId}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, nbfcId: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 cursor-pointer"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 cursor-pointer dark:[color-scheme:dark]"
                 >
                   <option value="">-- Choose an NBFC --</option>
                   {nbfcsList.map(b => (
@@ -404,7 +404,7 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
                 </select>
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Name *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Name *</label>
                 <input
                   required
                   type="text"
@@ -423,88 +423,88 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
                     }
                     setNbfcBranchForm({ ...nbfcBranchForm, branchName: val, branchCode: `${nbfcCode}-${branchCodeSuffix}` });
                   }}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Code (Auto / Custom) *</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Code (Auto / Custom) *</label>
                 <input
                   required
                   type="text"
                   placeholder="e.g. BAJAJ-DEL"
                   value={nbfcBranchForm.branchCode}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchCode: e.target.value.toUpperCase() })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Email (For Auto-Dispatch)</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Email (For Auto-Dispatch)</label>
                 <input
                   type="email"
                   placeholder="branch@nbfc.com"
                   value={nbfcBranchForm.branchEmail}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchEmail: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Manager</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Branch Manager</label>
                 <input
                   type="text"
                   placeholder="Manager Name"
                   value={nbfcBranchForm.branchManager}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManager: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Manager Contact</label>
                 <input
                   type="text"
                   placeholder="Contact Number"
                   value={nbfcBranchForm.branchManagerContact}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManagerContact: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Authorised Officer (AO)</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Authorised Officer (AO)</label>
                 <input
                   type="text"
                   placeholder="AO Name"
                   value={nbfcBranchForm.aoName}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, aoName: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Field Officer (FO)</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Field Officer (FO)</label>
                 <input
                   type="text"
                   placeholder="FO Name"
                   value={nbfcBranchForm.foName}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foName: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Contact Number</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">FO Contact Number</label>
                 <input
                   type="text"
                   placeholder="FO Phone Number"
                   value={nbfcBranchForm.foContact}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foContact: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Regional Business Office (RBO / Zone)</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] dark:text-gray-300 font-bold mb-1">Regional Business Office (RBO / Zone)</label>
                 <input
                   type="text"
                   placeholder="e.g. North Zone - RBO 1"
                   value={nbfcBranchForm.rbo}
                   onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, rbo: e.target.value })}
-                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100"
+                  className="w-full bg-white dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
             </div>

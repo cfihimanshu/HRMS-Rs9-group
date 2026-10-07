@@ -10,6 +10,9 @@ interface TopbarProps {
   activeTab: string;
   setActiveTab?: (tab: string, filter?: string) => void;
   user?: any;
+  stats?: any;
+  triggerToast?: (msg: string) => void;
+  toggleModal?: (modalId: string, open: boolean) => void;
   mobileMenuOpen?: boolean;
   setMobileMenuOpen?: (open: boolean) => void;
 }
@@ -233,10 +236,10 @@ export default function Topbar({
 
   return (
     <>
-      <header className="h-14 border-b px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] dark:bg-gray-900 border-[#E8E4DF] dark:border-gray-800 text-[#1C1C1A] dark:text-gray-100 relative z-20 transition-colors duration-300">
+      <header className="min-h-14 py-2 gap-2 flex-wrap border-b px-4 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] dark:bg-gray-900 border-[#E8E4DF] dark:border-gray-800 text-[#1C1C1A] dark:text-gray-100 relative z-20 transition-colors duration-300">
 
         {/* Left side: Mobile menu toggle and breadcrumb */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen?.(!mobileMenuOpen)}
             className="p-2 -ml-2 mr-1 rounded-lg lg:hidden text-[#1C1C1A] dark:text-gray-100 hover:bg-[#F0EAE4] dark:hover:bg-gray-800 transition-colors focus:outline-none"
@@ -245,9 +248,10 @@ export default function Topbar({
             <Menu className="w-5 h-5" />
           </button>
 
-          <span className="font-serif text-lg font-light tracking-wide text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <span className="font-serif text-lg font-light tracking-wide text-[#1C1C1A] dark:text-gray-100" style={{ fontFamily: "'Playfair Display', serif" }}>
             {activeTabLabel}
           </span>
+
         </div>
 
         {/* Right side actions */}

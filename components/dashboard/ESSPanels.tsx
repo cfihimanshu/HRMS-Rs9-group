@@ -1884,13 +1884,13 @@ export function ESSLeaves({
     filterEndDate;
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">
             Leave Management
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
             Review leave history, leave balances, and approval status.
           </p>
         </div>
@@ -1903,40 +1903,40 @@ export function ESSLeaves({
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-gray-700">
+          <h2 className="text-xs font-black uppercase text-[#714B67] dark:text-purple-300 tracking-wider font-mono flex items-center gap-2">
             📋 Leave History ({filteredLeaves.length} Records)
           </h2>
 
           <div className="flex items-center gap-3 relative">
             {/* Quick Preset Date Pills */}
-            <div className="hidden md:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold">
+            <div className="hidden md:flex items-center gap-1 bg-[#F5F2EC] dark:bg-gray-800 p-1 rounded-xl border border-[#E8E4DF] dark:border-gray-700 text-[10px] font-bold">
               <button
                 type="button"
                 onClick={() => setDatePreset("current_month")}
-                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
               >
                 Current Month
               </button>
               <button
                 type="button"
                 onClick={() => setDatePreset("last_month")}
-                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
               >
                 Last Month
               </button>
               <button
                 type="button"
                 onClick={() => setDatePreset("all")}
-                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
               >
                 All Time
               </button>
               <button
                 type="button"
                 onClick={() => setDatePreset("custom")}
-                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "custom" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "custom" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100"}`}
               >
                 Custom Range
               </button>
@@ -1950,7 +1950,7 @@ export function ESSLeaves({
                 className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${
                   showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    : "bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 border-[#E8E4DF] dark:border-gray-700 text-[#1C1C1A] dark:text-gray-100"
                 }`}
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -1962,15 +1962,15 @@ export function ESSLeaves({
 
               {/* Floating Filter Popover */}
               {showFilters && (
-                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
-                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">
+                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
+                  <div className="flex justify-between items-center border-b border-[#E8E4DF] dark:border-gray-700 pb-2">
+                    <span className="text-xs font-bold text-[#1C1C1A] dark:text-gray-100 tracking-wider uppercase font-mono">
                       Filter Leaves
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowFilters(false)}
-                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                      className="text-[#9C9890] dark:text-gray-300 hover:text-[#1C1C1A] dark:hover:text-gray-100 transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1979,7 +1979,7 @@ export function ESSLeaves({
                   <div className="space-y-3.5 text-xs">
                     {/* Search Keyword */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                         Search Keyword
                       </label>
                       <input
@@ -1987,19 +1987,19 @@ export function ESSLeaves({
                         placeholder="Search employee, leave type..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-semibold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                       />
                     </div>
 
                     {/* Select Employee Dropdown (Active Users first, Inactive Users grouped at the end) */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                         Select Employee
                       </label>
                       <select
                         value={filterUser}
                         onChange={(e) => setFilterUser(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                       >
                         <option value="">All Employees</option>
                         <optgroup label="Active Employees">
@@ -2024,13 +2024,13 @@ export function ESSLeaves({
 
                     {/* Status Dropdown */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                         Approval Status
                       </label>
                       <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                       >
                         <option value="All">All Statuses</option>
                         <option value="Pending">Pending</option>
@@ -2041,13 +2041,13 @@ export function ESSLeaves({
 
                     {/* Date Preset */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                         Date Preset
                       </label>
                       <select
                         value={datePreset}
                         onChange={(e) => setDatePreset(e.target.value as any)}
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                       >
                         <option value="all">All Time</option>
                         <option value="current_month">Current Month</option>
@@ -2058,27 +2058,27 @@ export function ESSLeaves({
 
                     {/* Custom Date Range Inputs */}
                     {datePreset === "custom" && (
-                      <div className="space-y-2 pt-1 border-t border-[#E8E4DF]">
+                      <div className="space-y-2 pt-1 border-t border-[#E8E4DF] dark:border-gray-700">
                         <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                             From Date
                           </label>
                           <input
                             type="date"
                             value={filterStartDate}
                             onChange={(e) => setFilterStartDate(e.target.value)}
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                           />
                         </div>
                         <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] dark:text-gray-300 font-mono tracking-widest block mb-1">
                             To Date
                           </label>
                           <input
                             type="date"
                             value={filterEndDate}
                             onChange={(e) => setFilterEndDate(e.target.value)}
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            className="w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-[#1C1C1A] dark:text-gray-100 focus:outline-none focus:border-[#C9A84C] dark:[color-scheme:dark]"
                           />
                         </div>
                       </div>
@@ -2097,7 +2097,7 @@ export function ESSLeaves({
                         setFilterEndDate("");
                         setShowFilters(false);
                       }}
-                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                      className="flex-1 bg-[#FCFBF9] dark:bg-gray-800 hover:bg-[#F5F2EC] dark:hover:bg-gray-800 text-[#6B665E] dark:text-gray-300 py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF] dark:border-gray-700"
                     >
                       Clear All
                     </button>
@@ -2116,10 +2116,10 @@ export function ESSLeaves({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-slate-100 rounded-xl">
+        <div className="overflow-x-auto border border-slate-100 dark:border-gray-700 rounded-xl">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-slate-400 font-black uppercase font-mono tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-slate-400 dark:text-gray-400 font-black uppercase font-mono tracking-wider">
                 {hasMultipleUsersInLeaves && (
                   <th className="py-3 px-3">Employee</th>
                 )}
@@ -2130,12 +2130,12 @@ export function ESSLeaves({
                 <th className="py-3 px-3">Approver Remarks</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700 text-slate-700 dark:text-gray-100 font-medium">
               {loading ? (
                 <tr>
                   <td
                     colSpan={hasMultipleUsersInLeaves ? 6 : 5}
-                    className="py-8 text-center text-slate-400 italic"
+                    className="py-8 text-center text-slate-400 dark:text-gray-400 italic"
                   >
                     Loading leave requests...
                   </td>
@@ -2144,7 +2144,7 @@ export function ESSLeaves({
                 <tr>
                   <td
                     colSpan={hasMultipleUsersInLeaves ? 6 : 5}
-                    className="py-8 text-center text-slate-400 italic"
+                    className="py-8 text-center text-slate-400 dark:text-gray-400 italic"
                   >
                     No leave records found matching selected criteria.
                   </td>
@@ -2153,15 +2153,15 @@ export function ESSLeaves({
                 filteredLeaves.map((l: any) => (
                   <tr
                     key={l.id}
-                    className="hover:bg-slate-50/50 border-b border-slate-50"
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-950/50 border-b dark:border-gray-700 border-slate-50"
                   >
                     {hasMultipleUsersInLeaves && (
                       <td className="py-3 px-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800">
+                          <span className="font-bold text-slate-800 dark:text-gray-100">
                             {l.employee?.name || l.user?.name || "Self"}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">
                             {l.employee?.email || l.user?.email || ""}
                           </span>
                         </div>
@@ -2174,21 +2174,21 @@ export function ESSLeaves({
                         : ""}
                     </td>
                     <td className="py-3 px-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 border dark:border-gray-700 border-indigo-100">
                         {l.type}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-mono font-bold text-slate-800">
+                    <td className="py-3 px-3 font-mono font-bold text-slate-800 dark:text-gray-100">
                       {l.days}
                     </td>
                     <td className="py-3 px-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : l.status === "Rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" : l.status === "Pending HR Approval" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === "Approved" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200" : l.status === "Rejected" ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border dark:border-gray-700 border-rose-200" : l.status === "Pending HR Approval" ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border dark:border-gray-700 border-blue-200" : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-200"}`}
                       >
                         {l.status}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-slate-500 text-[11px] italic">
+                    <td className="py-3 px-3 text-slate-500 dark:text-gray-400 text-[11px] italic">
                       {![
                         "Pending",
                         "Pending Manager Approval",
@@ -3007,9 +3007,9 @@ export function ESSPayroll({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
+    <div className="space-y-8 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
       {/* Header */}
-      <div className="border-b border-[#E8E4DF] pb-5">
+      <div className="border-b border-[#E8E4DF] dark:border-gray-700 pb-5">
         <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">
           Compensation
         </span>
@@ -3019,7 +3019,7 @@ export function ESSPayroll({
         >
           {isAdmin ? "Payroll & Salary Administration" : "My Payslips & Salary"}
         </h1>
-        {/* <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
+        {/* <p className="text-[10px] text-[#9C9890] dark:text-gray-300 uppercase tracking-wider mt-1.5 font-semibold">
           {isAdmin
             ? "Calculate, audit and process employee salaries based on performance weights."
             : "Monitor salary structures, payslips and run simulators."
@@ -3032,32 +3032,32 @@ export function ESSPayroll({
           {
             label: "Payroll Records",
             value: processedPayslips.length,
-            tone: "text-indigo-700 bg-indigo-50",
+            tone: "text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50",
           },
           {
             label: "Gross Payroll",
             value: `₹${payrollTotals.gross.toLocaleString("en-IN")}`,
-            tone: "text-slate-700 bg-slate-50",
+            tone: "text-slate-700 dark:text-gray-100 bg-slate-50 dark:bg-gray-800",
           },
           {
             label: "Deductions",
             value: `₹${payrollTotals.deductions.toLocaleString("en-IN")}`,
-            tone: "text-rose-700 bg-rose-50",
+            tone: "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50",
           },
           {
             label: "Net Payable",
             value: `₹${payrollTotals.net.toLocaleString("en-IN")}`,
-            tone: "text-emerald-700 bg-emerald-50",
+            tone: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50",
           },
           {
             label: "Paid / Pending",
             value: `${payrollTotals.paid} / ${payrollTotals.pending}`,
-            tone: "text-amber-700 bg-amber-50",
+            tone: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50",
           },
         ].map((card) => (
           <div
             key={card.label}
-            className={`border border-[#E8E4DF] rounded-xl p-4 ${card.tone}`}
+            className={`border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-4 ${card.tone}`}
           >
             <div className="text-[9px] uppercase tracking-wider font-black opacity-70">
               {card.label}
@@ -3072,7 +3072,7 @@ export function ESSPayroll({
       {isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payroll Generator Form */}
-          <div className="lg:col-span-2 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+          <div className="lg:col-span-2 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
             <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest mb-6">
               Calculate Salary & Generate Payslip
             </h2>
@@ -3080,13 +3080,13 @@ export function ESSPayroll({
             <form onSubmit={handleProcessPayroll} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                     Select Employee
                   </label>
                   <select
                     value={String(selectedEmpId || "")}
                     onChange={(e) => handleEmployeeChange(e.target.value)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none font-medium"
+                    className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] dark:text-gray-100 outline-none font-medium dark:[color-scheme:dark]"
                     required
                   >
                     <option value="">-- Select Employee --</option>
@@ -3103,13 +3103,13 @@ export function ESSPayroll({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                     Payroll Month
                   </label>
                   <select
                     value={payrollMonth}
                     onChange={(e) => setPayrollMonth(e.target.value)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
+                    className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] dark:text-gray-100 outline-none dark:[color-scheme:dark]"
                     required
                   >
                     {[
@@ -3133,7 +3133,7 @@ export function ESSPayroll({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                     Payroll Year
                   </label>
                   <input
@@ -3144,15 +3144,15 @@ export function ESSPayroll({
                         e.target.value === "" ? "" : Number(e.target.value),
                       )
                     }
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] dark:text-gray-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700">
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                     Base Salary
                   </label>
                   <input
@@ -3163,44 +3163,44 @@ export function ESSPayroll({
                         e.target.value === "" ? "" : Number(e.target.value),
                       )
                     }
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] dark:text-gray-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                     placeholder="Enter Base Salary"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                     Per-Day Salary
                   </label>
-                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
+                  <div className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
                     ₹{perDaySalary.toFixed(2)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                     Per-Minute Salary
                   </label>
-                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
+                  <div className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
                     ₹{perMinuteSalary.toFixed(4)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                     Worked Base + Overtime
                   </label>
-                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#1C1C1A]">
+                  <div className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 p-2.5 rounded-lg text-xs mt-1 font-bold text-[#1C1C1A] dark:text-gray-100">
                     {dailyWorkSummary.totalBaseMinutes} +{" "}
                     {dailyWorkSummary.totalOtMinutes} mins
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-3">
+              <div className="p-4 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider">
                     Salary Structure & Statutory Components
                   </span>
-                  <span className="text-[9px] text-[#9C9890]">
+                  <span className="text-[9px] text-[#9C9890] dark:text-gray-300">
                     Monthly amounts (₹)
                   </span>
                 </div>
@@ -3221,7 +3221,7 @@ export function ESSPayroll({
                   ].map(([label, value, setter]: any) => (
                     <label
                       key={label}
-                      className="text-[9px] uppercase font-bold text-[#77736C]"
+                      className="text-[9px] uppercase font-bold text-[#77736C] dark:text-gray-300"
                     >
                       {label}
                       <input
@@ -3235,7 +3235,7 @@ export function ESSPayroll({
                               : Math.max(0, Number(event.target.value)),
                           )
                         }
-                        className="mt-1 w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded-lg text-xs font-bold outline-none"
+                        className="mt-1 w-full bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2 rounded-lg text-xs font-bold outline-none dark:text-gray-100 dark:[color-scheme:dark]"
                       />
                     </label>
                   ))}
@@ -3243,27 +3243,27 @@ export function ESSPayroll({
               </div>
 
               {/* Month Leaves & Imposed Absent Fines Record Section */}
-              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E4DF] pb-2">
+              <div className="p-4 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E4DF] dark:border-gray-700 pb-2">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider block">
                       🌴 Month Leaves & ⚠️ Imposed Fines ({payrollMonth}{" "}
                       {payrollYear})
                     </span>
-                    <span className="text-xs font-bold text-[#1C1C1A]">
+                    <span className="text-xs font-bold text-[#1C1C1A] dark:text-gray-100">
                       Leaves:{" "}
-                      <span className="text-[#714B67]">
+                      <span className="text-[#714B67] dark:text-purple-300">
                         {totalAppliedLeaveDays} Days
                       </span>{" "}
                       | Imposed Fines:{" "}
-                      <span className="text-rose-700">
+                      <span className="text-rose-700 dark:text-rose-300">
                         ₹{totalImposedAbsentFineAmount.toLocaleString()}
                       </span>
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider whitespace-nowrap">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider whitespace-nowrap">
                         Paid Leave (Max 1/Month):
                       </label>
                       <input
@@ -3281,12 +3281,12 @@ export function ESSPayroll({
                                 ),
                           )
                         }
-                        className="w-20 bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] px-2 py-1 rounded text-xs font-bold text-[#1C1C1A] outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-20 bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] px-2 py-1 rounded text-xs font-bold text-[#1C1C1A] dark:text-gray-100 outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                         placeholder="0"
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <label className="text-[9px] uppercase font-bold text-rose-700 tracking-wider whitespace-nowrap">
+                      <label className="text-[9px] uppercase font-bold text-rose-700 dark:text-rose-300 tracking-wider whitespace-nowrap">
                         Absent Fine (₹):
                       </label>
                       <input
@@ -3304,7 +3304,7 @@ export function ESSPayroll({
                               : Math.max(0, Number(e.target.value)),
                           )
                         }
-                        className="w-28 bg-[#FCFBF9] border border-rose-300 focus:border-rose-600 px-2.5 py-1 rounded text-xs font-bold text-rose-700 outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-28 bg-[#FCFBF9] dark:bg-gray-800 border dark:border-gray-700 border-rose-300 focus:border-rose-600 px-2.5 py-1 rounded text-xs font-bold text-rose-700 dark:text-rose-300 outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                         placeholder={String(dynamicFetchedAbsentFine)}
                       />
                     </div>
@@ -3314,27 +3314,27 @@ export function ESSPayroll({
                 {/* Display Individual Imposed Absent Fines */}
                 {employeeFines.length > 0 && (
                   <div className="space-y-1.5">
-                    <span className="text-[9px] uppercase font-bold text-rose-700 tracking-wider block">
+                    <span className="text-[9px] uppercase font-bold text-rose-700 dark:text-rose-300 tracking-wider block">
                       ⚠️ Imposed Absent Fines (From Impose Absent Fine Form):
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {employeeFines.map((f: any, idx: number) => (
                         <div
                           key={idx}
-                          className="bg-rose-50/60 border border-rose-200 p-2 rounded-lg flex justify-between items-center text-rose-900 shadow-sm"
+                          className="bg-rose-50/60 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 p-2 rounded-lg flex justify-between items-center text-rose-900 dark:text-rose-300 shadow-sm"
                         >
                           <div>
                             <span className="font-bold block">
                               ₹{f.amount} Fine
                             </span>
-                            <span className="text-[10px] text-rose-700 block font-mono">
+                            <span className="text-[10px] text-rose-700 dark:text-rose-300 block font-mono">
                               {f.date
                                 ? new Date(f.date).toLocaleDateString("en-IN")
                                 : ""}{" "}
                               {f.reason ? `• ${f.reason}` : ""}
                             </span>
                           </div>
-                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-200 text-rose-800">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-200 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
                             Imposed
                           </span>
                         </div>
@@ -3353,13 +3353,13 @@ export function ESSPayroll({
                       {employeeLeaves.map((l: any, idx: number) => (
                         <div
                           key={idx}
-                          className="bg-white border border-[#E8E4DF] p-2 rounded-lg flex justify-between items-center shadow-sm"
+                          className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 p-2 rounded-lg flex justify-between items-center shadow-sm"
                         >
                           <div>
-                            <span className="font-bold text-[#1C1C1A]">
+                            <span className="font-bold text-[#1C1C1A] dark:text-gray-100">
                               {l.type || "Leave"}
                             </span>
-                            <span className="text-[10px] text-[#9C9890] block font-mono">
+                            <span className="text-[10px] text-[#9C9890] dark:text-gray-300 block font-mono">
                               {l.startDate
                                 ? new Date(l.startDate).toLocaleDateString(
                                     "en-IN",
@@ -3373,7 +3373,7 @@ export function ESSPayroll({
                                 : ""}
                             </span>
                           </div>
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#F4EFE6] text-[#714B67] border border-[#E8E4DF]">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#F4EFE6] dark:bg-gray-800 text-[#714B67] dark:text-purple-300 border border-[#E8E4DF] dark:border-gray-700">
                             {l.days || 1} Days
                           </span>
                         </div>
@@ -3383,7 +3383,7 @@ export function ESSPayroll({
                 )}
 
                 {employeeLeaves.length === 0 && employeeFines.length === 0 && (
-                  <div className="text-[11px] text-[#9C9890] italic">
+                  <div className="text-[11px] text-[#9C9890] dark:text-gray-300 italic">
                     No leave applications or imposed fines registered for this
                     employee in {payrollMonth} {payrollYear}.
                   </div>
@@ -3391,58 +3391,58 @@ export function ESSPayroll({
               </div>
 
               {/* Checkboxes Row */}
-              <div className="flex gap-6 items-center p-3.5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
-                <span className="text-[10px] uppercase font-bold text-[#9C9890] tracking-wider">
+              <div className="flex gap-6 items-center p-3.5 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700">
+                <span className="text-[10px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                   Salary Components:
                 </span>
-                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A]">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A] dark:text-gray-100">
                   <input
                     type="checkbox"
                     checked={calcBase}
                     onChange={(e) => setCalcBase(e.target.checked)}
-                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF]"
+                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                   Base Salary
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A]">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A] dark:text-gray-100">
                   <input
                     type="checkbox"
                     checked={calcOvertime}
                     onChange={(e) => setCalcOvertime(e.target.checked)}
-                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF]"
+                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                   Calculate Overtime
                 </label>
               </div>
 
               {/* Dynamic Formula Board */}
-              <div className="border border-[#E8E4DF] rounded-xl p-4 space-y-3 bg-[#FCFBF9]">
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">Base Monthly Salary:</div>
-                  <div className="text-[#1C1C1A] font-bold">
+              <div className="border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-4 space-y-3 bg-[#FCFBF9] dark:bg-gray-800">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">Base Monthly Salary:</div>
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     ₹{baseSalary.toLocaleString()} ({payrollMonth} {payrollYear}
                     )
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">
                     Per-Day Salary Rate ({daysInSelectedMonth} Calendar Days):
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     ₹{perDaySalary.toFixed(2)} / day
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">
                     Attendance & Present Days Breakdown:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     {dailyWorkSummary.registeredWorkDays} Present /{" "}
                     {dailyWorkSummary.expectedWorkingDays} Working Days (Sundays
                     & Holidays excluded)
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
                   <div>
                     Auto-detected Absence (excluding Sundays, holidays and
                     future dates):
@@ -3453,19 +3453,19 @@ export function ESSPayroll({
                     {dailyWorkSummary.unpaidLeaveDays} Unpaid
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">
                     Calculated Total Payable Days:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     {dailyWorkSummary.payableDays} Paid Days{" "}
-                    <span className="text-[9px] text-[#9C9890]">
+                    <span className="text-[9px] text-[#9C9890] dark:text-gray-300">
                       ({dailyWorkSummary.unpaidLeaveDays} Unpaid Absent Days)
                     </span>
                   </div>
                 </div>
                 {absentFineAmount > 0 ? (
-                  <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-rose-700">
+                  <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-rose-700 dark:text-rose-300">
                     <div>
                       Absent Fine Deduction (Deducted for{" "}
                       {dailyWorkSummary.unpaidLeaveDays} Unpaid Days / Imposed
@@ -3476,43 +3476,43 @@ export function ESSPayroll({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-emerald-700">
+                  <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                     <div>Absent Fine Deduction:</div>
                     <div className="font-bold">
                       ₹0 (100% Full Attendance Retained)
                     </div>
                   </div>
                 )}
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">
                     Earned Base Salary {calcBase ? "✅" : "❌"}:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     ₹{calculatedBaseAmount.toLocaleString()}
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
+                <div className="flex justify-between border-b dark:border-gray-700 border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57] dark:text-gray-300">
                     Calculate Overtime {calcOvertime ? "✅" : "❌"}:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">
+                  <div className="text-[#1C1C1A] dark:text-gray-100 font-bold">
                     {calculatedOtAmount > 0
                       ? `+ ₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins OT)`
                       : "—"}
                   </div>
                 </div>
-                <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A]">
+                <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A] dark:text-gray-100">
                   <div>Calculated Net Payout</div>
-                  <div className="text-[#6B8F71] text-sm">
+                  <div className="text-[#6B8F71] dark:text-emerald-300 text-sm">
                     ₹{calculatedNetSalary.toLocaleString()}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
-                  <div className="bg-emerald-50 text-emerald-700 rounded-lg p-2">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-lg p-2">
                     Additional earnings: +₹
                     {(additionalEarnings + calculatedOtAmount).toLocaleString()}
                   </div>
-                  <div className="bg-rose-50 text-rose-700 rounded-lg p-2">
+                  <div className="bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-lg p-2">
                     Statutory deductions: -₹
                     {statutoryDeductions.toLocaleString()}
                   </div>
@@ -3530,21 +3530,21 @@ export function ESSPayroll({
           </div>
 
           {/* Configuration Card */}
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 space-y-4 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+          <div className="bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-6 space-y-4 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
             <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">
               Calculation Rules
             </h2>
 
-            <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
-              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">
+            <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57] dark:text-gray-300">
+              <div className="p-3 bg-[#FAFAF7] dark:bg-gray-800 rounded-lg border border-[#E8E4DF] dark:border-gray-700">
+                <span className="font-semibold text-[#1C1C1A] dark:text-gray-100 block mb-1">
                   📅 Constant Base Monthly Salary
                 </span>
                 Base Salary remains constant.
               </div>
 
-              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">
+              <div className="p-3 bg-[#FAFAF7] dark:bg-gray-800 rounded-lg border border-[#E8E4DF] dark:border-gray-700">
+                <span className="font-semibold text-[#1C1C1A] dark:text-gray-100 block mb-1">
                   ⚠️ Dynamic Imposed Absent Fine
                 </span>
                 Absent Fines imposed via "Impose Absent Fine" form & unpaid
@@ -3552,8 +3552,8 @@ export function ESSPayroll({
                 Salary.
               </div>
 
-              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">
+              <div className="p-3 bg-[#FAFAF7] dark:bg-gray-800 rounded-lg border border-[#E8E4DF] dark:border-gray-700">
+                <span className="font-semibold text-[#1C1C1A] dark:text-gray-100 block mb-1">
                   🌴 Paid Leave Benefit
                 </span>
                 Maximum 1 approved leave per employee per month is paid.
@@ -3561,8 +3561,8 @@ export function ESSPayroll({
                 from salary.
               </div>
 
-              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">
+              <div className="p-3 bg-[#FAFAF7] dark:bg-gray-800 rounded-lg border border-[#E8E4DF] dark:border-gray-700">
+                <span className="font-semibold text-[#1C1C1A] dark:text-gray-100 block mb-1">
                   ⏰ Overtime Payout
                 </span>
                 Adds overtime pay for extra working minutes calculated at
@@ -3575,7 +3575,7 @@ export function ESSPayroll({
 
       {/* Payslip History Section */}
       <div className="grid grid-cols-1 gap-6">
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+        <div className="bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">
               {isAdmin ? "Processed Payslip Registry" : "My Payslips & Salary"}
@@ -3584,7 +3584,7 @@ export function ESSPayroll({
               <button
                 type="button"
                 onClick={exportPayrollRegister}
-                className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[9px] uppercase tracking-wider font-black flex items-center gap-1"
+                className="border dark:border-gray-700 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-lg px-3 py-2 text-[9px] uppercase tracking-wider font-black flex items-center gap-1"
               >
                 <Download className="w-3.5 h-3.5" /> Export Register
               </button>
@@ -3594,25 +3594,25 @@ export function ESSPayroll({
           {!isAdmin && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Employee Payout Simulator */}
-              <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
+              <div className="p-5 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700">
                 <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase mb-4 tracking-widest">
                   Salary Calculator & Simulator
                 </h3>
                 <div className="space-y-4 text-[11px] font-medium">
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                    <label className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                       Base Salary Target
                     </label>
                     <input
                       type="number"
                       value={baseSalary}
                       onChange={(e) => setBaseSalary(Number(e.target.value))}
-                      className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none"
+                      className="w-full bg-[#FCFBF9] dark:bg-gray-800 border border-[#E8E4DF] dark:border-gray-700 focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] dark:text-gray-100 outline-none dark:[color-scheme:dark]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                         Per-Day Salary
                       </span>
                       <div className="text-xs font-bold text-[#C9A84C] mt-1">
@@ -3620,7 +3620,7 @@ export function ESSPayroll({
                       </div>
                     </div>
                     <div>
-                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider block">
                         Per-Minute Salary
                       </span>
                       <div className="text-xs font-bold text-[#C9A84C] mt-1">
@@ -3629,33 +3629,33 @@ export function ESSPayroll({
                     </div>
                   </div>
                   {/* Checkboxes Row */}
-                  <div className="flex gap-4 items-center p-2.5 bg-[#FCFBF9] rounded-lg border border-[#E8E4DF]">
-                    <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                  <div className="flex gap-4 items-center p-2.5 bg-[#FCFBF9] dark:bg-gray-800 rounded-lg border border-[#E8E4DF] dark:border-gray-700">
+                    <span className="text-[9px] uppercase font-bold text-[#9C9890] dark:text-gray-300 tracking-wider">
                       Components:
                     </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A]">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A] dark:text-gray-100">
                       <input
                         type="checkbox"
                         checked={calcBase}
                         onChange={(e) => setCalcBase(e.target.checked)}
-                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF]"
+                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                       />
                       Base
                     </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A]">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A] dark:text-gray-100">
                       <input
                         type="checkbox"
                         checked={calcOvertime}
                         onChange={(e) => setCalcOvertime(e.target.checked)}
-                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF]"
+                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                       />
                       Calculate Overtime
                     </label>
                   </div>
 
-                  <div className="p-3 bg-[#FCFBF9] rounded-lg space-y-2 border border-[#E8E4DF]">
+                  <div className="p-3 bg-[#FCFBF9] dark:bg-gray-800 rounded-lg space-y-2 border border-[#E8E4DF] dark:border-gray-700">
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">
+                      <span className="text-[#5D5B57] dark:text-gray-300">
                         Total Working Days (SOD/EOD):
                       </span>
                       <span>
@@ -3663,7 +3663,7 @@ export function ESSPayroll({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">
+                      <span className="text-[#5D5B57] dark:text-gray-300">
                         Total Worked Time (Base + OT):
                       </span>
                       <span>
@@ -3673,7 +3673,7 @@ export function ESSPayroll({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">
+                      <span className="text-[#5D5B57] dark:text-gray-300">
                         Base Portion {calcBase ? "✅" : "❌"}:
                       </span>
                       <span>
@@ -3682,7 +3682,7 @@ export function ESSPayroll({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">
+                      <span className="text-[#5D5B57] dark:text-gray-300">
                         Calculate Overtime {calcOvertime ? "✅" : "❌"}:
                       </span>
                       <span>
@@ -3692,12 +3692,12 @@ export function ESSPayroll({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Per-Minute Rate:</span>
+                      <span className="text-[#5D5B57] dark:text-gray-300">Per-Minute Rate:</span>
                       <span>₹{perMinuteSalary.toFixed(4)} / min</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t border-[#E8E4DF] text-xs font-semibold uppercase tracking-wider text-[#1C1C1A]">
+                    <div className="flex justify-between pt-1 border-t border-[#E8E4DF] dark:border-gray-700 text-xs font-semibold uppercase tracking-wider text-[#1C1C1A] dark:text-gray-100">
                       <span>Simulated Net Payout:</span>
-                      <span className="text-[#6B8F71]">
+                      <span className="text-[#6B8F71] dark:text-emerald-300">
                         ₹{calculatedNetSalary.toLocaleString()}
                       </span>
                     </div>
@@ -3706,7 +3706,7 @@ export function ESSPayroll({
               </div>
 
               {/* Explanatory Policy Card */}
-              <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
+              <div className="p-5 bg-[#FAFAF7] dark:bg-gray-800 rounded-xl border border-[#E8E4DF] dark:border-gray-700 text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57] dark:text-gray-300">
                 <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest">
                   Salary Payout Policy
                 </h3>
@@ -3738,7 +3738,7 @@ export function ESSPayroll({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[700px]">
               <thead>
-                <tr className="border-b border-[#E8E4DF] text-[#9C9890] font-bold uppercase tracking-wider">
+                <tr className="border-b border-[#E8E4DF] dark:border-gray-700 text-[#9C9890] dark:text-gray-300 font-bold uppercase tracking-wider">
                   {isAdmin && <th className="pb-3 pr-2">Employee</th>}
                   <th className="pb-3 px-2">Month / Year</th>
                   <th className="pb-3 px-2">Basic Salary</th>
@@ -3747,25 +3747,25 @@ export function ESSPayroll({
                   <th className="pb-3 pl-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E8E4DF] text-[#5D5B57] font-medium">
+              <tbody className="divide-y divide-[#E8E4DF] dark:divide-gray-700 text-[#5D5B57] dark:text-gray-300 font-medium">
                 {processedPayslips.length === 0 ? (
                   <tr>
                     <td
                       colSpan={isAdmin ? 6 : 5}
-                      className="py-8 text-center text-[#9C9890] italic"
+                      className="py-8 text-center text-[#9C9890] dark:text-gray-300 italic"
                     >
                       No processed payroll records found.
                     </td>
                   </tr>
                 ) : (
                   processedPayslips.map((slip, i) => (
-                    <tr key={i} className="hover:bg-[#FAFAF7]">
+                    <tr key={i} className="hover:bg-[#FAFAF7] dark:hover:bg-gray-800">
                       {isAdmin && (
-                        <td className="py-4 pr-2 font-serif text-sm font-light text-[#1C1C1A]">
+                        <td className="py-4 pr-2 font-serif text-sm font-light text-[#1C1C1A] dark:text-gray-100">
                           {slip.employee?.name || "Employee"}
                         </td>
                       )}
-                      <td className="py-4 px-2 font-semibold text-[#1C1C1A]">
+                      <td className="py-4 px-2 font-semibold text-[#1C1C1A] dark:text-gray-100">
                         {slip.month} {slip.year}
                       </td>
                       <td className="py-4 px-2">
@@ -3777,7 +3777,7 @@ export function ESSPayroll({
                         </span>
                       </td>
                       <td className="py-4 px-2">
-                        <span className="px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-[#E2EFE0] text-[#4E6D53]">
+                        <span className="px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-[#E2EFE0] dark:bg-emerald-950/50 text-[#4E6D53] dark:text-emerald-300">
                           {slip.status}
                         </span>
                       </td>
@@ -3785,7 +3785,7 @@ export function ESSPayroll({
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => downloadPayslipPdf(slip)}
-                            className="border border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1"
+                            className="border dark:border-gray-700 border-indigo-300 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1"
                           >
                             <Download className="w-3 h-3" /> Download PDF
                           </button>
@@ -3798,7 +3798,7 @@ export function ESSPayroll({
                                       handlePayrollStatus(slip.id, "Paid")
                                     }
                                     disabled={loading}
-                                    className="border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
+                                    className="border dark:border-gray-700 border-emerald-500 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
                                   >
                                     Mark Paid
                                   </button>
@@ -3809,7 +3809,7 @@ export function ESSPayroll({
                                     handlePayrollStatus(slip.id, "Locked")
                                   }
                                   disabled={loading}
-                                  className="border border-slate-400 text-slate-600 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
+                                  className="border dark:border-gray-700 border-slate-400 text-slate-600 dark:text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
                                 >
                                   Lock
                                 </button>
@@ -3817,7 +3817,7 @@ export function ESSPayroll({
                               <button
                                 onClick={() => handleDeletePayslip(slip.id)}
                                 disabled={loading}
-                                className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1 ml-auto"
+                                className="border dark:border-gray-700 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1 ml-auto"
                               >
                                 <Trash2 className="w-3 h-3" />
                                 Delete
@@ -4234,16 +4234,16 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
   return (
     <div
-      className="space-y-6 animate-fadeIn text-slate-800"
+      className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100"
       onClick={() => activeFilterDropdown && setActiveFilterDropdown(null)}
     >
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800">
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">
             Expense Claims &amp; Reimbursements
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
             Submit bills, track approval status, and manage expense claims.
           </p>
         </div>
@@ -4262,14 +4262,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           onClick={() => setStatusFilter("")}
           className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-slate-400 active:scale-[0.99] ${
             statusFilter === ""
-              ? "ring-2 ring-[#714B67] border-transparent bg-slate-50/50"
-              : "border-slate-200"
+              ? "ring-2 ring-[#714B67] border-transparent bg-slate-50/50 dark:bg-slate-950/50"
+              : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to show All Expense Claims"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+              <p className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider">
                 Total Claims
               </p>
               {statusFilter === "" && (
@@ -4278,14 +4278,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                 </span>
               )}
             </div>
-            <h3 className="text-2xl font-serif font-light text-slate-800 mt-1">
+            <h3 className="text-2xl font-serif font-light text-slate-800 dark:text-gray-100 mt-1">
               ₹{totalClaimed.toLocaleString("en-IN")}
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
               {claims.length} Entries Filed
             </p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-300 flex items-center justify-center">
             <Coins className="w-5 h-5" />
           </div>
         </div>
@@ -4297,14 +4297,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           }
           className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-amber-400 active:scale-[0.99] ${
             statusFilter === "Pending"
-              ? "ring-2 ring-amber-500 border-transparent bg-amber-50/30"
-              : "border-slate-200"
+              ? "ring-2 ring-amber-500 border-transparent bg-amber-50/30 dark:bg-amber-950/50"
+              : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to filter by Pending Approval"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">
+              <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-300 tracking-wider">
                 Pending Approval
               </p>
               {statusFilter === "Pending" && (
@@ -4316,11 +4316,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             <h3 className="text-2xl font-serif font-light text-amber-950 mt-1">
               ₹{pendingAmount.toLocaleString("en-IN")}
             </h3>
-            <p className="text-[11px] text-amber-700 mt-0.5">
+            <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
               {pendingClaims.length} Claims Awaiting Review
             </p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 flex items-center justify-center">
             <Clock className="w-5 h-5" />
           </div>
         </div>
@@ -4332,14 +4332,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           }
           className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-emerald-400 active:scale-[0.99] ${
             statusFilter === "Approved"
-              ? "ring-2 ring-emerald-500 border-transparent bg-emerald-50/30"
-              : "border-slate-200"
+              ? "ring-2 ring-emerald-500 border-transparent bg-emerald-50/30 dark:bg-emerald-950/50"
+              : "border-slate-200 dark:border-gray-700"
           }`}
           title="Click to filter by Approved / Reimbursed"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">
+              <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-300 tracking-wider">
                 Approved / Reimbursed
               </p>
               {statusFilter === "Approved" && (
@@ -4351,7 +4351,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             <h3 className="text-2xl font-serif font-light text-emerald-950 mt-1">
               ₹{approvedAmount.toLocaleString("en-IN")}
             </h3>
-            <p className="text-[11px] text-emerald-700 mt-0.5">
+            <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5">
               {
                 claims.filter(
                   (c) => c.status === "Approved" || c.status === "Reimbursed",
@@ -4360,20 +4360,20 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               Approved Claims
             </p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Search & Export Excel Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search Bar */}
-        <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl w-full">
-          <Search className="w-4 h-4 text-slate-400" />
+        <div className="flex-1 flex items-center gap-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-3.5 py-2.5 rounded-xl w-full">
+          <Search className="w-4 h-4 text-slate-400 dark:text-gray-400" />
           <input
             type="text"
-            className="bg-transparent text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none w-full"
+            className="bg-transparent text-xs font-semibold text-slate-800 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-400 focus:outline-none w-full dark:bg-gray-800 dark:[color-scheme:dark]"
             placeholder="Search claims by ID, Category, Merchant, Employee, Purpose..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -4381,7 +4381,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="text-slate-400 hover:text-slate-600 text-xs"
+              className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 text-xs"
             >
               ✕
             </button>
@@ -4393,7 +4393,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           {hasActiveFilters && (
             <button
               onClick={resetAllFilters}
-              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl border border-rose-200 transition-all cursor-pointer flex items-center gap-1"
+              className="text-[11px] font-bold text-rose-600 dark:text-rose-300 hover:text-rose-800 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 px-3 py-2 rounded-xl border dark:border-gray-700 border-rose-200 transition-all cursor-pointer flex items-center gap-1"
             >
               <X className="w-3 h-3" /> Reset Filters
             </button>
@@ -4409,7 +4409,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
           <button
             onClick={fetchClaims}
-            className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-700 transition-all cursor-pointer"
+            className="p-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl text-slate-700 dark:text-gray-100 transition-all cursor-pointer"
             title="Refresh List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -4418,35 +4418,35 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       </div>
 
       {/* Claims Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-xs font-black tracking-wider text-slate-700">
+            <h3 className="text-xs font-black tracking-wider text-slate-700 dark:text-gray-100">
               {isOwnerOrAdmin
                 ? "All Expense Claims (Review & Approvals)"
                 : "My Submitted Claims"}
             </h3>
             {statusFilter && (
-              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border dark:border-gray-700 border-amber-200">
                 Filtered: {statusFilter}
               </span>
             )}
           </div>
-          <span className="text-xs font-bold text-slate-500">
+          <span className="text-xs font-bold text-slate-500 dark:text-gray-400">
             {filteredClaims.length} records
           </span>
         </div>
 
         <div className="overflow-x-auto min-h-[380px]">
           <table className="w-full text-left border-collapse min-w-max">
-            <thead className="bg-slate-100/90 border-b border-slate-200 select-none">
-              <tr className="text-[11px] font-bold text-slate-700 tracking-wide">
+            <thead className="bg-slate-100/90 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 select-none">
+              <tr className="text-[11px] font-bold text-slate-700 dark:text-gray-100 tracking-wide">
                 {/* Column 1: Date Incurred Filter & Sort */}
                 <th className="py-3 px-3 relative">
                   <div className="flex items-center justify-between gap-1">
                     <span
                       onClick={() => handleSort("date")}
-                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                      className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                     >
                       Date Incurred{" "}
                       {sortColumn === "date" &&
@@ -4460,7 +4460,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           activeFilterDropdown === "date" ? null : "date",
                         );
                       }}
-                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${startDateFilter || endDateFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors ${startDateFilter || endDateFilter ? "text-amber-600 dark:text-amber-300 font-black bg-amber-50 dark:bg-amber-950/50" : "text-slate-400 dark:text-gray-400"}`}
                       title="Filter by Date Range"
                     >
                       <Filter className="w-3.5 h-3.5" />
@@ -4471,40 +4471,40 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   {activeFilterDropdown === "date" && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2.5 text-xs text-slate-700"
+                      className="absolute left-2 top-full mt-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2.5 text-xs text-slate-700 dark:text-gray-100"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                      <div className="font-bold text-[10px] uppercase text-slate-400 dark:text-gray-400 font-mono">
                         Date Range Filter
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500">
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400">
                           From Date:
                         </label>
                         <input
                           type="date"
                           value={startDateFilter}
                           onChange={(e) => setStartDateFilter(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold mt-0.5"
+                          className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-1.5 text-xs font-semibold mt-0.5 dark:text-gray-100 dark:[color-scheme:dark]"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500">
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400">
                           To Date:
                         </label>
                         <input
                           type="date"
                           value={endDateFilter}
                           onChange={(e) => setEndDateFilter(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold mt-0.5"
+                          className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-1.5 text-xs font-semibold mt-0.5 dark:text-gray-100 dark:[color-scheme:dark]"
                         />
                       </div>
-                      <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-gray-700">
                         <button
                           onClick={() => {
                             setStartDateFilter("");
                             setEndDateFilter("");
                           }}
-                          className="text-[10px] text-rose-600 font-bold hover:underline"
+                          className="text-[10px] text-rose-600 dark:text-rose-300 font-bold hover:underline"
                         >
                           Clear
                         </button>
@@ -4525,7 +4525,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     <div className="flex items-center justify-between gap-1">
                       <span
                         onClick={() => handleSort("employee")}
-                        className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                        className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                       >
                         Submitted By{" "}
                         {sortColumn === "employee" &&
@@ -4541,7 +4541,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                               : "employee",
                           );
                         }}
-                        className={`p-1 rounded hover:bg-slate-200 transition-colors ${employeeFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                        className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors ${employeeFilter ? "text-amber-600 dark:text-amber-300 font-black bg-amber-50 dark:bg-amber-950/50" : "text-slate-400 dark:text-gray-400"}`}
                         title="Filter by Employee"
                       >
                         <Filter className="w-3.5 h-3.5" />
@@ -4552,9 +4552,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     {activeFilterDropdown === "employee" && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-56 space-y-2 text-xs text-slate-700"
+                        className="absolute left-2 top-full mt-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xl p-3 z-50 w-56 space-y-2 text-xs text-slate-700 dark:text-gray-100"
                       >
-                        <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                        <div className="font-bold text-[10px] uppercase text-slate-400 dark:text-gray-400 font-mono">
                           Select Employee
                         </div>
                         <select
@@ -4563,7 +4563,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             setEmployeeFilter(e.target.value);
                             setActiveFilterDropdown(null);
                           }}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
+                          className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold dark:text-gray-100 dark:[color-scheme:dark]"
                         >
                           <option value="">(All Employees)</option>
                           {uniqueEmployees.map((emp) => (
@@ -4578,7 +4578,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                               setEmployeeFilter("");
                               setActiveFilterDropdown(null);
                             }}
-                            className="text-[10px] text-rose-600 font-bold hover:underline block"
+                            className="text-[10px] text-rose-600 dark:text-rose-300 font-bold hover:underline block"
                           >
                             Clear Filter
                           </button>
@@ -4593,7 +4593,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   <div className="flex items-center justify-between gap-1">
                     <span
                       onClick={() => handleSort("category")}
-                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                      className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                     >
                       Category &amp; Merchant{" "}
                       {sortColumn === "category" &&
@@ -4609,7 +4609,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             : "category",
                         );
                       }}
-                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${categoryFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors ${categoryFilter ? "text-amber-600 dark:text-amber-300 font-black bg-amber-50 dark:bg-amber-950/50" : "text-slate-400 dark:text-gray-400"}`}
                       title="Filter by Category"
                     >
                       <Filter className="w-3.5 h-3.5" />
@@ -4620,9 +4620,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   {activeFilterDropdown === "category" && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2 text-xs text-slate-700"
+                      className="absolute left-2 top-full mt-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2 text-xs text-slate-700 dark:text-gray-100"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                      <div className="font-bold text-[10px] uppercase text-slate-400 dark:text-gray-400 font-mono">
                         Select Category
                       </div>
                       <select
@@ -4631,7 +4631,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           setCategoryFilter(e.target.value);
                           setActiveFilterDropdown(null);
                         }}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold dark:text-gray-100 dark:[color-scheme:dark]"
                       >
                         <option value="">(All Categories)</option>
                         {uniqueCategories.map((cat) => (
@@ -4646,7 +4646,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             setCategoryFilter("");
                             setActiveFilterDropdown(null);
                           }}
-                          className="text-[10px] text-rose-600 font-bold hover:underline block"
+                          className="text-[10px] text-rose-600 dark:text-rose-300 font-bold hover:underline block"
                         >
                           Clear Filter
                         </button>
@@ -4664,7 +4664,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   <div className="flex items-center justify-between gap-1">
                     <span
                       onClick={() => handleSort("amount")}
-                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                      className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                     >
                       Claim Amount{" "}
                       {sortColumn === "amount" &&
@@ -4678,7 +4678,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           activeFilterDropdown === "amount" ? null : "amount",
                         );
                       }}
-                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${minAmountFilter || maxAmountFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors ${minAmountFilter || maxAmountFilter ? "text-amber-600 dark:text-amber-300 font-black bg-amber-50 dark:bg-amber-950/50" : "text-slate-400 dark:text-gray-400"}`}
                       title="Filter Amount Range"
                     >
                       <Filter className="w-3.5 h-3.5" />
@@ -4689,14 +4689,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   {activeFilterDropdown === "amount" && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-52 space-y-2 text-xs text-slate-700"
+                      className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xl p-3 z-50 w-52 space-y-2 text-xs text-slate-700 dark:text-gray-100"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                      <div className="font-bold text-[10px] uppercase text-slate-400 dark:text-gray-400 font-mono">
                         Amount Range (₹)
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[9px] text-slate-400 font-bold">
+                          <label className="text-[9px] text-slate-400 dark:text-gray-400 font-bold">
                             Min ₹
                           </label>
                           <input
@@ -4704,11 +4704,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             placeholder="Min"
                             value={minAmountFilter}
                             onChange={(e) => setMinAmountFilter(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-bold"
+                            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded p-1.5 text-xs font-bold dark:text-gray-100 dark:[color-scheme:dark]"
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] text-slate-400 font-bold">
+                          <label className="text-[9px] text-slate-400 dark:text-gray-400 font-bold">
                             Max ₹
                           </label>
                           <input
@@ -4716,17 +4716,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             placeholder="Max"
                             value={maxAmountFilter}
                             onChange={(e) => setMaxAmountFilter(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-bold"
+                            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded p-1.5 text-xs font-bold dark:text-gray-100 dark:[color-scheme:dark]"
                           />
                         </div>
                       </div>
-                      <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-gray-700">
                         <button
                           onClick={() => {
                             setMinAmountFilter("");
                             setMaxAmountFilter("");
                           }}
-                          className="text-[10px] text-rose-600 font-bold hover:underline"
+                          className="text-[10px] text-rose-600 dark:text-rose-300 font-bold hover:underline"
                         >
                           Clear
                         </button>
@@ -4745,7 +4745,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                 <th className="py-3 px-3">
                   <span
                     onClick={() => handleSort("netPayable")}
-                    className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                    className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                   >
                     Net Payable{" "}
                     {sortColumn === "netPayable" &&
@@ -4760,7 +4760,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   <div className="flex items-center justify-between gap-1">
                     <span
                       onClick={() => handleSort("status")}
-                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                      className="cursor-pointer hover:text-slate-900 dark:hover:text-gray-100 flex items-center gap-1"
                     >
                       Status{" "}
                       {sortColumn === "status" &&
@@ -4774,7 +4774,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           activeFilterDropdown === "status" ? null : "status",
                         );
                       }}
-                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${statusFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-gray-800 transition-colors ${statusFilter ? "text-amber-600 dark:text-amber-300 font-black bg-amber-50 dark:bg-amber-950/50" : "text-slate-400 dark:text-gray-400"}`}
                       title="Filter by Status"
                     >
                       <Filter className="w-3.5 h-3.5" />
@@ -4785,9 +4785,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   {activeFilterDropdown === "status" && (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-48 space-y-2 text-xs text-slate-700"
+                      className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xl p-3 z-50 w-48 space-y-2 text-xs text-slate-700 dark:text-gray-100"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                      <div className="font-bold text-[10px] uppercase text-slate-400 dark:text-gray-400 font-mono">
                         Select Status
                       </div>
                       <select
@@ -4796,7 +4796,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           setStatusFilter(e.target.value);
                           setActiveFilterDropdown(null);
                         }}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold dark:text-gray-100 dark:[color-scheme:dark]"
                       >
                         <option value="">(All Status)</option>
                         <option value="Pending">⏳ Pending</option>
@@ -4810,7 +4810,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             setStatusFilter("");
                             setActiveFilterDropdown(null);
                           }}
-                          className="text-[10px] text-rose-600 font-bold hover:underline block"
+                          className="text-[10px] text-rose-600 dark:text-rose-300 font-bold hover:underline block"
                         >
                           Clear Filter
                         </button>
@@ -4826,15 +4826,15 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   )) && <th className="py-3 px-3 text-center">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700 text-xs font-semibold text-slate-700 dark:text-gray-100">
               {filteredClaims.map((claim) => (
                 <tr
                   key={claim.id}
-                  className="hover:bg-slate-50/70 transition-colors"
+                  className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors"
                 >
-                  <td className="py-3 px-4 text-slate-600">
+                  <td className="py-3 px-4 text-slate-600 dark:text-gray-300">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
                       <span>
                         {new Date(
                           claim.dateIncurred || claim.createdAt,
@@ -4848,34 +4848,34 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   </td>
 
                   {isOwnerOrAdmin && (
-                    <td className="py-3 px-4 text-slate-800 font-bold">
+                    <td className="py-3 px-4 text-slate-800 dark:text-gray-100 font-bold">
                       {claim.employeeName || "Employee"}
                     </td>
                   )}
 
                   <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800">
+                    <div className="font-bold text-slate-800 dark:text-gray-100">
                       {claim.category}
                     </div>
                     {claim.vendorName && (
-                      <div className="text-[10px] text-slate-400 font-medium">
+                      <div className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
                         Merchant: {claim.vendorName}
                       </div>
                     )}
                   </td>
 
                   <td
-                    className="py-3 px-4 max-w-xs truncate text-slate-600 font-medium"
+                    className="py-3 px-4 max-w-xs truncate text-slate-600 dark:text-gray-300 font-medium"
                     title={claim.description}
                   >
                     {claim.description || "N/A"}
                   </td>
 
-                  <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                  <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-gray-100">
                     ₹{(Number(claim.amount) || 0).toLocaleString("en-IN")}
                   </td>
 
-                  <td className="py-3 px-4 font-mono font-black text-emerald-700">
+                  <td className="py-3 px-4 font-mono font-black text-emerald-700 dark:text-emerald-300">
                     ₹
                     {(
                       Number(claim.netPayable || claim.amount) || 0
@@ -4886,15 +4886,15 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     {claim.receiptUrl ? (
                       <button
                         onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
-                        className="text-[11px] font-black text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-300 transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        className="text-[11px] font-black text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 px-3 py-1.5 rounded-xl border dark:border-gray-700 border-indigo-300 transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                         title="View Attached Receipt Document"
                       >
-                        <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
+                        <Paperclip className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                         <span>View Doc</span>
                         <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                       </button>
                     ) : (
-                      <span className="text-[10px] text-slate-400 italic">
+                      <span className="text-[10px] text-slate-400 dark:text-gray-400 italic">
                         No File
                       </span>
                     )}
@@ -4903,22 +4903,22 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   <td className="py-3 px-4">
                     {(() => {
                       const st = claim.status || "Pending";
-                      let badge = "bg-amber-50 text-amber-700 border-amber-200";
+                      let badge = "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200";
                       let icon = "⏳";
                       if (st === "Approved") {
                         badge =
-                          "bg-emerald-50 text-emerald-700 border-emerald-200";
+                          "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200";
                         icon = "✅";
                       } else if (st === "Rejected") {
-                        badge = "bg-rose-50 text-rose-700 border-rose-200";
+                        badge = "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200";
                         icon = "❌";
                       } else if (st === "Reimbursed") {
-                        badge = "bg-blue-50 text-blue-700 border-blue-200";
+                        badge = "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200";
                         icon = "💸";
                       }
                       return (
                         <span
-                          className={`px-2.5 py-1 rounded-lg border text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badge}`}
+                          className={`px-2.5 py-1 rounded-lg border dark:border-gray-700 text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badge}`}
                         >
                           <span>{icon}</span> {st}
                         </span>
@@ -4936,10 +4936,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             onClick={() =>
                               setSelectedReceiptUrl(claim.receiptUrl)
                             }
-                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                             title="View Attached Receipt Document"
                           >
-                            <Paperclip className="w-3 h-3 text-indigo-600" />{" "}
+                            <Paperclip className="w-3 h-3 text-indigo-600 dark:text-indigo-300" />{" "}
                             Doc
                           </button>
                         )}
@@ -4967,7 +4967,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                             </button>
                           </>
                         ) : (
-                          <span className="text-[10px] font-bold text-slate-400">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-gray-400">
                             {claim.approvedBy
                               ? `By ${claim.approvedBy}`
                               : "Processed"}
@@ -4983,7 +4983,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                 <tr>
                   <td
                     colSpan={isOwnerOrAdmin ? 9 : 8}
-                    className="text-center py-12 text-slate-400 text-xs"
+                    className="text-center py-12 text-slate-400 dark:text-gray-400 text-xs"
                   >
                     No expense claims match the selected filters.
                   </td>
@@ -4997,11 +4997,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       {/* FILE NEW CLAIM MODAL */}
       {showClaimModal && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden my-auto transform transition-all">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-700 shadow-2xl w-full max-w-2xl overflow-hidden my-auto transform transition-all">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-950 text-white flex items-center justify-between border-b border-amber-700">
+            <div className="p-5 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-950 text-white flex items-center justify-between border-b dark:border-gray-700 border-amber-700">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border dark:border-gray-700 border-amber-400/30 text-amber-300 flex items-center justify-center">
                   <Coins className="w-5 h-5" />
                 </div>
                 <div>
@@ -5016,7 +5016,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               <button
                 type="button"
                 onClick={() => setShowClaimModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-full bg-white/10 dark:bg-gray-900 hover:bg-white/20 dark:hover:bg-gray-900 text-slate-200 hover:text-white flex items-center justify-center transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -5030,13 +5030,13 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               {/* Category & Date Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider block mb-1">
                     Expense Category <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all dark:[color-scheme:dark]"
                   >
                     <option value="Field Visit / Site Travel">
                       🗺️ Field Visit / Site Travel (Local Conveyance, Toll,
@@ -5080,7 +5080,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider block mb-1">
                     Date Incurred <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -5088,14 +5088,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     required
                     value={dateIncurred}
                     onChange={(e) => setDateIncurred(e.target.value)}
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               {category === "Other" && (
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider block mb-1">
                     Specify Custom Category Name{" "}
                     <span className="text-rose-500">*</span>
                   </label>
@@ -5105,7 +5105,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
                     placeholder="e.g. Toll Tax, Parking Fee, Courier Charges..."
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all dark:[color-scheme:dark]"
                   />
                 </div>
               )}
@@ -5113,7 +5113,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               {/* Amount, Merchant & Payment Mode Grid - Fixed Heights for Labels */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider h-5 flex items-center mb-1">
                     Claim Amount (₹){" "}
                     <span className="text-rose-500 ml-1">*</span>
                   </label>
@@ -5126,12 +5126,12 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="e.g. 1500"
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider h-5 flex items-center mb-1">
                     Merchant / Vendor
                   </label>
                   <input
@@ -5139,18 +5139,18 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     value={merchant}
                     onChange={(e) => setMerchant(e.target.value)}
                     placeholder="e.g. Uber, Swiggy, HP Fuel"
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider h-5 flex items-center mb-1">
                     Payment Mode
                   </label>
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value)}
-                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                    className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all dark:[color-scheme:dark]"
                   >
                     <option value="Cash">Cash</option>
                     <option value="UPI / Online">
@@ -5164,9 +5164,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               </div>
 
               {/* Advance & Net Payable Grid */}
-              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-amber-800 block mb-1">
+                  <label className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 block mb-1">
                     Existing Advance Select करें
                   </label>
                   <select
@@ -5189,7 +5189,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           : "0",
                       );
                     }}
-                    className="mb-2 w-full rounded-xl border border-amber-300 bg-white p-2.5 text-xs font-bold text-slate-800"
+                    className="mb-2 w-full rounded-xl border dark:border-gray-700 border-amber-300 bg-white dark:bg-gray-900 p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   >
                     <option value="">कोई advance नहीं</option>
                     {advances.map((advance) => {
@@ -5209,12 +5209,12 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     })}
                   </select>
                   {selectedAdvance && (
-                    <p className="mb-2 text-[10px] font-bold text-amber-800">
+                    <p className="mb-2 text-[10px] font-bold text-amber-800 dark:text-amber-300">
                       Advance date: {selectedAdvance.issuedDate} · Balance: ₹
                       {selectedAdvanceBalance.toLocaleString("en-IN")}
                     </p>
                   )}
-                  <label className="text-[10px] font-black uppercase text-amber-800 block mb-1">
+                  <label className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 block mb-1">
                     Advance Amount Received (If Any ₹)
                   </label>
                   <input
@@ -5224,14 +5224,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     value={advanceAmount}
                     onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setAdvanceAmount(e.target.value)}
-                    className="w-full text-xs p-2.5 border border-amber-300 rounded-xl bg-white font-bold text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full text-xs p-2.5 border dark:border-gray-700 border-amber-300 rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none dark:[color-scheme:dark]"
                   />
                 </div>
-                <div className="bg-white p-3 rounded-xl border border-amber-200 text-right">
-                  <span className="text-[10px] font-black uppercase text-amber-800 block">
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-700 border-amber-200 text-right">
+                  <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 block">
                     Net Reimbursement Payable:
                   </span>
-                  <span className="text-base font-black font-mono text-emerald-700">
+                  <span className="text-base font-black font-mono text-emerald-700 dark:text-emerald-300">
                     ₹
                     {Math.max(
                       0,
@@ -5243,7 +5243,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
               {/* Description / Business Purpose */}
               <div>
-                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider block mb-1">
                   Business Purpose / Details{" "}
                   <span className="text-rose-500">*</span>
                 </label>
@@ -5253,45 +5253,45 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Explain why this expense was incurred (e.g. Travel to client site at Jaipur Branch)..."
-                  className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-medium text-slate-800 focus:outline-none transition-all resize-none"
+                  className="w-full text-xs p-3 border-2 border-slate-200 dark:border-gray-700 focus:border-amber-500 rounded-xl bg-slate-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 font-medium text-slate-800 dark:text-gray-100 focus:outline-none transition-all resize-none dark:[color-scheme:dark]"
                 />
               </div>
 
               {/* Upload Receipt */}
               <div>
-                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1 flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider block mb-1 flex items-center justify-between">
                   <span>Upload Bill / Receipt Photo</span>
                   {uploadingReceipt && (
-                    <span className="text-[10px] text-amber-600 font-bold animate-pulse">
+                    <span className="text-[10px] text-amber-600 dark:text-amber-300 font-bold animate-pulse">
                       Uploading file...
                     </span>
                   )}
                 </label>
-                <div className="border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-2xl p-4 text-center bg-slate-50 hover:bg-amber-50/40 transition-all relative cursor-pointer">
+                <div className="border-2 border-dashed border-slate-200 dark:border-gray-700 hover:border-amber-400 rounded-2xl p-4 text-center bg-slate-50 dark:bg-gray-800 hover:bg-amber-50/40 dark:hover:bg-amber-950/50 transition-all relative cursor-pointer">
                   <input
                     type="file"
                     accept="image/*,.pdf"
                     onChange={handleFileUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <Paperclip className="w-5 h-5 text-slate-400" />
-                    <p className="text-xs font-bold text-slate-700">
+                    <Paperclip className="w-5 h-5 text-slate-400 dark:text-gray-400" />
+                    <p className="text-xs font-bold text-slate-700 dark:text-gray-100">
                       Click or Drag &amp; Drop receipt file
                     </p>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
                       Supports JPG, PNG, PDF
                     </p>
                   </div>
                 </div>
                 {receiptUrl && (
-                  <div className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200 flex items-center justify-between">
+                  <div className="mt-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 p-2 rounded-xl border dark:border-gray-700 border-emerald-200 flex items-center justify-between">
                     <span>✓ Receipt attached successfully</span>
                     <a
                       href={receiptUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-amber-700 underline"
+                      className="text-amber-700 dark:text-amber-300 underline"
                     >
                       View
                     </a>
@@ -5300,11 +5300,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-gray-700 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowClaimModal(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl transition-all"
                 >
                   Cancel
                 </button>
@@ -5326,11 +5326,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       {/* RECEIPT VIEW MODAL */}
       {selectedReceiptUrl && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden max-w-3xl w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b dark:border-gray-700 pb-3">
               <div className="flex items-center gap-2">
-                <Paperclip className="w-4 h-4 text-amber-600" />
-                <h3 className="text-sm font-bold text-slate-800">
+                <Paperclip className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">
                   Uploaded Bill / Receipt Document
                 </h3>
               </div>
@@ -5339,19 +5339,19 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   href={selectedReceiptUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                  className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
                 >
                   <ExternalLink className="w-3 h-3" /> Open in New Tab
                 </a>
                 <button
                   onClick={() => setSelectedReceiptUrl(null)}
-                  className="text-slate-400 hover:text-slate-700 p-1"
+                  className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 p-1"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
-            <div className="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-3 border border-slate-200">
+            <div className="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-100 dark:bg-gray-800 rounded-2xl p-3 border border-slate-200 dark:border-gray-700">
               {selectedReceiptUrl
                 .toLowerCase()
                 .split("?")[0]

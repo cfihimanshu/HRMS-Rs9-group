@@ -239,18 +239,18 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
   );
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Top Title Banner */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Onboarding & Legal Contracts</h1>
-          <p className="text-xs text-slate-500 mt-1">Generate NDA, SLA, and NCA policy documents based on profile categories</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">Onboarding & Legal Contracts</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Generate NDA, SLA, and NCA policy documents based on profile categories</p>
         </div>
         <button
           onClick={loadCandidates}
           disabled={loading}
-          className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0"
+          className="p-2 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0"
           title="Refresh Pipelines"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -260,25 +260,25 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left Side: Candidates list */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[520px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Onboarding Candidates</h3>
+        <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 flex flex-col h-[520px] shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono mb-3">Onboarding Candidates</h3>
 
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-300 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search candidate or job..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-purple-400/40 placeholder:text-slate-500 dark:placeholder:text-gray-400 text-slate-800 dark:text-gray-100"
             />
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading onboarding pipelines...</div>
+              <div className="text-center py-10 font-bold text-slate-400 dark:text-gray-300 text-[10px] animate-pulse">Loading onboarding pipelines...</div>
             ) : filteredCandidates.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No active candidates found</div>
+              <div className="text-center py-10 text-slate-500 dark:text-gray-300 font-medium text-xs">No active candidates found</div>
             ) : (
               filteredCandidates.map((c, i) => {
                 const isSelected = selectedCandidate && selectedCandidate.id === c.id;
@@ -287,19 +287,19 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                     key={i}
                     onClick={() => handleSelectCandidate(c)}
                     className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between gap-3 ${isSelected
-                        ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
-                        : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
+                        ? "bg-[#714B67]/5 border-[#714B67] dark:border-purple-400/40 shadow-sm"
+                        : "bg-white dark:bg-gray-900 border-slate-100 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-slate-50/50 dark:hover:bg-gray-800"
                       }`}
                   >
                     <div className="min-w-0">
-                      <div className="font-bold text-slate-800 text-xs truncate">{c.name}</div>
-                      <div className="text-[10px] text-slate-500 truncate mt-0.5">{c.job?.title || "Staff Hire"}</div>
+                      <div className="font-bold text-slate-800 dark:text-gray-100 text-xs truncate">{c.name}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-gray-300 truncate mt-0.5">{c.job?.title || "Staff Hire"}</div>
                     </div>
                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${c.status === "Selected"
-                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         : c.status === "Shortlisted"
-                          ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                          : "bg-slate-100 text-slate-500 border-slate-300"
+                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                          : "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-300 border-slate-300 dark:border-gray-700"
                       }`}>
                       {c.status}
                     </span>
@@ -313,27 +313,27 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
         {/* Right Side: Onboarding workspace panel */}
         <div className="lg:col-span-8 space-y-6">
           {selectedCandidate ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-6">
 
               {/* Profile details banner */}
-              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-slate-150">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-slate-200 dark:border-gray-700">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-black text-slate-850">{selectedCandidate.name}</h2>
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-250 rounded-full">
+                    <h2 className="text-base font-black text-slate-800 dark:text-gray-100">{selectedCandidate.name}</h2>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-700 rounded-full">
                       {selectedCandidate.job?.title || "Associate"}
                     </span>
                   </div>
-                  <div className="text-slate-500 text-[10px] mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                    <span>Email: <strong className="text-slate-700">{selectedCandidate.email}</strong></span>
-                    <span>Mobile: <strong className="text-slate-700">{selectedCandidate.mobile || "—"}</strong></span>
+                  <div className="text-slate-500 dark:text-gray-300 text-[10px] mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <span>Email: <strong className="text-slate-700 dark:text-gray-100">{selectedCandidate.email}</strong></span>
+                    <span>Mobile: <strong className="text-slate-700 dark:text-gray-100">{selectedCandidate.mobile || "—"}</strong></span>
                   </div>
                 </div>
 
                 {onboardingRecord && (
-                  <div className="px-3.5 py-1.5 bg-[#714B67]/5 border border-[#714B67]/10 rounded-lg text-right shrink-0">
-                    <span className="text-[9px] uppercase font-black tracking-widest text-[#714B67] block">Documentation Category</span>
-                    <span className="text-xs font-bold text-slate-800">{onboardingRecord.category} System</span>
+                  <div className="px-3.5 py-1.5 bg-[#714B67]/5 border border-[#714B67]/10 dark:border-purple-400/40 rounded-lg text-right shrink-0">
+                    <span className="text-[9px] uppercase font-black tracking-widest text-[#714B67] dark:text-purple-300 block">Documentation Category</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-gray-100">{onboardingRecord.category} System</span>
                   </div>
                 )}
               </div>
@@ -342,11 +342,11 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
               {!onboardingRecord ? (
                 /* 1. Onboarding NOT started */
                 <div className="space-y-6 py-4 animate-fadeIn">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex gap-4 items-start">
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 flex gap-4 items-start">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">Documentation Package Not Generated</h4>
-                      <p className="text-[10px] text-slate-550 leading-relaxed mt-1">
+                      <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">Documentation Package Not Generated</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-gray-300 leading-relaxed mt-1">
                         There are no legal contracts or NDA policies drafted for this candidate yet. Choose an onboarding profile category below to compile their complete compliance documentation kit.
                       </p>
                     </div>
@@ -354,11 +354,11 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
 
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <span className="text-xs font-black text-slate-500 font-mono uppercase tracking-wider">Select Category:</span>
+                      <span className="text-xs font-black text-slate-500 dark:text-gray-300 font-mono uppercase tracking-wider">Select Category:</span>
                       <select
                         value={selectedCategory}
                         onChange={e => setSelectedCategory(e.target.value)}
-                        className="bg-white border border-slate-350 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#714B67]"
+                        className="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-purple-400/40"
                       >
                         <option value="Staff">Staff (Offer, NDA, NCA, Asset, Conduct)</option>
                         <option value="Associate">Business Associate (SOP, Payout, NDA, NCA)</option>
@@ -368,12 +368,12 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                     </div>
 
                     {/* Preview of what will be generated */}
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                      <h5 className="text-[10px] font-black uppercase text-slate-500 tracking-wider font-mono mb-2">Documents Preview Package:</h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-bold text-slate-650">
+                    <div className="p-4 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700">
+                      <h5 className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-300 tracking-wider font-mono mb-2">Documents Preview Package:</h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-bold text-slate-600 dark:text-gray-300">
                         {documentPreviews[selectedCategory].map((doc, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded border border-slate-150">
-                            <FileText className="w-3.5 h-3.5 text-[#714B67]" />
+                          <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded border border-slate-200 dark:border-gray-700">
+                            <FileText className="w-3.5 h-3.5 text-[#714B67] dark:text-purple-300" />
                             <span>{doc}</span>
                           </div>
                         ))}
@@ -395,21 +395,21 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                 <div className="space-y-6 animate-fadeIn">
 
                   {/* Progression Tracker */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                  <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 space-y-3">
                     <div className="flex justify-between items-center">
                       <div>
-                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">Legal Onboarding progression</h4>
-                        <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">Overall compliance status: <strong>{onboardingRecord.status}</strong></span>
+                        <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">Legal Onboarding progression</h4>
+                        <span className="text-[9px] text-slate-500 dark:text-gray-300 font-semibold block mt-0.5">Overall compliance status: <strong>{onboardingRecord.status}</strong></span>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-black text-[#714B67] font-mono">
+                        <span className="text-xs font-black text-[#714B67] dark:text-purple-300 font-mono">
                           {signedDocsList.length} / {generatedDocsList.length}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-bold block">Documents Signed</span>
+                        <span className="text-[9px] text-slate-400 dark:text-gray-300 font-bold block">Documents Signed</span>
                       </div>
                     </div>
 
-                    <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-2.5 bg-slate-200 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-[#714B67] rounded-full transition-all duration-550"
                         style={{
@@ -424,18 +424,18 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
 
                   {/* Documents table */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono">Contracts Matrix</h4>
+                    <h4 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono">Contracts Matrix</h4>
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="border-b border-slate-200 text-slate-450 font-black uppercase font-mono tracking-wider">
+                          <tr className="border-b border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-300 font-black uppercase font-mono tracking-wider">
                             <th className="pb-2.5 pr-2">Document Name</th>
                             <th className="pb-2.5 px-2">Signature Status</th>
                             <th className="pb-2.5 pl-2 text-right">E-Sign & Downloads</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                        <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-600 dark:text-gray-300">
                           {generatedDocsList.map((doc: any, i: number) => {
                             const docName = typeof doc === "string" ? doc : (doc?.name || doc?.title || `Document #${i + 1}`);
                             const docUrl = typeof doc === "string" ? "#" : (doc?.url || "#");
@@ -444,19 +444,19 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                               return sName === docName;
                             });
                             return (
-                              <tr key={i} className="hover:bg-slate-50/50">
-                                <td className="py-3 pr-2 font-bold text-slate-805 flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                              <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-gray-800">
+                                <td className="py-3 pr-2 font-bold text-slate-805 dark:text-gray-100 flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-slate-400 dark:text-gray-300 shrink-0" />
                                   <span>{docName}</span>
                                 </td>
                                 <td className="py-3 px-2">
                                   {isSigned ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full">
-                                      <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" /> Signed
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
+                                      <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" /> Signed
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-full">
-                                      <Clock className="w-3 h-3 text-amber-600 shrink-0 animate-pulse" /> Awaiting Signature
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full">
+                                      <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" /> Awaiting Signature
                                     </span>
                                   )}
                                 </td>
@@ -476,10 +476,10 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                                       href={docUrl}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="border border-slate-200 hover:bg-slate-50 p-1.5 rounded transition-all inline-block"
+                                      className="border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800 p-1.5 rounded transition-all inline-block"
                                       title="Download generated document"
                                     >
-                                      <Download className="w-3.5 h-3.5 text-slate-500" />
+                                      <Download className="w-3.5 h-3.5 text-slate-500 dark:text-gray-300" />
                                     </a>
                                   </div>
                                 </td>
@@ -492,7 +492,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                   </div>
 
                   {/* Sending packets options */}
-                  <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-150">
+                  <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200 dark:border-gray-700">
                     <button
                       onClick={() => triggerToast("All pending onboarding packets and legal bonds sent to candidate's registered mobile/email successfully")}
                       className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow flex items-center gap-1.5"
@@ -506,10 +506,10 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
 
             </div>
           ) : (
-            <div className="text-center py-20 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center">
-              <UserPlus className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Candidate Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
+            <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center">
+              <UserPlus className="w-12 h-12 text-slate-300 dark:text-gray-300 mb-4 animate-bounce" />
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">No Candidate Selected</h4>
+              <p className="text-xs text-slate-400 dark:text-gray-300 mt-2 max-w-xs leading-normal">
                 Please select a candidate in the onboarding directory pipeline on the left to review their legal contracts and compliance checklist.
               </p>
             </div>
@@ -789,17 +789,17 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Training Classroom Dashboard</h1>
-          <p className="text-xs text-slate-500 mt-1">Orientation → 3-Day Classroom → Assessment Vetting → Final Confirmation Activation</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">Training Classroom Dashboard</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Orientation → 3-Day Classroom → Assessment Vetting → Final Confirmation Activation</p>
         </div>
         <button
           onClick={loadData}
           disabled={loading}
-          className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0"
+          className="p-2 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -808,25 +808,25 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left Side: Trainees list */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[650px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Assigned Trainees</h3>
+        <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 flex flex-col h-[650px] shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono mb-3">Assigned Trainees</h3>
 
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-300 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search trainee..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-purple-400/40 placeholder:text-slate-500 dark:placeholder:text-gray-400 text-slate-800 dark:text-gray-100"
             />
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading training roster...</div>
+              <div className="text-center py-10 font-bold text-slate-400 dark:text-gray-300 text-[10px] animate-pulse">Loading training roster...</div>
             ) : filteredTrainees.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No trainees found</div>
+              <div className="text-center py-10 text-slate-500 dark:text-gray-300 font-medium text-xs">No trainees found</div>
             ) : (
               filteredTrainees.map((t, i) => {
                 const isSelected = selectedTrainee && selectedTrainee.id === t.id;
@@ -838,33 +838,33 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                     key={i}
                     onClick={() => handleSelectTrainee(t)}
                     className={`w-full text-left p-3.5 rounded-lg border transition-all flex flex-col gap-2 ${isSelected
-                        ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
-                        : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
+                        ? "bg-[#714B67]/5 border-[#714B67] dark:border-purple-400/40 shadow-sm"
+                        : "bg-white dark:bg-gray-900 border-slate-100 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-slate-50/50 dark:hover:bg-gray-800"
                       }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-bold text-slate-800 text-xs truncate max-w-[70%]">{t.name}</div>
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${candidateStatus === "Selected" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                          candidateStatus === "Rejected" ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                            candidateStatus === "High Risk" ? "bg-rose-500/10 text-rose-600 border-rose-500/20" :
-                              candidateStatus === "Hold" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                                "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                      <div className="font-bold text-slate-800 dark:text-gray-100 text-xs truncate max-w-[70%]">{t.name}</div>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${candidateStatus === "Selected" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                          candidateStatus === "Rejected" ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" :
+                            candidateStatus === "High Risk" ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" :
+                              candidateStatus === "Hold" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                                "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
                         }`}>
                         {candidateStatus}
                       </span>
                     </div>
 
-                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <div className="text-[10px] text-slate-500 dark:text-gray-300 flex items-center gap-1">
                       <span className="font-semibold truncate">Vacancy:</span>
-                      <strong className="text-slate-700 truncate">{vacancyName}</strong>
+                      <strong className="text-slate-700 dark:text-gray-100 truncate">{vacancyName}</strong>
                     </div>
 
-                    <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Training Phase:</span>
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${status === "Activation" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                          status === "Final Status" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
-                            status === "Awaiting Orientation" ? "bg-slate-100 text-slate-500 border-slate-300" :
-                              "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 dark:border-gray-700">
+                      <span className="text-[9px] text-slate-400 dark:text-gray-300 font-bold uppercase tracking-wider">Training Phase:</span>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${status === "Activation" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                          status === "Final Status" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" :
+                            status === "Awaiting Orientation" ? "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-300 border-slate-300 dark:border-gray-700" :
+                              "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                         }`}>
                         {status}
                       </span>
@@ -879,26 +879,26 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         {/* Right Side: Training Workspace */}
         <div className="lg:col-span-8">
           {selectedTrainee ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[650px]">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm flex flex-col h-[650px]">
 
               {/* Profile details banner */}
-              <div className="flex justify-between items-center gap-4 pb-4 border-b border-slate-150 shrink-0">
+              <div className="flex justify-between items-center gap-4 pb-4 border-b border-slate-200 dark:border-gray-700 shrink-0">
                 <div>
-                  <h2 className="text-base font-black text-slate-850 flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-[#714B67]" />
+                  <h2 className="text-base font-black text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-[#714B67] dark:text-purple-300" />
                     {selectedTrainee.name}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>Email: <strong className="text-slate-700">{selectedTrainee.email}</strong></span>
-                    <span>Mobile: <strong className="text-slate-700">{selectedTrainee.mobile}</strong></span>
-                    <span>Company: <strong className="text-[#714B67]">{selectedTrainee.job?.company?.name || "N/A"}</strong></span>
-                    <span>Role/Designation: <strong className="text-[#714B67]">{selectedTrainee.job?.title || "N/A"}</strong></span>
+                  <div className="text-slate-500 dark:text-gray-300 text-[10px] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Email: <strong className="text-slate-700 dark:text-gray-100">{selectedTrainee.email}</strong></span>
+                    <span>Mobile: <strong className="text-slate-700 dark:text-gray-100">{selectedTrainee.mobile}</strong></span>
+                    <span>Company: <strong className="text-[#714B67] dark:text-purple-300">{selectedTrainee.job?.company?.name || "N/A"}</strong></span>
+                    <span>Role/Designation: <strong className="text-[#714B67] dark:text-purple-300">{selectedTrainee.job?.title || "N/A"}</strong></span>
                   </div>
                 </div>
 
-                <div className="px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-right">
-                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block">Current Phase</span>
-                  <span className="text-xs font-bold text-[#714B67]">
+                <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-right">
+                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 dark:text-gray-300 block">Current Phase</span>
+                  <span className="text-xs font-bold text-[#714B67] dark:text-purple-300">
                     {trainingRecord 
                       ? (showPendingFromHRHead ? "Pending from HR Head" : trainingRecord.status)
                       : "Not Started"}
@@ -911,9 +911,9 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
                 {!trainingRecord ? (
                   <div className="text-center py-10">
-                    <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">Ready for Orientation</h4>
-                    <p className="text-xs text-slate-500 mt-2 mb-6 max-w-sm mx-auto">This candidate has completed onboarding and is ready to begin the Training Module.</p>
+                    <GraduationCap className="w-12 h-12 text-slate-300 dark:text-gray-300 mx-auto mb-4" />
+                    <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">Ready for Orientation</h4>
+                    <p className="text-xs text-slate-500 dark:text-gray-300 mt-2 mb-6 max-w-sm mx-auto">This candidate has completed onboarding and is ready to begin the Training Module.</p>
                     {canLogProgress ? (
                       <button
                         onClick={handleStartTraining}
@@ -923,7 +923,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                         <Plus className="w-4 h-4" /> Start Orientation & Training
                       </button>
                     ) : (
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block bg-slate-50 border border-slate-200 rounded-lg p-3 max-w-xs mx-auto text-center">
+                      <span className="text-xs font-bold text-slate-400 dark:text-gray-300 uppercase tracking-wide block bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-3 max-w-xs mx-auto text-center">
                         Awaiting Authorized Trainer/HR/Manager to Start Training
                       </span>
                     )}
@@ -931,21 +931,21 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                 ) : (
                   <>
                     {/* Progression Tracker */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                    <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 space-y-3">
                       <div className="flex justify-between items-end">
                         <div>
-                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">Training Progression</h4>
-                          <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
+                          <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">Training Progression</h4>
+                          <span className="text-[10px] text-slate-500 dark:text-gray-300 font-semibold block mt-0.5">
                             {trainingRecord.status === "Activation" ? "Training successfully completed!" : "Track daily assessments and final vetting."}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-black text-[#714B67] font-mono">{trainingRecord.assessments?.length || 0} / 3</span>
-                          <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">Days Evaluated</span>
+                          <span className="text-xs font-black text-[#714B67] dark:text-purple-300 font-mono">{trainingRecord.assessments?.length || 0} / 3</span>
+                          <span className="text-[9px] text-slate-400 dark:text-gray-300 font-bold block uppercase tracking-wider">Days Evaluated</span>
                         </div>
                       </div>
 
-                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-2 bg-slate-200 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                           style={{ width: `${getProgressWidth()}%` }}
@@ -957,11 +957,11 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
                       {/* Left Column: Topics Checklist */}
                       <div className="space-y-3">
-                        <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono">Core Training Topics</h4>
-                        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3 space-y-2">
+                        <h4 className="text-[10px] font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono">Core Training Topics</h4>
+                        <div className="bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 p-3 space-y-2">
                           {trainingTopics.map((topic, i) => (
-                            <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-650">
-                              <CheckCircle className="w-3.5 h-3.5 text-slate-400" />
+                            <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-gray-300">
+                              <CheckCircle className="w-3.5 h-3.5 text-slate-400 dark:text-gray-300" />
                               <span>{topic}</span>
                             </div>
                           ))}
@@ -974,15 +974,15 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                         {/* Daily Assessment Form */}
                         {trainingRecord.status !== "Activation" && trainingRecord.status !== "Final Status" && (
                           canLogProgress ? (
-                            <form onSubmit={submitAssessment} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 animate-fadeIn">
-                              <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-2">
+                            <form onSubmit={submitAssessment} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-sm space-y-4 animate-fadeIn">
+                              <h4 className="text-[10px] font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono flex items-center gap-1.5 border-b border-slate-100 dark:border-gray-700 pb-2 mb-2">
                                 <PenTool className="w-3.5 h-3.5" /> Log Daily FORM-6 Feedback
                               </h4>
 
                               <div className="mb-4">
-                                <label className="text-[9px] uppercase font-black text-slate-500">Day Number</label>
+                                <label className="text-[9px] uppercase font-black text-slate-500 dark:text-gray-300">Day Number</label>
                                 <select
-                                  className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
+                                  className="w-full border border-slate-200 dark:border-gray-700 rounded p-2 text-xs focus:border-[#714B67] dark:focus:border-purple-400/40 placeholder:text-slate-500 dark:placeholder:text-gray-400 outline-none mt-1"
                                   value={assessmentForm.dayNumber}
                                   onChange={e => setAssessmentForm({ ...assessmentForm, dayNumber: Number(e.target.value) })}
                                 >
@@ -1001,8 +1001,8 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                                 ].map((item, idx) => (
                                   <div key={idx} className="flex flex-col gap-1.5">
                                     <div className="flex justify-between items-center text-[10.5px]">
-                                      <label className="font-bold text-slate-600">{item.label}:</label>
-                                      <strong className="text-xs font-mono text-[#714B67]">{(assessmentForm as any)[item.key]}%</strong>
+                                      <label className="font-bold text-slate-600 dark:text-gray-300">{item.label}:</label>
+                                      <strong className="text-xs font-mono text-[#714B67] dark:text-purple-300">{(assessmentForm as any)[item.key]}%</strong>
                                     </div>
                                     <input
                                       type="range"
@@ -1010,17 +1010,17 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                                       max="100"
                                       value={(assessmentForm as any)[item.key]}
                                       onChange={(e) => setAssessmentForm({ ...assessmentForm, [item.key]: parseInt(e.target.value) })}
-                                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
+                                      className="w-full h-1.5 bg-slate-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
                                     />
                                   </div>
                                 ))}
                               </div>
 
                               <div className="mt-4">
-                                <label className="text-[9px] uppercase font-black text-slate-500">Final Remarks / Observations</label>
+                                <label className="text-[9px] uppercase font-black text-slate-500 dark:text-gray-300">Final Remarks / Observations</label>
                                 <textarea
                                   required rows={2}
-                                  className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
+                                  className="w-full border border-slate-200 dark:border-gray-700 rounded p-2 text-xs focus:border-[#714B67] dark:focus:border-purple-400/40 placeholder:text-slate-500 dark:placeholder:text-gray-400 outline-none mt-1"
                                   placeholder="Trainee engagement and learning curve..."
                                   value={assessmentForm.remarks}
                                   onChange={e => setAssessmentForm({ ...assessmentForm, remarks: e.target.value })}
@@ -1034,10 +1034,10 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                               </button>
                             </form>
                           ) : (
-                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center shadow-sm">
-                              <AlertCircle className="w-5 h-5 text-slate-400 mx-auto mb-2" />
-                              <span className="text-[11px] text-slate-650 font-black uppercase tracking-wider block">Access Restricted</span>
-                              <p className="text-[10.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                            <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 text-center shadow-sm">
+                              <AlertCircle className="w-5 h-5 text-slate-400 dark:text-gray-300 mx-auto mb-2" />
+                              <span className="text-[11px] text-slate-600 dark:text-gray-300 font-black uppercase tracking-wider block">Access Restricted</span>
+                              <p className="text-[10.5px] text-slate-500 dark:text-gray-300 mt-1 font-semibold leading-relaxed">
                                 Only HR Executive, HR Head, Department Manager, or Owner are authorized to submit daily assessments.
                               </p>
                             </div>
@@ -1047,12 +1047,12 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                         {/* Final Recommendation Action */}
                         {isThreeDaysCompleted && (
                           canSubmitFinalVerdict ? (
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm space-y-3 animate-fadeIn">
-                              <h4 className="text-[10px] font-black tracking-widest text-amber-700 uppercase font-mono flex items-center gap-1.5">
+                            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-gray-700 rounded-xl p-4 shadow-sm space-y-3 animate-fadeIn">
+                              <h4 className="text-[10px] font-black tracking-widest text-amber-700 dark:text-amber-400 uppercase font-mono flex items-center gap-1.5">
                                 <AlertCircle className="w-3.5 h-3.5" /> Final Verdict
                               </h4>
                               <select
-                                className="w-full border border-amber-200 rounded p-2 text-xs text-amber-900 focus:border-amber-500 outline-none"
+                                className="w-full border border-amber-200 dark:border-gray-700 rounded p-2 text-xs text-amber-900 focus:border-amber-500 outline-none"
                                 value={finalRec}
                                 onChange={e => setFinalRec(e.target.value)}
                               >
@@ -1070,10 +1070,10 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                               </button>
                             </div>
                           ) : (
-                            <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 text-center shadow-sm space-y-2 animate-fadeIn">
-                              <AlertCircle className="w-5 h-5 text-amber-600 mx-auto mb-2" />
-                              <span className="text-[11px] text-amber-800 font-black uppercase tracking-wider block">Decision Pending</span>
-                              <p className="text-[10px] text-amber-700 font-semibold leading-relaxed">
+                            <div className="bg-amber-50/50 dark:bg-amber-950/40 border border-amber-200 dark:border-gray-700 rounded-xl p-5 text-center shadow-sm space-y-2 animate-fadeIn">
+                              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto mb-2" />
+                              <span className="text-[11px] text-amber-800 dark:text-amber-400 font-black uppercase tracking-wider block">Decision Pending</span>
+                              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold leading-relaxed">
                                 3 days of training is complete. Awaiting final decision / verdict recommendation from HR Head or Owner.
                               </p>
                             </div>
@@ -1084,30 +1084,30 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
                     {/* Assessment History Logs */}
                     {trainingRecord.assessments?.length > 0 && (
-                      <div className="space-y-3 pt-4 border-t border-slate-150">
-                        <h4 className="text-[10px] font-black tracking-widest text-slate-500 uppercase font-mono">Assessment History Logs</h4>
+                      <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-gray-700">
+                        <h4 className="text-[10px] font-black tracking-widest text-slate-500 dark:text-gray-300 uppercase font-mono">Assessment History Logs</h4>
                         <div className="space-y-2">
                           {trainingRecord.assessments.map((a: any, i: number) => (
-                            <div key={i} className="flex gap-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                              <div className="shrink-0 text-center px-3 py-1 bg-white border border-slate-200 rounded shadow-sm">
-                                <span className="block text-[8px] font-black text-slate-400 uppercase">Day</span>
-                                <span className="block text-sm font-black text-[#714B67]">{a.dayNumber}</span>
+                            <div key={i} className="flex gap-4 p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg">
+                              <div className="shrink-0 text-center px-3 py-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded shadow-sm">
+                                <span className="block text-[8px] font-black text-slate-400 dark:text-gray-300 uppercase">Day</span>
+                                <span className="block text-sm font-black text-[#714B67] dark:text-purple-300">{a.dayNumber}</span>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start">
-                                  <span className="text-xs font-bold text-slate-800">
+                                  <span className="text-xs font-bold text-slate-800 dark:text-gray-100">
                                     Average Score: {Math.round((a.sopScore + a.crmScore + a.reportingScore + a.behaviourScore) / 4)}/100
                                   </span>
-                                  <span className="text-[9px] text-slate-400">{new Date(a.date).toLocaleDateString()}</span>
+                                  <span className="text-[9px] text-slate-400 dark:text-gray-300">{new Date(a.date).toLocaleDateString()}</span>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 bg-white p-2 rounded border border-slate-100 text-[9px] font-semibold text-slate-500">
-                                  <div>Process: <strong className="text-slate-700">{a.sopScore}%</strong></div>
-                                  <div>Tools: <strong className="text-slate-700">{a.crmScore}%</strong></div>
-                                  <div>Reporting: <strong className="text-slate-700">{a.reportingScore}%</strong></div>
-                                  <div>Behaviour: <strong className="text-slate-700">{a.behaviourScore}%</strong></div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 bg-white dark:bg-gray-900 p-2 rounded border border-slate-100 dark:border-gray-700 text-[9px] font-semibold text-slate-500 dark:text-gray-300">
+                                  <div>Process: <strong className="text-slate-700 dark:text-gray-100">{a.sopScore}%</strong></div>
+                                  <div>Tools: <strong className="text-slate-700 dark:text-gray-100">{a.crmScore}%</strong></div>
+                                  <div>Reporting: <strong className="text-slate-700 dark:text-gray-100">{a.reportingScore}%</strong></div>
+                                  <div>Behaviour: <strong className="text-slate-700 dark:text-gray-100">{a.behaviourScore}%</strong></div>
                                 </div>
                                 {a.remarks && (
-                                  <p className="text-[10px] text-slate-500 mt-2 font-semibold leading-relaxed">
+                                  <p className="text-[10px] text-slate-500 dark:text-gray-300 mt-2 font-semibold leading-relaxed">
                                     "{a.remarks}"
                                   </p>
                                 )}
@@ -1123,10 +1123,10 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
               </div>
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[650px]">
-              <GraduationCap className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Trainee Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
+            <div className="text-center py-32 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center h-[650px]">
+              <GraduationCap className="w-12 h-12 text-slate-300 dark:text-gray-300 mb-4 animate-bounce" />
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">No Trainee Selected</h4>
+              <p className="text-xs text-slate-400 dark:text-gray-300 mt-2 max-w-xs leading-normal">
                 Please select a trainee from the roster on the left to log their daily training assessments and track progression.
               </p>
             </div>

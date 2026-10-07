@@ -43,10 +43,10 @@ const formatDate = (value: string, withTime = true) => {
 };
 
 const statusStyle: Record<string, string> = {
-  "In Custody": "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "Handed Over": "bg-blue-50 text-blue-700 border-blue-200",
-  Returned: "bg-amber-50 text-amber-700 border-amber-200",
-  Archived: "bg-slate-100 text-slate-600 border-slate-200",
+  "In Custody": "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-gray-700",
+  "Handed Over": "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-gray-700",
+  Returned: "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-gray-700",
+  Archived: "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700",
 };
 
 function Modal({ children, onClose, wide = false }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
@@ -57,7 +57,7 @@ function Modal({ children, onClose, wide = false }: { children: React.ReactNode;
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-[100] bg-black/45 p-4 flex items-center justify-center" onMouseDown={onClose}>
-      <div className={`bg-[#FAFAF7] rounded-2xl shadow-2xl max-h-[94vh] overflow-y-auto w-full ${wide ? "max-w-5xl" : "max-w-2xl"}`} onMouseDown={event => event.stopPropagation()}>
+      <div className={`bg-[#FAFAF7] dark:bg-gray-900 text-[#1C1C1A] dark:text-gray-100 rounded-2xl shadow-2xl max-h-[94vh] overflow-y-auto w-full ${wide ? "max-w-5xl" : "max-w-2xl"}`} onMouseDown={event => event.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -66,22 +66,22 @@ function Modal({ children, onClose, wide = false }: { children: React.ReactNode;
 
 const Input = ({ label, required, ...props }: any) => (
   <label className="block">
-    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">{label}{required && " *"}</span>
-    <input {...props} required={required} className="w-full rounded-lg border border-[#DDD8D0] bg-white px-3 py-2.5 text-xs text-[#1C1C1A] outline-none focus:border-[#C9A84C]" />
+    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] dark:text-gray-300 mb-1.5">{label}{required && " *"}</span>
+    <input {...props} required={required} className="w-full rounded-lg border border-[#DDD8D0] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-xs text-[#1C1C1A] dark:text-gray-100 outline-none focus:border-[#C9A84C] dark:focus:border-amber-400" />
   </label>
 );
 
 const Select = ({ label, children, ...props }: any) => (
   <label className="block">
-    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">{label}</span>
-    <select {...props} className="w-full rounded-lg border border-[#DDD8D0] bg-white px-3 py-2.5 text-xs text-[#1C1C1A] outline-none focus:border-[#C9A84C]">{children}</select>
+    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] dark:text-gray-300 mb-1.5">{label}</span>
+    <select {...props} className="w-full rounded-lg border border-[#DDD8D0] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-xs text-[#1C1C1A] dark:text-gray-100 outline-none focus:border-[#C9A84C] dark:focus:border-amber-400">{children}</select>
   </label>
 );
 
 const TextArea = ({ label, required, ...props }: any) => (
   <label className="block">
-    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">{label}{required && " *"}</span>
-    <textarea {...props} required={required} rows={3} className="w-full rounded-lg border border-[#DDD8D0] bg-white px-3 py-2.5 text-xs text-[#1C1C1A] outline-none focus:border-[#C9A84C] resize-y" />
+    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] dark:text-gray-300 mb-1.5">{label}{required && " *"}</span>
+    <textarea {...props} required={required} rows={3} className="w-full rounded-lg border border-[#DDD8D0] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-xs text-[#1C1C1A] dark:text-gray-100 outline-none focus:border-[#C9A84C] dark:focus:border-amber-400 resize-y" />
   </label>
 );
 
@@ -247,13 +247,13 @@ export default function DocumentMovement({ triggerToast }: Props) {
   };
 
   const stats = useMemo(() => [
-    { label: "Total Documents", value: summary.total, icon: FileText, tone: "text-[#8D6E16] bg-[#FFF8DF]" },
-    { label: "Active Custody", value: summary.inCustody, icon: PackageCheck, tone: "text-emerald-700 bg-emerald-50" },
-    { label: "Returned", value: summary.returned, icon: RotateCcw, tone: "text-amber-700 bg-amber-50" },
-    { label: "Archived", value: summary.archived, icon: Archive, tone: "text-slate-600 bg-slate-100" },
-    { label: "Pending Accept", value: (summary as any).pendingAcceptance || 0, icon: UserCheck, tone: "text-blue-700 bg-blue-50" },
-    { label: "Overdue", value: (summary as any).overdue || 0, icon: AlertTriangle, tone: "text-rose-700 bg-rose-50" },
-    { label: "Expiring (30d)", value: (summary as any).expiring || 0, icon: CalendarClock, tone: "text-violet-700 bg-violet-50" },
+    { label: "Total Documents", value: summary.total, icon: FileText, tone: "text-[#8D6E16] dark:text-amber-300 bg-[#FFF8DF] dark:bg-gray-800" },
+    { label: "Active Custody", value: summary.inCustody, icon: PackageCheck, tone: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50" },
+    { label: "Returned", value: summary.returned, icon: RotateCcw, tone: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50" },
+    { label: "Archived", value: summary.archived, icon: Archive, tone: "text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-800" },
+    { label: "Pending Accept", value: (summary as any).pendingAcceptance || 0, icon: UserCheck, tone: "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50" },
+    { label: "Overdue", value: (summary as any).overdue || 0, icon: AlertTriangle, tone: "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50" },
+    { label: "Expiring (30d)", value: (summary as any).expiring || 0, icon: CalendarClock, tone: "text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50" },
   ], [summary]);
 
   const exportCsv = () => {
@@ -326,16 +326,16 @@ export default function DocumentMovement({ triggerToast }: Props) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 text-[#1C1C1A] dark:text-gray-100">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif text-[#1C1C1A]">Document Movement Register</h1>
-          <p className="text-xs text-[#77736C] mt-1">A complete audit trail of original document custody, handover, return, and acknowledgement.</p>
+          <h1 className="text-2xl font-serif text-[#1C1C1A] dark:text-gray-100">Document Movement Register</h1>
+          <p className="text-xs text-[#77736C] dark:text-gray-300 mt-1">A complete audit trail of original document custody, handover, return, and acknowledgement.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={sendAlerts} className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] px-3 py-2.5 text-xs"><AlertTriangle className="w-4 h-4" /> Run Alerts</button>
-          <button onClick={exportCsv} className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] px-3 py-2.5 text-xs"><FileDown className="w-4 h-4" /> Export CSV</button>
-          <label className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] px-3 py-2.5 text-xs cursor-pointer"><Upload className="w-4 h-4" /> Bulk Import<input type="file" accept=".csv" className="hidden" onChange={event => importCsv(event.target.files?.[0])} /></label>
+          <button onClick={sendAlerts} className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] dark:border-gray-700 px-3 py-2.5 text-xs"><AlertTriangle className="w-4 h-4" /> Run Alerts</button>
+          <button onClick={exportCsv} className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] dark:border-gray-700 px-3 py-2.5 text-xs"><FileDown className="w-4 h-4" /> Export CSV</button>
+          <label className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] dark:border-gray-700 px-3 py-2.5 text-xs cursor-pointer"><Upload className="w-4 h-4" /> Bulk Import<input type="file" accept=".csv" className="hidden" onChange={event => importCsv(event.target.files?.[0])} /></label>
           <button onClick={() => setShowRegister(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1C1C1A] px-4 py-2.5 text-xs font-semibold text-white hover:bg-black">
             <FilePlus2 className="w-4 h-4" /> Register New Document
           </button>
@@ -344,57 +344,57 @@ export default function DocumentMovement({ triggerToast }: Props) {
 
       <div className="grid grid-cols-2 xl:grid-cols-7 gap-3">
         {stats.map(item => (
-          <div key={item.label} className="rounded-xl border border-[#E8E4DF] bg-white p-4 flex items-center gap-3">
+          <div key={item.label} className="rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-900 p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.tone}`}><item.icon className="w-5 h-5" /></div>
-            <div><div className="text-xl font-semibold text-[#1C1C1A]">{item.value}</div><div className="text-[10px] uppercase tracking-wider text-[#77736C]">{item.label}</div></div>
+            <div><div className="text-xl font-semibold text-[#1C1C1A] dark:text-gray-100">{item.value}</div><div className="text-[10px] uppercase tracking-wider text-[#77736C] dark:text-gray-300">{item.label}</div></div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl border border-[#E8E4DF] bg-white overflow-hidden">
-        <div className="p-4 border-b border-[#E8E4DF] flex flex-col md:flex-row gap-3">
-          <div className="inline-flex rounded-lg bg-[#F5F0EA] p-1">
-            <button onClick={() => setView("all")} className={`px-3 py-1.5 rounded-md text-xs ${view === "all" ? "bg-white shadow-sm font-semibold" : ""}`}>All</button>
-            <button onClick={() => setView("mine")} className={`px-3 py-1.5 rounded-md text-xs ${view === "mine" ? "bg-white shadow-sm font-semibold" : ""}`}>My Documents</button>
+      <div className="rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="p-4 border-b border-[#E8E4DF] dark:border-gray-700 flex flex-col md:flex-row gap-3">
+          <div className="inline-flex rounded-lg bg-[#F5F0EA] dark:bg-gray-800 p-1">
+            <button onClick={() => setView("all")} className={`px-3 py-1.5 rounded-md text-xs ${view === "all" ? "bg-white dark:bg-gray-900 shadow-sm font-semibold" : ""}`}>All</button>
+            <button onClick={() => setView("mine")} className={`px-3 py-1.5 rounded-md text-xs ${view === "mine" ? "bg-white dark:bg-gray-900 shadow-sm font-semibold" : ""}`}>My Documents</button>
           </div>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9C9890]" />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by document number, title, source, holder, or purpose..." className="w-full rounded-lg border border-[#DDD8D0] pl-9 pr-3 py-2 text-xs outline-none focus:border-[#C9A84C]" />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9C9890] dark:text-gray-300" />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by document number, title, source, holder, or purpose..." className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 w-full rounded-lg border border-[#DDD8D0] dark:border-gray-700 pl-9 pr-3 py-2 text-xs outline-none focus:border-[#C9A84C] dark:focus:border-amber-400" />
           </div>
-          <select value={status} onChange={event => setStatus(event.target.value)} className="rounded-lg border border-[#DDD8D0] bg-white px-3 py-2 text-xs outline-none">
+          <select value={status} onChange={event => setStatus(event.target.value)} className="rounded-lg border border-[#DDD8D0] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs outline-none">
             {["All", "In Custody", "Handed Over", "Returned", "Archived"].map(option => <option key={option}>{option}</option>)}
           </select>
-          <button onClick={loadDocuments} className="p-2 rounded-lg border border-[#DDD8D0] text-[#77736C] hover:bg-[#F5F0EA]" title="Refresh"><RefreshCw className="w-4 h-4" /></button>
+          <button onClick={loadDocuments} className="p-2 rounded-lg border border-[#DDD8D0] dark:border-gray-700 text-[#77736C] dark:text-gray-300 hover:bg-[#F5F0EA] dark:hover:bg-gray-800" title="Refresh"><RefreshCw className="w-4 h-4" /></button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left">
-            <thead className="bg-[#F7F4EF] text-[9px] uppercase tracking-widest text-[#77736C]">
+            <thead className="bg-[#F7F4EF] dark:bg-gray-800 text-[9px] uppercase tracking-widest text-[#77736C] dark:text-gray-300">
               <tr>{["Document", "Received From", "Current Holder", "Purpose", "Received", "Status", "Actions"].map(head => <th key={head} className="px-4 py-3 font-bold">{head}</th>)}</tr>
             </thead>
-            <tbody className="divide-y divide-[#EEEAE4]">
+            <tbody className="divide-y divide-[#EEEAE4] dark:divide-gray-700">
               {loading ? (
-                <tr><td colSpan={7} className="py-14 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-[#C9A84C]" /></td></tr>
+                <tr><td colSpan={7} className="py-14 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-[#C9A84C] dark:text-amber-300" /></td></tr>
               ) : documents.length === 0 ? (
-                <tr><td colSpan={7} className="py-14 text-center text-xs text-[#77736C]">No document records found.</td></tr>
+                <tr><td colSpan={7} className="py-14 text-center text-xs text-[#77736C] dark:text-gray-300">No document records found.</td></tr>
               ) : documents.map(document => (
-                <tr key={document.id} className="hover:bg-[#FCFAF7] align-top">
-                  <td className="px-4 py-3"><div className="font-semibold text-xs text-[#1C1C1A]">{document.title}</div><div className="text-[10px] text-[#8D6E16] font-mono mt-1">{document.documentNumber}</div><div className="text-[10px] text-[#77736C]">{document.documentType} · {document.documentNature}</div></td>
-                  <td className="px-4 py-3"><div className="text-xs font-medium">{document.sourceName}</div><div className="text-[10px] text-[#77736C]">{document.sourceDepartment || "—"}</div></td>
-                  <td className="px-4 py-3"><div className="flex gap-2"><UserRound className="w-3.5 h-3.5 text-[#C9A84C] mt-0.5" /><div><div className="text-xs font-medium">{document.currentHolderName}</div><div className="text-[10px] text-[#77736C]">{document.currentHolderDepartment || "—"}</div></div></div></td>
-                  <td className="px-4 py-3 text-[11px] text-[#5D5B57] max-w-[220px]"><div className="line-clamp-2">{document.purpose}</div>{document.dueDate && <div className="mt-1 text-amber-700 flex gap-1 items-center"><CalendarClock className="w-3 h-3" /> Due {formatDate(document.dueDate, false)}</div>}</td>
-                  <td className="px-4 py-3 text-[11px] text-[#5D5B57]">{formatDate(document.receivedAt)}</td>
+                <tr key={document.id} className="hover:bg-[#FCFAF7] dark:hover:bg-gray-800 align-top">
+                  <td className="px-4 py-3"><div className="font-semibold text-xs text-[#1C1C1A] dark:text-gray-100">{document.title}</div><div className="text-[10px] text-[#8D6E16] dark:text-amber-300 font-mono mt-1">{document.documentNumber}</div><div className="text-[10px] text-[#77736C] dark:text-gray-300">{document.documentType} · {document.documentNature}</div></td>
+                  <td className="px-4 py-3"><div className="text-xs font-medium">{document.sourceName}</div><div className="text-[10px] text-[#77736C] dark:text-gray-300">{document.sourceDepartment || "—"}</div></td>
+                  <td className="px-4 py-3"><div className="flex gap-2"><UserRound className="w-3.5 h-3.5 text-[#C9A84C] dark:text-amber-300 mt-0.5" /><div><div className="text-xs font-medium">{document.currentHolderName}</div><div className="text-[10px] text-[#77736C] dark:text-gray-300">{document.currentHolderDepartment || "—"}</div></div></div></td>
+                  <td className="px-4 py-3 text-[11px] text-[#5D5B57] dark:text-gray-300 max-w-[220px]"><div className="line-clamp-2">{document.purpose}</div>{document.dueDate && <div className="mt-1 text-amber-700 dark:text-amber-400 flex gap-1 items-center"><CalendarClock className="w-3 h-3" /> Due {formatDate(document.dueDate, false)}</div>}</td>
+                  <td className="px-4 py-3 text-[11px] text-[#5D5B57] dark:text-gray-300">{formatDate(document.receivedAt)}</td>
                   <td className="px-4 py-3"><span className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-bold ${statusStyle[document.status] || ""}`}>{document.status}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button onClick={() => loadDetail(document)} className="p-2 rounded-lg bg-[#F5F0EA] text-[#6F5620]" title="View history"><History className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => generateQr(document)} className="p-2 rounded-lg bg-violet-50 text-violet-700" title="QR code"><QrCode className="w-3.5 h-3.5" /></button>
-                      {document.pendingHolderId && <button onClick={() => openMovement(document, "ACCEPT")} className="p-2 rounded-lg bg-emerald-50 text-emerald-700" title="Accept pending handover"><UserCheck className="w-3.5 h-3.5" /></button>}
-                      {document.pendingHolderId && <button onClick={() => openMovement(document, "REJECT")} className="p-2 rounded-lg bg-rose-50 text-rose-700" title="Reject pending handover"><X className="w-3.5 h-3.5" /></button>}
-                      {!["Returned", "Archived"].includes(document.status) && <button onClick={() => openMovement(document, "HANDOVER")} className="p-2 rounded-lg bg-blue-50 text-blue-700" title="Handover"><Send className="w-3.5 h-3.5" /></button>}
-                      {!["Returned", "Archived"].includes(document.status) && <button onClick={() => openMovement(document, "RETURNED")} className="p-2 rounded-lg bg-amber-50 text-amber-700" title="Return"><RotateCcw className="w-3.5 h-3.5" /></button>}
-                      {document.status === "Returned" && <button onClick={() => openMovement(document, "REOPENED")} className="p-2 rounded-lg bg-emerald-50 text-emerald-700" title="Reopen"><RefreshCw className="w-3.5 h-3.5" /></button>}
-                      {document.status !== "Archived" && <button onClick={() => openMovement(document, "ARCHIVED")} className="p-2 rounded-lg bg-slate-100 text-slate-600" title="Archive"><Archive className="w-3.5 h-3.5" /></button>}
+                      <button onClick={() => loadDetail(document)} className="p-2 rounded-lg bg-[#F5F0EA] dark:bg-gray-800 text-[#6F5620] dark:text-amber-300" title="View history"><History className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => generateQr(document)} className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400" title="QR code"><QrCode className="w-3.5 h-3.5" /></button>
+                      {document.pendingHolderId && <button onClick={() => openMovement(document, "ACCEPT")} className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400" title="Accept pending handover"><UserCheck className="w-3.5 h-3.5" /></button>}
+                      {document.pendingHolderId && <button onClick={() => openMovement(document, "REJECT")} className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400" title="Reject pending handover"><X className="w-3.5 h-3.5" /></button>}
+                      {!["Returned", "Archived"].includes(document.status) && <button onClick={() => openMovement(document, "HANDOVER")} className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400" title="Handover"><Send className="w-3.5 h-3.5" /></button>}
+                      {!["Returned", "Archived"].includes(document.status) && <button onClick={() => openMovement(document, "RETURNED")} className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400" title="Return"><RotateCcw className="w-3.5 h-3.5" /></button>}
+                      {document.status === "Returned" && <button onClick={() => openMovement(document, "REOPENED")} className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400" title="Reopen"><RefreshCw className="w-3.5 h-3.5" /></button>}
+                      {document.status !== "Archived" && <button onClick={() => openMovement(document, "ARCHIVED")} className="p-2 rounded-lg bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300" title="Archive"><Archive className="w-3.5 h-3.5" /></button>}
                     </div>
                   </td>
                 </tr>
@@ -407,8 +407,8 @@ export default function DocumentMovement({ triggerToast }: Props) {
       {showRegister && (
         <Modal onClose={() => setShowRegister(false)} wide>
           <form onSubmit={registerDocument}>
-            <div className="sticky top-0 z-10 bg-[#FAFAF7] border-b border-[#E8E4DF] px-6 py-4 flex justify-between items-center">
-              <div><h2 className="font-serif text-xl">Register New Document</h2><p className="text-[11px] text-[#77736C]">The initial receipt/custody entry will be saved to history automatically.</p></div>
+            <div className="sticky top-0 z-10 bg-[#FAFAF7] dark:bg-gray-900 border-b border-[#E8E4DF] dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+              <div><h2 className="font-serif text-xl">Register New Document</h2><p className="text-[11px] text-[#77736C] dark:text-gray-300">The initial receipt/custody entry will be saved to history automatically.</p></div>
               <button type="button" onClick={() => setShowRegister(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid md:grid-cols-3 gap-4">
@@ -437,8 +437,8 @@ export default function DocumentMovement({ triggerToast }: Props) {
               </Select>
               <Input label="Linked Record ID" value={registerForm.linkedEntityId} onChange={(e: any) => setRegisterForm({ ...registerForm, linkedEntityId: e.target.value })} placeholder="Employee/Case/Asset ID" />
               <label className="block">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">Document File</span>
-                <span className="flex items-center gap-2 w-full rounded-lg border border-dashed border-[#C9A84C] bg-[#FFFDF7] px-3 py-2 text-xs cursor-pointer">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] dark:text-gray-300 mb-1.5">Document File</span>
+                <span className="flex items-center gap-2 w-full rounded-lg border border-dashed border-[#C9A84C] dark:border-gray-700 bg-[#FFFDF7] dark:bg-gray-800 px-3 py-2 text-xs cursor-pointer">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   <span className="truncate">{registerForm.fileUrl ? "File uploaded ✓" : "Upload PDF / image / sheet"}</span>
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.xls,.xlsx" onChange={async e => {
@@ -450,7 +450,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
               <div className="md:col-span-3"><TextArea label="Purpose for receiving the document" required value={registerForm.purpose} onChange={(e: any) => setRegisterForm({ ...registerForm, purpose: e.target.value })} placeholder="Case filing, verification, audit, signature..." /></div>
               <div className="md:col-span-3"><TextArea label="Remarks" value={registerForm.remarks} onChange={(e: any) => setRegisterForm({ ...registerForm, remarks: e.target.value })} placeholder="Condition, pages, seal or any special note..." /></div>
             </div>
-            <div className="px-6 py-4 border-t border-[#E8E4DF] flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-[#E8E4DF] dark:border-gray-700 flex justify-end gap-3">
               <button type="button" onClick={() => setShowRegister(false)} className="px-4 py-2 rounded-lg border text-xs">Cancel</button>
               <button disabled={saving || uploading} className="px-5 py-2 rounded-lg bg-[#1C1C1A] text-white text-xs font-semibold disabled:opacity-50">{saving ? "Saving..." : "Register Document"}</button>
             </div>
@@ -461,8 +461,8 @@ export default function DocumentMovement({ triggerToast }: Props) {
       {showMovement && selected && (
         <Modal onClose={() => setShowMovement(false)}>
           <form onSubmit={saveMovement}>
-            <div className="border-b border-[#E8E4DF] px-6 py-4 flex justify-between">
-              <div><h2 className="font-serif text-xl">{movementForm.action === "HANDOVER" ? "Next Handover" : movementForm.action === "RETURNED" ? "Return Document" : movementForm.action === "REOPENED" ? "Reopen Custody" : movementForm.action === "ACCEPT" ? "Accept Handover" : movementForm.action === "REJECT" ? "Reject Handover" : movementForm.action === "CORRECT" ? "Correct Document" : movementForm.action === "INCIDENT" ? "Report Incident" : "Archive Document"}</h2><p className="text-[11px] text-[#77736C]">{selected.documentNumber} · Currently with {selected.currentHolderName}</p></div>
+            <div className="border-b border-[#E8E4DF] dark:border-gray-700 px-6 py-4 flex justify-between">
+              <div><h2 className="font-serif text-xl">{movementForm.action === "HANDOVER" ? "Next Handover" : movementForm.action === "RETURNED" ? "Return Document" : movementForm.action === "REOPENED" ? "Reopen Custody" : movementForm.action === "ACCEPT" ? "Accept Handover" : movementForm.action === "REJECT" ? "Reject Handover" : movementForm.action === "CORRECT" ? "Correct Document" : movementForm.action === "INCIDENT" ? "Report Incident" : "Archive Document"}</h2><p className="text-[11px] text-[#77736C] dark:text-gray-300">{selected.documentNumber} · Currently with {selected.currentHolderName}</p></div>
               <button type="button" onClick={() => setShowMovement(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid md:grid-cols-2 gap-4">
@@ -474,8 +474,8 @@ export default function DocumentMovement({ triggerToast }: Props) {
               {movementForm.action === "INCIDENT" && <Select label="Incident Status" value={movementForm.incidentStatus} onChange={(e: any) => setMovementForm({ ...movementForm, incidentStatus: e.target.value })}>{["Missing", "Damaged", "Under Investigation", "Destroyed", "Confidential Hold"].map(option => <option key={option}>{option}</option>)}</Select>}
               {movementForm.action === "CORRECT" && <div className="md:col-span-2"><Input label="Corrected Document Title" required value={movementForm.correctionTitle} onChange={(e: any) => setMovementForm({ ...movementForm, correctionTitle: e.target.value })} /></div>}
               {!["ACCEPT", "REJECT"].includes(movementForm.action) && <label className="md:col-span-2 block">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">Acknowledgement / Receipt Proof</span>
-                <span className="flex items-center gap-2 rounded-lg border border-dashed border-[#C9A84C] bg-[#FFFDF7] px-3 py-2.5 text-xs cursor-pointer">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] dark:text-gray-300 mb-1.5">Acknowledgement / Receipt Proof</span>
+                <span className="flex items-center gap-2 rounded-lg border border-dashed border-[#C9A84C] dark:border-gray-700 bg-[#FFFDF7] dark:bg-gray-800 px-3 py-2.5 text-xs cursor-pointer">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {movementForm.acknowledgementUrl ? "Receipt uploaded ✓" : "Upload the signed receipt / acknowledgement"}
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={async e => {
@@ -486,7 +486,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
               </label>}
               <div className="md:col-span-2"><TextArea label="Remarks" value={movementForm.remarks} onChange={(e: any) => setMovementForm({ ...movementForm, remarks: e.target.value })} /></div>
             </div>
-            <div className="px-6 py-4 border-t border-[#E8E4DF] flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-[#E8E4DF] dark:border-gray-700 flex justify-end gap-3">
               <button type="button" onClick={() => setShowMovement(false)} className="px-4 py-2 rounded-lg border text-xs">Cancel</button>
               <button disabled={saving || uploading} className="px-5 py-2 rounded-lg bg-[#1C1C1A] text-white text-xs font-semibold disabled:opacity-50">{saving ? "Saving..." : "Save Movement"}</button>
             </div>
@@ -496,47 +496,47 @@ export default function DocumentMovement({ triggerToast }: Props) {
 
       {selected?.movements && !showMovement && (
         <Modal onClose={() => setSelected(null)} wide>
-          <div className="border-b border-[#E8E4DF] px-6 py-4 flex justify-between items-start">
-            <div><h2 className="font-serif text-xl">{selected.title}</h2><p className="text-[11px] text-[#8D6E16] font-mono mt-1">{selected.documentNumber}</p></div>
+          <div className="border-b border-[#E8E4DF] dark:border-gray-700 px-6 py-4 flex justify-between items-start">
+            <div><h2 className="font-serif text-xl">{selected.title}</h2><p className="text-[11px] text-[#8D6E16] dark:text-amber-300 font-mono mt-1">{selected.documentNumber}</p></div>
             <button onClick={() => setSelected(null)}><X className="w-5 h-5" /></button>
           </div>
           <div className="p-6">
             <div className="grid md:grid-cols-4 gap-3 mb-7">
               {[["Type", `${selected.documentType} · ${selected.documentNature}`], ["Received From", selected.sourceName], ["Current Holder", selected.currentHolderName], ["Status", selected.status]].map(([label, value]) => (
-                <div key={label} className="rounded-xl bg-white border border-[#E8E4DF] p-3"><div className="text-[9px] uppercase tracking-wider text-[#77736C]">{label}</div><div className="text-xs font-semibold mt-1">{value}</div></div>
+                <div key={label} className="rounded-xl bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 p-3"><div className="text-[9px] uppercase tracking-wider text-[#77736C] dark:text-gray-300">{label}</div><div className="text-xs font-semibold mt-1">{value}</div></div>
               ))}
             </div>
-            {qrData && <div className="mb-6 rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center gap-4"><img src={qrData} alt="Document QR" className="w-28 h-28 bg-white rounded-lg" /><div><div className="font-semibold text-sm">Scan Document</div><div className="text-xs text-[#77736C] mt-1">Scan the QR code to open the custody record.</div></div></div>}
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[#77736C] mb-4">Complete Custody Timeline</h3>
+            {qrData && <div className="mb-6 rounded-xl border border-violet-200 dark:border-gray-700 bg-violet-50 dark:bg-violet-950/50 p-4 flex items-center gap-4"><img src={qrData} alt="Document QR" className="w-28 h-28 bg-white dark:bg-gray-900 rounded-lg" /><div><div className="font-semibold text-sm">Scan Document</div><div className="text-xs text-[#77736C] dark:text-gray-300 mt-1">Scan the QR code to open the custody record.</div></div></div>}
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[#77736C] dark:text-gray-300 mb-4">Complete Custody Timeline</h3>
             <div className="space-y-0">
               {selected.movements.map((movement: any, index: number) => (
                 <div key={movement.id} className="relative pl-10 pb-6">
-                  {index < selected.movements.length - 1 && <div className="absolute left-[14px] top-7 bottom-0 w-px bg-[#DDD8D0]" />}
-                  <div className="absolute left-0 top-0 w-7 h-7 rounded-full bg-[#FFF8DF] border border-[#E6D38B] flex items-center justify-center text-[10px] font-bold text-[#8D6E16]">{movement.sequence}</div>
-                  <div className="rounded-xl border border-[#E8E4DF] bg-white p-4">
+                  {index < selected.movements.length - 1 && <div className="absolute left-[14px] top-7 bottom-0 w-px bg-[#DDD8D0] dark:bg-gray-800" />}
+                  <div className="absolute left-0 top-0 w-7 h-7 rounded-full bg-[#FFF8DF] dark:bg-gray-800 border border-[#E6D38B] dark:border-gray-700 flex items-center justify-center text-[10px] font-bold text-[#8D6E16] dark:text-amber-300">{movement.sequence}</div>
+                  <div className="rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
                     <div className="flex flex-wrap justify-between gap-2">
-                      <span className="text-[10px] font-bold rounded-full bg-[#F5F0EA] px-2 py-1 text-[#6F5620]">{movement.action}</span>
-                      <span className="text-[10px] text-[#77736C] flex items-center gap-1"><Clock3 className="w-3 h-3" />{formatDate(movement.movedAt)}</span>
+                      <span className="text-[10px] font-bold rounded-full bg-[#F5F0EA] dark:bg-gray-800 px-2 py-1 text-[#6F5620] dark:text-amber-300">{movement.action}</span>
+                      <span className="text-[10px] text-[#77736C] dark:text-gray-300 flex items-center gap-1"><Clock3 className="w-3 h-3" />{formatDate(movement.movedAt)}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-3 text-xs font-semibold"><span>{movement.fromPersonName}</span><ArrowRight className="w-4 h-4 text-[#C9A84C]" /><span>{movement.toPersonName}</span></div>
-                    {movement.toDepartment && <div className="text-[10px] text-[#77736C] mt-1">{movement.toDepartment}</div>}
-                    <p className="text-[11px] text-[#5D5B57] mt-3">{movement.purpose}</p>
-                    <div className="flex flex-wrap gap-4 mt-3 text-[10px] text-[#77736C]">
+                    <div className="flex items-center gap-2 mt-3 text-xs font-semibold"><span>{movement.fromPersonName}</span><ArrowRight className="w-4 h-4 text-[#C9A84C] dark:text-amber-300" /><span>{movement.toPersonName}</span></div>
+                    {movement.toDepartment && <div className="text-[10px] text-[#77736C] dark:text-gray-300 mt-1">{movement.toDepartment}</div>}
+                    <p className="text-[11px] text-[#5D5B57] dark:text-gray-300 mt-3">{movement.purpose}</p>
+                    <div className="flex flex-wrap gap-4 mt-3 text-[10px] text-[#77736C] dark:text-gray-300">
                       <span>Recorded by: {movement.performedByName}</span>
                       {movement.dueDate && <span>Due: {formatDate(movement.dueDate, false)}</span>}
-                      {movement.acknowledgementUrl && <a href={movement.acknowledgementUrl} target="_blank" rel="noreferrer" className="text-blue-700 flex items-center gap-1"><Eye className="w-3 h-3" /> Receipt proof</a>}
+                      {movement.acknowledgementUrl && <a href={movement.acknowledgementUrl} target="_blank" rel="noreferrer" className="text-blue-700 dark:text-blue-400 flex items-center gap-1"><Eye className="w-3 h-3" /> Receipt proof</a>}
                     </div>
-                    {movement.remarks && <div className="mt-2 text-[10px] italic text-[#77736C]">“{movement.remarks}”</div>}
+                    {movement.remarks && <div className="mt-2 text-[10px] italic text-[#77736C] dark:text-gray-300">“{movement.remarks}”</div>}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2 justify-end border-t border-[#E8E4DF] pt-4">
+            <div className="flex flex-wrap gap-2 justify-end border-t border-[#E8E4DF] dark:border-gray-700 pt-4">
               {selected.fileUrl && <a href={selected.fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs"><Download className="w-3.5 h-3.5" /> Document File</a>}
               <button onClick={() => generateQr(selected)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs"><QrCode className="w-3.5 h-3.5" /> QR Code</button>
               <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs"><Printer className="w-3.5 h-3.5" /> Print Receipt</button>
               <button onClick={() => openMovement(selected, "CORRECT")} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs"><RefreshCw className="w-3.5 h-3.5" /> Correction</button>
-              <button onClick={() => openMovement(selected, "INCIDENT")} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-700 px-3 py-2 text-xs"><AlertTriangle className="w-3.5 h-3.5" /> Incident</button>
+              <button onClick={() => openMovement(selected, "INCIDENT")} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-gray-700 text-rose-700 dark:text-rose-400 px-3 py-2 text-xs"><AlertTriangle className="w-3.5 h-3.5" /> Incident</button>
               {!["Returned", "Archived"].includes(selected.status) && <button onClick={() => openMovement(selected, "HANDOVER")} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 text-white px-3 py-2 text-xs"><Send className="w-3.5 h-3.5" /> Next Handover</button>}
               {selected.pendingHolderId && <button onClick={() => openMovement(selected, "ACCEPT")} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 text-white px-3 py-2 text-xs"><UserCheck className="w-3.5 h-3.5" /> Accept</button>}
               {selected.pendingHolderId && <button onClick={() => openMovement(selected, "REJECT")} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 text-white px-3 py-2 text-xs"><X className="w-3.5 h-3.5" /> Reject</button>}

@@ -1280,20 +1280,20 @@ export default function BdaLeads({
   const lostCount = lostLeads.length;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900">
+    <div className="p-4 md:p-6 space-y-6 bg-slate-50 dark:bg-gray-800 min-h-screen text-slate-900 dark:text-gray-100">
 
       {/* Top Header & Overview Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-900 p-5 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-xl text-white shadow-md">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-slate-900">
+              <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-gray-100">
                 BDA Leads Management
               </h1>
-              <p className="text-xs font-semibold text-slate-500">
+              <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">
                 Dynamic Excel/CSV column mapping, bulk lead import & instant auto-task creation for BDAs
               </p>
             </div>
@@ -1348,16 +1348,16 @@ export default function BdaLeads({
           }}
           className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
             statusFilter === "All" && assignmentFilter === "All"
-              ? "border-purple-600 ring-2 ring-purple-400/30 bg-purple-50/20"
-              : "border-slate-200 hover:border-purple-300"
+              ? "border-purple-600 ring-2 ring-purple-400/30 bg-purple-50/20 dark:bg-purple-950/50"
+              : "border-slate-200 dark:border-gray-700 hover:border-purple-300"
           }`}
           title="Click to view all leads"
         >
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Total Leads</p>
-            <h3 className="text-2xl font-black text-slate-800 mt-1">{totalLeads}</h3>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 dark:text-gray-400">Total Leads</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-gray-100 mt-1">{totalLeads}</h3>
           </div>
-          <div className="p-3 bg-slate-100 rounded-xl text-slate-600 shrink-0">
+          <div className="p-3 bg-slate-100 dark:bg-gray-800 rounded-xl text-slate-600 dark:text-gray-300 shrink-0">
             <Users className="w-5 h-5" />
           </div>
         </div>
@@ -1368,18 +1368,18 @@ export default function BdaLeads({
             setStatusFilter("All");
             setAssignmentFilter("unassigned");
           }}
-          className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
+          className={`bg-white border dark:border-gray-700 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
             assignmentFilter === "unassigned"
-              ? "border-amber-600 ring-2 ring-amber-400/30 bg-amber-50/30"
+              ? "border-amber-600 ring-2 ring-amber-400/30 bg-amber-50/30 dark:bg-amber-950/50"
               : "border-amber-200 hover:border-amber-400"
           }`}
           title="Click to filter unassigned leads"
         >
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-amber-700">Unassigned Leads</p>
-            <h3 className="text-2xl font-black text-amber-600 mt-1">{unassignedCount}</h3>
+            <p className="text-[10px] uppercase font-black tracking-wider text-amber-700 dark:text-amber-300">Unassigned Leads</p>
+            <h3 className="text-2xl font-black text-amber-600 dark:text-amber-300 mt-1">{unassignedCount}</h3>
           </div>
-          <div className="p-3 bg-amber-50 rounded-xl text-amber-600 shrink-0">
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-xl text-amber-600 dark:text-amber-300 shrink-0">
             <AlertCircle className="w-5 h-5" />
           </div>
         </div>
@@ -1390,18 +1390,18 @@ export default function BdaLeads({
             setTargetBreakdownStatus("Assigned");
             setShowStatusUserBreakdownModal(true);
           }}
-          className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
+          className={`bg-white border dark:border-gray-700 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
             assignmentFilter !== "All" && assignmentFilter !== "unassigned"
-              ? "border-blue-600 ring-2 ring-blue-400/30 bg-blue-50/30"
+              ? "border-blue-600 ring-2 ring-blue-400/30 bg-blue-50/30 dark:bg-blue-950/50"
               : "border-blue-200 hover:border-blue-400"
           }`}
           title="Click to view BDA lead assignments summary & filter by BDA"
         >
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-blue-700">Assigned to BDAs</p>
-            <h3 className="text-2xl font-black text-blue-600 mt-1">{assignedCount}</h3>
+            <p className="text-[10px] uppercase font-black tracking-wider text-blue-700 dark:text-blue-300">Assigned to BDAs</p>
+            <h3 className="text-2xl font-black text-blue-600 dark:text-blue-300 mt-1">{assignedCount}</h3>
           </div>
-          <div className="p-3 bg-blue-50 rounded-xl text-blue-600 shrink-0">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-xl text-blue-600 dark:text-blue-300 shrink-0">
             <UserPlus className="w-5 h-5" />
           </div>
         </div>
@@ -1412,21 +1412,21 @@ export default function BdaLeads({
             setTargetBreakdownStatus("Converted");
             setShowStatusUserBreakdownModal(true);
           }}
-          className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
+          className={`bg-white border dark:border-gray-700 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
             statusFilter === "Converted"
-              ? "border-emerald-600 ring-2 ring-emerald-400/30 bg-emerald-50/30"
+              ? "border-emerald-600 ring-2 ring-emerald-400/30 bg-emerald-50/30 dark:bg-emerald-950/50"
               : "border-emerald-200 hover:border-emerald-400"
           }`}
           title="Click to view converted clients breakdown by BDA user"
         >
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-emerald-700">Converted Clients</p>
-            <h3 className="text-2xl font-black text-emerald-600 mt-0.5">{convertedCount}</h3>
-            <p className="text-[11px] font-extrabold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-lg border border-emerald-200 inline-block mt-1 shadow-2xs">
+            <p className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-300">Converted Clients</p>
+            <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-300 mt-0.5">{convertedCount}</h3>
+            <p className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/50 px-2 py-0.5 rounded-lg border dark:border-gray-700 border-emerald-200 inline-block mt-1 shadow-2xs">
               ₹ {convertedTotalAmount.toLocaleString('en-IN')} Total
             </p>
           </div>
-          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 shrink-0">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl text-emerald-600 dark:text-emerald-300 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
@@ -1437,18 +1437,18 @@ export default function BdaLeads({
             setTargetBreakdownStatus("Lost");
             setShowStatusUserBreakdownModal(true);
           }}
-          className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
+          className={`bg-white border dark:border-gray-700 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md ${
             statusFilter === "Lost"
-              ? "border-rose-600 ring-2 ring-rose-400/30 bg-rose-50/30"
+              ? "border-rose-600 ring-2 ring-rose-400/30 bg-rose-50/30 dark:bg-rose-950/50"
               : "border-rose-200 hover:border-rose-400"
           }`}
           title="Click to view lost leads breakdown by BDA user"
         >
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-rose-700">Lost Leads</p>
-            <h3 className="text-2xl font-black text-rose-600 mt-1">{lostCount}</h3>
+            <p className="text-[10px] uppercase font-black tracking-wider text-rose-700 dark:text-rose-300">Lost Leads</p>
+            <h3 className="text-2xl font-black text-rose-600 dark:text-rose-300 mt-1">{lostCount}</h3>
           </div>
-          <div className="p-3 bg-rose-50 rounded-xl text-rose-600 shrink-0">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/50 rounded-xl text-rose-600 dark:text-rose-300 shrink-0">
             <XCircle className="w-5 h-5" />
           </div>
         </div>
@@ -1456,23 +1456,23 @@ export default function BdaLeads({
       </div>
 
       {/* Filter & Toolbar Section */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row items-center justify-between gap-3">
 
           {/* Search Box */}
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400 dark:text-gray-400" />
             <input
               type="text"
               placeholder="Search leads by Client Name, Phone, Email, Company, City, or Lead ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-500 transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-500 transition-all dark:[color-scheme:dark]"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-2.5 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1482,12 +1482,12 @@ export default function BdaLeads({
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
             {/* Status Filter */}
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+              <Filter className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+                className="bg-transparent text-xs font-bold text-slate-700 dark:text-gray-100 focus:outline-none dark:bg-gray-800 dark:[color-scheme:dark]"
               >
                 <option value="All">All Status</option>
                 <option value="New">New</option>
@@ -1501,12 +1501,12 @@ export default function BdaLeads({
 
             {/* Assignment Filter */}
             {isManagerial && (
-              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <Users className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5">
+                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
                 <select
                   value={assignmentFilter}
                   onChange={(e) => setAssignmentFilter(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+                  className="bg-transparent text-xs font-bold text-slate-700 dark:text-gray-100 focus:outline-none dark:bg-gray-800 dark:[color-scheme:dark]"
                 >
                   <option value="All">All Assignment</option>
                   <option value="unassigned">Unassigned Only</option>
@@ -1524,24 +1524,24 @@ export default function BdaLeads({
               <button
                 type="button"
                 onClick={() => setShowColumnToggleMenu(!showColumnToggleMenu)}
-                className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-gray-100 transition-all cursor-pointer shadow-2xs"
                 title="Show/Hide Table Columns"
               >
-                <Layers className="w-3.5 h-3.5 text-purple-600" />
+                <Layers className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
                 <span>Columns</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showColumnToggleMenu ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-gray-400 transition-transform ${showColumnToggleMenu ? "rotate-180" : ""}`} />
               </button>
 
               {showColumnToggleMenu && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 w-56 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 p-3 space-y-2 animate-in fade-in zoom-in-95 font-sans">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                    <span className="text-[10px] font-black uppercase text-purple-900 tracking-wider flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-purple-600" /> Toggle Columns
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 w-56 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700 p-3 space-y-2 animate-in fade-in zoom-in-95 font-sans">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-gray-700">
+                    <span className="text-[10px] font-black uppercase text-purple-900 dark:text-purple-300 tracking-wider flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-purple-600 dark:text-purple-300" /> Toggle Columns
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowColumnToggleMenu(false)}
-                      className="text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
+                      className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 text-xs p-0.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1557,13 +1557,13 @@ export default function BdaLeads({
                       { key: "status", label: "Status" },
                       { key: "actions", label: "Actions" },
                     ].map((col) => (
-                      <label key={col.key} className="flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-purple-50/50 p-1.5 rounded-lg cursor-pointer select-none">
+                      <label key={col.key} className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-purple-50/50 dark:hover:bg-purple-950/50 p-1.5 rounded-lg cursor-pointer select-none">
                         <span>{col.label}</span>
                         <input
                           type="checkbox"
                           checked={visibleColumns[col.key] ?? true}
                           onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
-                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                          className="w-4 h-4 text-purple-600 dark:text-purple-300 rounded focus:ring-purple-500 cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
                         />
                       </label>
                     ))}
@@ -1574,7 +1574,7 @@ export default function BdaLeads({
 
             <button
               onClick={fetchLeads}
-              className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl border border-slate-200 transition-all cursor-pointer"
+              className="p-2 text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 rounded-xl border border-slate-200 dark:border-gray-700 transition-all cursor-pointer"
               title="Refresh Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1584,9 +1584,9 @@ export default function BdaLeads({
 
         {/* Selected Banner */}
         {selectedIds.length > 0 && (
-          <div className="flex items-center justify-between bg-purple-50 border border-purple-200 p-2.5 rounded-xl text-xs font-bold text-purple-900 animate-fade-in">
+          <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 p-2.5 rounded-xl text-xs font-bold text-purple-900 dark:text-purple-300 animate-fade-in">
             <span className="flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-purple-700" />
+              <CheckSquare className="w-4 h-4 text-purple-700 dark:text-purple-300" />
               {selectedIds.length} Lead(s) Selected
             </span>
             <div className="flex items-center gap-2">
@@ -1610,7 +1610,7 @@ export default function BdaLeads({
 
               <button
                 onClick={() => setSelectedIds([])}
-                className="text-purple-600 hover:underline text-xs ml-1"
+                className="text-purple-600 dark:text-purple-300 hover:underline text-xs ml-1"
               >
                 Clear Selection
               </button>
@@ -1620,28 +1620,28 @@ export default function BdaLeads({
       </div>
 
       {/* Main Leads Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 bg-slate-50 dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700">
           <div>
-            <p className="text-xs font-black text-slate-800">Lead Directory</p>
-            <p className="text-[10px] font-semibold text-slate-500">Click a row for a quick timeline, or use Details for the complete lead workspace.</p>
+            <p className="text-xs font-black text-slate-800 dark:text-gray-100">Lead Directory</p>
+            <p className="text-[10px] font-semibold text-slate-500 dark:text-gray-400">Click a row for a quick timeline, or use Details for the complete lead workspace.</p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
-            <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600" /> Call entry</span>
-            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-indigo-600" /> Full details</span>
+          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 dark:text-gray-400">
+            <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" /> Call entry</span>
+            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" /> Full details</span>
           </div>
         </div>
         {/* Table Data Container: Vertical Scroll & Sticky Header */}
         <div className="overflow-x-auto max-h-[620px] overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-              <tr className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+            <thead className="sticky top-0 z-20 bg-slate-100/95 dark:bg-slate-950/50 backdrop-blur-md border-b border-slate-200 dark:border-gray-700 shadow-2xs">
+              <tr className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider">
                 <th className="p-3 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={filteredLeads.length > 0 && selectedIds.length === filteredLeads.length}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                    className="w-4 h-4 text-purple-600 dark:text-purple-300 rounded focus:ring-purple-500 cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
                   />
                 </th>
                 {visibleColumns.leadId && <th className="p-3">Lead ID</th>}
@@ -1653,17 +1653,17 @@ export default function BdaLeads({
                 {visibleColumns.actions && <th className="p-3 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700 text-xs font-semibold">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
+                  <td colSpan={8} className="p-8 text-center text-slate-400 dark:text-gray-400 font-bold">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600 dark:text-purple-300" />
                     Loading BDA leads...
                   </td>
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">
+                  <td colSpan={8} className="p-8 text-center text-slate-400 dark:text-gray-400 font-bold">
                     No BDA leads found matching the filters.
                   </td>
                 </tr>
@@ -1677,7 +1677,7 @@ export default function BdaLeads({
                     <React.Fragment key={lead.id}>
                       <tr
                         onClick={() => toggleRowExpand(lead)}
-                        className={`hover:bg-purple-50/40 transition-colors cursor-pointer select-none ${isSelected ? "bg-purple-50/70" : isExpanded ? "bg-purple-50/40 font-bold" : ""}`}
+                        className={`hover:bg-purple-50/40 dark:hover:bg-purple-950/50 transition-colors cursor-pointer select-none ${isSelected ? "bg-purple-50/70 dark:bg-purple-950/50" : isExpanded ? "bg-purple-50/40 dark:bg-purple-950/50 font-bold" : ""}`}
                         title="Click anywhere on row to view/hide detailed dropdown"
                       >
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1685,14 +1685,14 @@ export default function BdaLeads({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelectRow(lead.id)}
-                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                            className="w-4 h-4 text-purple-600 dark:text-purple-300 rounded focus:ring-purple-500 cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
                           />
                         </td>
 
                         {/* Lead ID */}
                         {visibleColumns.leadId && (
-                          <td className="p-3 font-mono font-bold text-purple-900 whitespace-nowrap">
-                            <div className="text-purple-700 flex items-center gap-1">
+                          <td className="p-3 font-mono font-bold text-purple-900 dark:text-purple-300 whitespace-nowrap">
+                            <div className="text-purple-700 dark:text-purple-300 flex items-center gap-1">
                               {lead.leadId}
                               {lead.rawExtraJson && <span className="w-2 h-2 rounded-full bg-emerald-500" title="Contains extra raw columns" />}
                             </div>
@@ -1702,16 +1702,16 @@ export default function BdaLeads({
                         {/* Client / Contact */}
                         {visibleColumns.client && (
                           <td className="p-3">
-                            <div className="font-extrabold text-slate-900">{lead.name}</div>
-                            <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 mt-0.5">
+                            <div className="font-extrabold text-slate-900 dark:text-gray-100">{lead.name}</div>
+                            <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 dark:text-gray-400 mt-0.5">
                               {lead.phone && (
                                 <span className="flex items-center gap-1">
-                                  <Phone className="w-3 h-3 text-slate-400" /> {lead.phone}
+                                  <Phone className="w-3 h-3 text-slate-400 dark:text-gray-400" /> {lead.phone}
                                 </span>
                               )}
                               {lead.email && (
                                 <span className="flex items-center gap-1">
-                                  <Mail className="w-3 h-3 text-slate-400" /> {lead.email}
+                                  <Mail className="w-3 h-3 text-slate-400 dark:text-gray-400" /> {lead.email}
                                 </span>
                               )}
                             </div>
@@ -1721,19 +1721,19 @@ export default function BdaLeads({
                         {/* Company & Location */}
                         {visibleColumns.company && (
                           <td className="p-3">
-                            <div className="font-bold text-slate-800 flex items-center gap-1">
+                            <div className="font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1">
                               {lead.companyName ? (
                                 <>
-                                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                  <Building2 className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
                                   {lead.companyName}
                                 </>
                               ) : (
-                                <span className="text-slate-400 italic">No Company</span>
+                                <span className="text-slate-400 dark:text-gray-400 italic">No Company</span>
                               )}
                             </div>
                             {lead.city && (
-                              <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                                <MapPin className="w-3 h-3 text-slate-400" /> {lead.city}
+                              <div className="text-[11px] font-semibold text-slate-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 text-slate-400 dark:text-gray-400" /> {lead.city}
                               </div>
                             )}
                           </td>
@@ -1742,7 +1742,7 @@ export default function BdaLeads({
                         {/* Reason */}
                         {visibleColumns.reason && (
                           <td className="p-3">
-                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-[11px] font-bold">
+                            <span className="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 px-2 py-1 rounded-md text-[11px] font-bold">
                               {lead.salesReason || "Pitching"}
                             </span>
                           </td>
@@ -1759,10 +1759,10 @@ export default function BdaLeads({
                                   setTargetBdaId(lead.assignedTo || "");
                                   setShowAssignModal(true);
                                 }}
-                                className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-xl w-fit transition-all cursor-pointer"
+                                className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-200 px-2.5 py-1 rounded-xl w-fit transition-all cursor-pointer"
                                 title="Click to re-assign BDA"
                               >
-                                <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+                                <UserPlus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-300" />
                                 <span className="font-bold text-xs">{lead.assignedToName}</span>
                               </button>
                             ) : (
@@ -1773,7 +1773,7 @@ export default function BdaLeads({
                                   setTargetBdaId("");
                                   setShowAssignModal(true);
                                 }}
-                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1"
+                                className="bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-950/50 text-amber-700 dark:text-amber-300 border dark:border-gray-700 border-amber-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1"
                                 title="Click to assign to BDA"
                               >
                                 <Plus className="w-3 h-3" />
@@ -1790,14 +1790,14 @@ export default function BdaLeads({
                               value={lead.status}
                               onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
                               className={`text-xs font-bold rounded-lg px-2 py-1 border focus:outline-none ${lead.status === "Converted"
-                                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300"
                                   : lead.status === "Assigned"
-                                    ? "bg-blue-50 text-blue-800 border-blue-300"
+                                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border-blue-300"
                                     : lead.status === "In Progress"
-                                      ? "bg-indigo-50 text-indigo-800 border-indigo-300"
+                                      ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border-indigo-300"
                                       : lead.status === "Lost"
-                                      ? "bg-rose-50 text-rose-800 border-rose-300"
-                                      : "bg-slate-100 text-slate-800 border-slate-300"
+                                      ? "bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300"
+                                      : "bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 border-slate-300 dark:border-gray-700"
                               }`}
                           >
                             <option value="New">New</option>
@@ -1812,25 +1812,25 @@ export default function BdaLeads({
 
                         {/* Actions */}
                         {visibleColumns.actions && (
-                          <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td className="p-3 text-right dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => openCallModal(lead)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-lg transition-all"
                                 title="Log Call"
                               >
                                 <Phone className="w-3.5 h-3.5" /> Call
                               </button>
                               <button
                                 onClick={() => handleOpenEditModal(lead, false)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg transition-all"
                                 title="Open all lead details and editing options"
                               >
                                 <Eye className="w-3.5 h-3.5" /> Details
                               </button>
                               <button
                                 onClick={() => handleDeleteLead(lead.id)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all"
                                 title="Delete Lead"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -1842,33 +1842,33 @@ export default function BdaLeads({
 
                       {/* Expandable Pipeline Audit & Follow-up History Sub-row */}
                       {isExpanded && (
-                        <tr className="bg-purple-50/20 animate-fade-in">
-                          <td colSpan={8} className="p-4 bg-gradient-to-r from-purple-50/60 via-slate-50 to-indigo-50/50 border-t border-b border-purple-100 shadow-inner">
+                        <tr className="bg-purple-50/20 dark:bg-purple-950/50 animate-fade-in">
+                          <td colSpan={8} className="p-4 bg-gradient-to-r from-purple-50/60 dark:from-gray-800 via-slate-50 dark:via-gray-800 to-indigo-50/50 dark:to-gray-800 border-t dark:border-gray-700 border-b border-purple-100 shadow-inner">
                             <div className="space-y-4 text-xs">
 
                               {/* Top Bar Summary */}
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/95 p-3 rounded-xl border border-purple-100 shadow-2xs">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/95 dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-700 border-purple-100 shadow-2xs">
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2.5 py-1 bg-purple-100 text-purple-800 rounded-lg font-mono font-black text-xs border border-purple-200">
+                                  <span className="px-2.5 py-1 bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 rounded-lg font-mono font-black text-xs border dark:border-gray-700 border-purple-200">
                                     {lead.leadId}
                                   </span>
                                   <div>
-                                    <h4 className="font-extrabold text-slate-900 text-sm">{lead.name}</h4>
-                                    <p className="text-[11px] font-semibold text-slate-500">
+                                    <h4 className="font-extrabold text-slate-900 dark:text-gray-100 text-sm">{lead.name}</h4>
+                                    <p className="text-[11px] font-semibold text-slate-500 dark:text-gray-400">
                                       {lead.companyName || "No Company"} {lead.city ? `• ${lead.city}` : ""}
                                     </p>
                                   </div>
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                  <span className="text-[11px] font-bold text-slate-500">
-                                    Created: <span className="text-slate-800 font-mono">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("en-IN") : "N/A"}</span>
+                                  <span className="text-[11px] font-bold text-slate-500 dark:text-gray-400">
+                                    Created: <span className="text-slate-800 dark:text-gray-100 font-mono">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("en-IN") : "N/A"}</span>
                                   </span>
                                   <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${
-                                    lead.status === "Converted" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
-                                    lead.status === "Lost" ? "bg-rose-100 text-rose-800 border border-rose-300" :
-                                    lead.status === "Assigned" ? "bg-blue-100 text-blue-800 border border-blue-300" :
-                                    "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                                    lead.status === "Converted" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-300" :
+                                    lead.status === "Lost" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border dark:border-gray-700 border-rose-300" :
+                                    lead.status === "Assigned" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-300" :
+                                    "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border dark:border-gray-700 border-indigo-300"
                                   }`}>
                                     Stage: {lead.status || "New"}
                                   </span>
@@ -1879,53 +1879,53 @@ export default function BdaLeads({
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 
                                 {/* Left: Assignment Audit & Stage Record */}
-                                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5 border-b pb-2">
-                                    <UserCheck className="w-3.5 h-3.5 text-purple-600" />
+                                <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-2xs space-y-3">
+                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 flex items-center gap-1.5 border-b dark:border-gray-700 pb-2">
+                                    <UserCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
                                     Lead Assignment & Audit Trail
                                   </h5>
 
                                   <div className="space-y-2 text-xs">
-                                    <div className="p-2.5 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-between">
+                                    <div className="p-2.5 bg-purple-50/50 dark:bg-purple-950/50 rounded-lg border dark:border-gray-700 border-purple-100 flex items-center justify-between">
                                       <div>
-                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Assigned BDA User</span>
-                                        <span className="font-extrabold text-slate-800">{lead.assignedToName || "Unassigned"}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 dark:text-gray-400 block uppercase">Assigned BDA User</span>
+                                        <span className="font-extrabold text-slate-800 dark:text-gray-100">{lead.assignedToName || "Unassigned"}</span>
                                       </div>
                                       {lead.assignedBy && (
                                         <div className="text-right">
-                                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Assigned By</span>
-                                          <span className="font-extrabold text-purple-700">{history?.lead?.assignedByName || lead.assignedBy}</span>
+                                          <span className="text-[10px] font-bold text-slate-400 dark:text-gray-400 block uppercase">Assigned By</span>
+                                          <span className="font-extrabold text-purple-700 dark:text-purple-300">{history?.lead?.assignedByName || lead.assignedBy}</span>
                                         </div>
                                       )}
                                     </div>
 
                                     {lead.assignedAt && (
-                                      <div className="text-[11px] font-medium text-slate-600 flex items-center gap-1">
-                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                        Assigned Date: <span className="font-bold text-slate-800">{new Date(lead.assignedAt).toLocaleString("en-IN")}</span>
+                                      <div className="text-[11px] font-medium text-slate-600 dark:text-gray-300 flex items-center gap-1">
+                                        <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400" />
+                                        Assigned Date: <span className="font-bold text-slate-800 dark:text-gray-100">{new Date(lead.assignedAt).toLocaleString("en-IN")}</span>
                                       </div>
                                     )}
 
                                     {lead.salesReason && (
-                                      <div className="text-[11px] font-medium text-slate-600">
-                                        Sales Reason: <span className="font-bold text-slate-800">{lead.salesReason}</span>
+                                      <div className="text-[11px] font-medium text-slate-600 dark:text-gray-300">
+                                        Sales Reason: <span className="font-bold text-slate-800 dark:text-gray-100">{lead.salesReason}</span>
                                       </div>
                                     )}
 
                                     {lead.remarks && (
-                                      <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px]">
-                                        <span className="font-bold text-slate-700 block">Lead Remarks:</span>
-                                        <p className="text-slate-600 font-medium italic mt-0.5">{lead.remarks}</p>
+                                      <div className="p-2 bg-slate-50 dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 text-[11px]">
+                                        <span className="font-bold text-slate-700 dark:text-gray-100 block">Lead Remarks:</span>
+                                        <p className="text-slate-600 dark:text-gray-300 font-medium italic mt-0.5">{lead.remarks}</p>
                                       </div>
                                     )}
 
                                     {/* Converted Services Details if Converted */}
                                     {lead.status === "Converted" && (
-                                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1.5">
-                                        <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">
+                                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl border dark:border-gray-700 border-emerald-200 space-y-1.5">
+                                        <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider block">
                                           🎉 Client Converted Services Details:
                                         </span>
-                                        <div className="text-xs font-bold text-emerald-900">
+                                        <div className="text-xs font-bold text-emerald-900 dark:text-emerald-300">
                                           Total Amount: ₹ {lead.convertedAmount ? lead.convertedAmount.toLocaleString('en-IN') : 0}
                                         </div>
                                       </div>
@@ -1933,52 +1933,52 @@ export default function BdaLeads({
 
                                     {/* Lost Reason if Lost */}
                                     {lead.status === "Lost" && lead.lostReason && (
-                                      <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200">
-                                        <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider block">
+                                      <div className="p-2.5 bg-rose-50 dark:bg-rose-950/50 rounded-xl border dark:border-gray-700 border-rose-200">
+                                        <span className="text-[10px] font-black uppercase text-rose-800 dark:text-rose-300 tracking-wider block">
                                           ❌ Lost Reason:
                                         </span>
-                                        <p className="text-xs font-bold text-rose-900 mt-1">{lead.lostReason}</p>
+                                        <p className="text-xs font-bold text-rose-900 dark:text-rose-300 mt-1">{lead.lostReason}</p>
                                       </div>
                                     )}
                                   </div>
                                 </div>
 
                                 {/* Right: Corresponding Task & Follow-up History */}
-                                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-indigo-900 flex items-center justify-between border-b pb-2">
+                                <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-2xs space-y-3">
+                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center justify-between border-b dark:border-gray-700 pb-2">
                                     <span className="flex items-center gap-1.5">
-                                      <History className="w-3.5 h-3.5 text-indigo-600" />
+                                      <History className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                                       Task Follow-up History ({history?.tasks?.length || 0})
                                     </span>
                                   </h5>
 
                                   {history?.loading ? (
-                                    <div className="p-4 text-center text-slate-400 font-semibold italic flex items-center justify-center gap-2">
-                                      <RefreshCw className="w-4 h-4 animate-spin text-purple-600" />
+                                    <div className="p-4 text-center text-slate-400 dark:text-gray-400 font-semibold italic flex items-center justify-center gap-2">
+                                      <RefreshCw className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-300" />
                                       Fetching task follow-up history...
                                     </div>
                                   ) : !history?.tasks || history.tasks.length === 0 ? (
-                                    <div className="p-4 text-center text-slate-400 font-medium italic bg-slate-50 rounded-lg border border-dashed">
+                                    <div className="p-4 text-center text-slate-400 dark:text-gray-400 font-medium italic bg-slate-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 border-dashed">
                                       No task follow-up logs recorded yet for this lead.
                                     </div>
                                   ) : (
                                     <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                                       {history.tasks.map((task: any, tIdx: number) => (
-                                        <div key={tIdx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2.5 shadow-2xs">
+                                        <div key={tIdx} className="p-3 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 text-xs space-y-2.5 shadow-2xs">
                                           
                                           {/* Task Header */}
-                                          <div className="flex flex-wrap items-center justify-between gap-1 border-b border-slate-200/70 pb-2">
+                                          <div className="flex flex-wrap items-center justify-between gap-1 border-b dark:border-gray-700 border-slate-200/70 pb-2">
                                             <div>
-                                              <span className="font-extrabold text-indigo-900 block">{task.taskTitle || "Sales"} ({task.id})</span>
-                                              <span className="text-[11px] font-bold text-slate-600">
-                                                BDA User: <span className="text-purple-700">{task.employeeName}</span>
+                                              <span className="font-extrabold text-indigo-900 dark:text-indigo-300 block">{task.taskTitle || "Sales"} ({task.id})</span>
+                                              <span className="text-[11px] font-bold text-slate-600 dark:text-gray-300">
+                                                BDA User: <span className="text-purple-700 dark:text-purple-300">{task.employeeName}</span>
                                               </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                task.status === "Completed" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
-                                                task.status === "In Progress" ? "bg-blue-100 text-blue-800 border border-blue-300" :
-                                                "bg-amber-100 text-amber-800 border border-amber-300"
+                                                task.status === "Completed" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-300" :
+                                                task.status === "In Progress" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-300" :
+                                                "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-300"
                                               }`}>
                                                 {task.status || "Pending"}
                                               </span>
@@ -1987,11 +1987,11 @@ export default function BdaLeads({
 
                                           {/* Latest Scheduled Date if set */}
                                           {task.scheduledAt && (
-                                            <div className="p-2 bg-indigo-50/70 rounded-lg border border-indigo-100 flex items-center justify-between text-[11px]">
-                                              <span className="font-bold text-indigo-900 flex items-center gap-1">
-                                                <Clock className="w-3.5 h-3.5 text-indigo-600" /> Latest Scheduled Follow-up:
+                                            <div className="p-2 bg-indigo-50/70 dark:bg-indigo-950/50 rounded-lg border dark:border-gray-700 border-indigo-100 flex items-center justify-between text-[11px]">
+                                              <span className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" /> Latest Scheduled Follow-up:
                                               </span>
-                                              <span className="font-extrabold text-indigo-800 font-mono">
+                                              <span className="font-extrabold text-indigo-800 dark:text-indigo-300 font-mono">
                                                 {new Date(task.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}
                                               </span>
                                             </div>
@@ -1999,18 +1999,18 @@ export default function BdaLeads({
 
                                           {/* Scheduled Follow-ups History List */}
                                           {Array.isArray(task.followUpHistory) && task.followUpHistory.length > 0 && (
-                                            <div className="space-y-1.5 bg-white p-2.5 rounded-lg border border-slate-200">
-                                              <span className="text-[10px] uppercase font-black tracking-wider text-purple-700 block">
+                                            <div className="space-y-1.5 bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-slate-200 dark:border-gray-700">
+                                              <span className="text-[10px] uppercase font-black tracking-wider text-purple-700 dark:text-purple-300 block">
                                                 📅 Scheduled Follow-ups History ({task.followUpHistory.length}):
                                               </span>
                                               <div className="space-y-1.5">
                                                 {task.followUpHistory.map((h: any, hIdx: number) => (
-                                                  <div key={h.id || hIdx} className="p-2 bg-purple-50/60 rounded-md border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-semibold text-slate-800">
+                                                  <div key={h.id || hIdx} className="p-2 bg-purple-50/60 dark:bg-purple-950/50 rounded-md border dark:border-gray-700 border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-semibold text-slate-800 dark:text-gray-100">
                                                     <span className="flex items-center gap-1.5 font-mono">
-                                                      <Clock className="w-3 h-3 text-purple-600 shrink-0" />
+                                                      <Clock className="w-3 h-3 text-purple-600 dark:text-purple-300 shrink-0" />
                                                       {h.scheduledAt || h.createdAt ? new Date(h.scheduledAt || h.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "N/A"}
                                                     </span>
-                                                    <span className="text-[9px] font-black uppercase text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200 w-fit">
+                                                    <span className="text-[9px] font-black uppercase text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/50 px-2 py-0.5 rounded-full border dark:border-gray-700 border-purple-200 w-fit">
                                                       BY {h.userName || "System"}
                                                     </span>
                                                   </div>
@@ -2025,23 +2025,23 @@ export default function BdaLeads({
                                             if (notes.length === 0) return null;
 
                                             return (
-                                              <div className="text-[11px] text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 space-y-1.5">
-                                                <span className="font-extrabold text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-1">
-                                                  <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                              <div className="text-[11px] text-slate-700 dark:text-gray-100 bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-slate-200 dark:border-gray-700 space-y-1.5">
+                                                <span className="font-extrabold text-slate-900 dark:text-gray-100 flex items-center gap-1.5 border-b border-slate-100 dark:border-gray-700 pb-1">
+                                                  <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300 shrink-0" />
                                                   Progress Notes History ({notes.length}):
                                                 </span>
                                                 <div className="space-y-1.5">
                                                   {notes.map((n: any, nIdx: number) => (
-                                                    <div key={n.id || nIdx} className="p-2 bg-slate-50/70 rounded-md border border-slate-100 space-y-0.5">
+                                                    <div key={n.id || nIdx} className="p-2 bg-slate-50/70 dark:bg-slate-950/50 rounded-md border border-slate-100 dark:border-gray-700 space-y-0.5">
                                                       <div className="flex items-center justify-between text-[10px]">
-                                                        <span className="font-bold text-indigo-800">{n.userName || task.employeeName || "User"}</span>
+                                                        <span className="font-bold text-indigo-800 dark:text-indigo-300">{n.userName || task.employeeName || "User"}</span>
                                                         {n.createdAt && (
-                                                          <span className="text-slate-400 font-mono">
+                                                          <span className="text-slate-400 dark:text-gray-400 font-mono">
                                                             {new Date(n.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}
                                                           </span>
                                                         )}
                                                       </div>
-                                                      <p className="text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">
+                                                      <p className="text-slate-700 dark:text-gray-100 font-medium whitespace-pre-wrap leading-relaxed">
                                                         {n.note || (typeof n === 'string' ? n : '')}
                                                       </p>
                                                     </div>
@@ -2057,9 +2057,9 @@ export default function BdaLeads({
                                             if (attachments.length === 0) return null;
 
                                             return (
-                                              <div className="p-2.5 bg-white rounded-lg border border-purple-200 space-y-2">
-                                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 flex items-center gap-1">
-                                                  <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                                              <div className="p-2.5 bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700 border-purple-200 space-y-2">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 flex items-center gap-1">
+                                                  <Paperclip className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
                                                   Proof of Work / Attachments ({attachments.length}):
                                                 </span>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -2070,8 +2070,8 @@ export default function BdaLeads({
                                                     const isImage = fixedUrl.startsWith("data:image") || rawUrl.match(/\.(png|jpe?g|gif|webp|svg)($|\?)/i);
 
                                                     return (
-                                                      <div key={attIdx} className="p-2 bg-purple-50/50 rounded-lg border border-purple-100 space-y-1">
-                                                        <span className="text-[10px] font-bold text-slate-700 block truncate" title={att.name || "Attachment"}>
+                                                      <div key={attIdx} className="p-2 bg-purple-50/50 dark:bg-purple-950/50 rounded-lg border dark:border-gray-700 border-purple-100 space-y-1">
+                                                        <span className="text-[10px] font-bold text-slate-700 dark:text-gray-100 block truncate" title={att.name || "Attachment"}>
                                                           {att.name || `Attachment #${attIdx + 1}`}
                                                         </span>
 
@@ -2084,21 +2084,21 @@ export default function BdaLeads({
                                                             <img
                                                               src={fixedUrl}
                                                               alt={att.name || "Proof Image"}
-                                                              className="w-full h-28 object-cover rounded-md border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
+                                                              className="w-full h-28 object-cover rounded-md border border-slate-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
                                                               onClick={() => setPreviewImage({ url: fixedUrl, title: att.name || "Proof Image" })}
                                                             />
                                                             <div className="flex items-center gap-2 pt-0.5">
                                                               <button
                                                                 type="button"
                                                                 onClick={() => setPreviewImage({ url: fixedUrl, title: att.name || "Proof Image" })}
-                                                                className="text-[10px] font-bold text-purple-700 hover:underline flex items-center gap-1 cursor-pointer"
+                                                                className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center gap-1 cursor-pointer"
                                                               >
-                                                                <Eye className="w-3 h-3 text-purple-600" /> View Full Image
+                                                                <Eye className="w-3 h-3 text-purple-600 dark:text-purple-300" /> View Full Image
                                                               </button>
                                                               <button
                                                                 type="button"
                                                                 onClick={() => openBlobInNewTab(fixedUrl)}
-                                                                className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                                                                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-1 cursor-pointer"
                                                               >
                                                                 <Download className="w-3 h-3 text-indigo-500" /> Open in New Tab
                                                               </button>
@@ -2108,9 +2108,9 @@ export default function BdaLeads({
                                                           <button
                                                             type="button"
                                                             onClick={() => openBlobInNewTab(fixedUrl)}
-                                                            className="text-xs font-bold text-purple-700 hover:underline flex items-center gap-1.5 pt-0.5 cursor-pointer"
+                                                            className="text-xs font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center gap-1.5 pt-0.5 cursor-pointer"
                                                           >
-                                                            <Paperclip className="w-3.5 h-3.5 text-purple-600" /> View / Download Attachment
+                                                            <Paperclip className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" /> View / Download Attachment
                                                           </button>
                                                         )}
                                                       </div>
@@ -2145,63 +2145,63 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showImportModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[92vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-3xl w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in max-h-[92vh] flex flex-col">
 
             {/* Modal Header & Steps Indicator */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded-xl">
                   <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">
                     Dynamic Bulk Lead Import Wizard
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">
                     Supports ANY Excel/CSV file layout with interactive column mapping
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => { setShowImportModal(false); setImportStep("upload"); setRawRows([]); setMappedData([]); setImportFileName(""); }}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Step Wizard Indicator */}
-            <div className="flex items-center justify-center gap-4 text-xs font-bold py-1 bg-slate-50 rounded-xl border border-slate-200">
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "upload" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500"}`}>
+            <div className="flex items-center justify-center gap-4 text-xs font-bold py-1 bg-slate-50 dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700">
+              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "upload" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 dark:text-gray-400"}`}>
                 1. Upload File
               </span>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "map" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500"}`}>
+              <ChevronRight className="w-4 h-4 text-slate-400 dark:text-gray-400" />
+              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "map" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 dark:text-gray-400"}`}>
                 2. Map File Columns
               </span>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "preview" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500"}`}>
+              <ChevronRight className="w-4 h-4 text-slate-400 dark:text-gray-400" />
+              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${importStep === "preview" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 dark:text-gray-400"}`}>
                 3. Preview & Confirm
               </span>
             </div>
 
             {/* STEP 1: FILE UPLOAD */}
             {importStep === "upload" && (
-              <div className="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 rounded-2xl p-8 text-center space-y-3 transition-colors cursor-pointer"
+              <div className="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/50 rounded-2xl p-8 text-center space-y-3 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}>
                 <input
                   type="file"
                   ref={fileInputRef}
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileUpload}
-                  className="hidden"
+                  className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
-                <FileSpreadsheet className="w-12 h-12 text-emerald-600 mx-auto" />
+                <FileSpreadsheet className="w-12 h-12 text-emerald-600 dark:text-emerald-300 mx-auto" />
                 <div>
-                  <p className="text-sm font-extrabold text-slate-800">
+                  <p className="text-sm font-extrabold text-slate-800 dark:text-gray-100">
                     {importFileName ? importFileName : "Click to choose Excel / CSV file"}
                   </p>
-                  <p className="text-xs font-semibold text-slate-500 mt-1">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mt-1">
                     Upload ANY layout Excel (.xlsx, .xls) or CSV file. You will map columns in the next step!
                   </p>
                 </div>
@@ -2211,26 +2211,26 @@ export default function BdaLeads({
             {/* STEP 2: DYNAMIC COLUMN MAPPER */}
             {importStep === "map" && (
               <div className="space-y-4 flex-1 overflow-auto">
-                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs font-bold text-emerald-900 flex items-center justify-between">
+                <div className="bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-3 rounded-xl text-xs font-bold text-emerald-900 dark:text-emerald-300 flex items-center justify-between">
                   <span>📄 File Uploaded: <strong>{importFileName}</strong> ({rawRows.length} Rows Found)</span>
-                  <span className="text-[11px] bg-emerald-200 px-2 py-0.5 rounded text-emerald-800">Smart Headers Detected</span>
+                  <span className="text-[11px] bg-emerald-200 dark:bg-emerald-950/50 px-2 py-0.5 rounded text-emerald-800 dark:text-emerald-300">Smart Headers Detected</span>
                 </div>
 
-                <p className="text-xs font-bold text-slate-600">
+                <p className="text-xs font-bold text-slate-600 dark:text-gray-300">
                   Select which column in your uploaded file matches each standard Lead field:
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-bold">
 
                   {/* Contact Name */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       👤 Contact / Client Name Field *
                     </label>
                     <select
                       value={columnMapping.name}
                       onChange={e => setColumnMapping({ ...columnMapping, name: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Do Not Map / Auto --</option>
                       {rawHeaders.map(h => (
@@ -2240,14 +2240,14 @@ export default function BdaLeads({
                   </div>
 
                   {/* Phone */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       📱 Phone / Mobile Field
                     </label>
                     <select
                       value={columnMapping.phone}
                       onChange={e => setColumnMapping({ ...columnMapping, phone: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Do Not Map --</option>
                       {rawHeaders.map(h => (
@@ -2257,14 +2257,14 @@ export default function BdaLeads({
                   </div>
 
                   {/* Company Name */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       🏢 Company / Business Name Field
                     </label>
                     <select
                       value={columnMapping.companyName}
                       onChange={e => setColumnMapping({ ...columnMapping, companyName: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Do Not Map --</option>
                       {rawHeaders.map(h => (
@@ -2274,14 +2274,14 @@ export default function BdaLeads({
                   </div>
 
                   {/* Email */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       📧 Email Address Field
                     </label>
                     <select
                       value={columnMapping.email}
                       onChange={e => setColumnMapping({ ...columnMapping, email: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Do Not Map --</option>
                       {rawHeaders.map(h => (
@@ -2291,14 +2291,14 @@ export default function BdaLeads({
                   </div>
 
                   {/* City / Location */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       📍 City / Location Field
                     </label>
                     <select
                       value={columnMapping.city}
                       onChange={e => setColumnMapping({ ...columnMapping, city: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Do Not Map --</option>
                       {rawHeaders.map(h => (
@@ -2308,14 +2308,14 @@ export default function BdaLeads({
                   </div>
 
                   {/* Sales Reason */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                    <label className="block text-[10px] font-black uppercase text-slate-600">
+                  <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                       📋 Sales Reason / Purpose Field
                     </label>
                     <select
                       value={columnMapping.salesReason}
                       onChange={e => setColumnMapping({ ...columnMapping, salesReason: e.target.value })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                     >
                       <option value="">-- Default to "Pitching" --</option>
                       {rawHeaders.map(h => (
@@ -2326,13 +2326,13 @@ export default function BdaLeads({
                 </div>
 
                 {/* Preserve Extra Unmapped Columns */}
-                <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs font-bold text-purple-900">
+                <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl text-xs font-bold text-purple-900 dark:text-purple-300">
                   <input
                     type="checkbox"
                     id="saveExtra"
                     checked={saveExtraColumns}
                     onChange={e => setSaveExtraColumns(e.target.checked)}
-                    className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                    className="w-4 h-4 text-purple-600 dark:text-purple-300 rounded cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
                   />
                   <label htmlFor="saveExtra" className="cursor-pointer">
                     Save all unmapped extra columns (e.g. Budget, GST, Campaign, Notes) in Lead Details view (Zero Data Loss)
@@ -2345,35 +2345,35 @@ export default function BdaLeads({
             {importStep === "preview" && (
               <div className="flex-1 overflow-hidden flex flex-col space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
+                  <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg">
                     Preview: {mappedData.length} Mapped Lead Rows Ready to Import
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500">Review mapped columns before database insertion</span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-gray-400">Review mapped columns before database insertion</span>
                 </div>
 
-                <div className="flex-1 border border-slate-200 rounded-xl overflow-auto max-h-60">
+                <div className="flex-1 border border-slate-200 dark:border-gray-700 rounded-xl overflow-auto max-h-60">
                   <table className="w-full text-left text-xs font-semibold border-collapse">
                     <thead>
-                      <tr className="bg-slate-100 text-[10px] font-black uppercase text-slate-500">
-                        <th className="p-2 border-b">#</th>
-                        <th className="p-2 border-b">Contact Name</th>
-                        <th className="p-2 border-b">Phone</th>
-                        <th className="p-2 border-b">Email</th>
-                        <th className="p-2 border-b">Company</th>
-                        <th className="p-2 border-b">City</th>
-                        <th className="p-2 border-b">Reason</th>
+                      <tr className="bg-slate-100 dark:bg-gray-800 text-[10px] font-black uppercase text-slate-500 dark:text-gray-400">
+                        <th className="p-2 border-b dark:border-gray-700">#</th>
+                        <th className="p-2 border-b dark:border-gray-700">Contact Name</th>
+                        <th className="p-2 border-b dark:border-gray-700">Phone</th>
+                        <th className="p-2 border-b dark:border-gray-700">Email</th>
+                        <th className="p-2 border-b dark:border-gray-700">Company</th>
+                        <th className="p-2 border-b dark:border-gray-700">City</th>
+                        <th className="p-2 border-b dark:border-gray-700">Reason</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
                       {mappedData.slice(0, 100).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-2 font-mono text-slate-400">{idx + 1}</td>
-                          <td className="p-2 font-bold text-slate-900">{row.name || "N/A"}</td>
-                          <td className="p-2 text-slate-700">{row.phone || "N/A"}</td>
-                          <td className="p-2 text-slate-600">{row.email || "N/A"}</td>
-                          <td className="p-2 text-slate-800">{row.companyName || "N/A"}</td>
-                          <td className="p-2 text-slate-600">{row.city || "N/A"}</td>
-                          <td className="p-2 text-slate-600">{row.salesReason || "Pitching"}</td>
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-gray-800">
+                          <td className="p-2 font-mono text-slate-400 dark:text-gray-400">{idx + 1}</td>
+                          <td className="p-2 font-bold text-slate-900 dark:text-gray-100">{row.name || "N/A"}</td>
+                          <td className="p-2 text-slate-700 dark:text-gray-100">{row.phone || "N/A"}</td>
+                          <td className="p-2 text-slate-600 dark:text-gray-300">{row.email || "N/A"}</td>
+                          <td className="p-2 text-slate-800 dark:text-gray-100">{row.companyName || "N/A"}</td>
+                          <td className="p-2 text-slate-600 dark:text-gray-300">{row.city || "N/A"}</td>
+                          <td className="p-2 text-slate-600 dark:text-gray-300">{row.salesReason || "Pitching"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2383,13 +2383,13 @@ export default function BdaLeads({
             )}
 
             {/* Modal Navigation Actions */}
-            <div className="flex justify-between items-center pt-3 border-t border-slate-200">
+            <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-gray-700">
               <div>
                 {importStep === "map" && (
                   <button
                     type="button"
                     onClick={() => setImportStep("upload")}
-                    className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                    className="px-3.5 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                   >
                     ← Back to File Selection
                   </button>
@@ -2398,7 +2398,7 @@ export default function BdaLeads({
                   <button
                     type="button"
                     onClick={() => setImportStep("map")}
-                    className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                    className="px-3.5 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                   >
                     ← Back to Column Mapping
                   </button>
@@ -2409,7 +2409,7 @@ export default function BdaLeads({
                 <button
                   type="button"
                   onClick={() => { setShowImportModal(false); setImportStep("upload"); setRawRows([]); setMappedData([]); setImportFileName(""); }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -2447,28 +2447,28 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-purple-100 text-purple-800 rounded-xl">
+                <div className="p-2 bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 rounded-xl">
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">
                     {selectedIds.length === 1 ? "Assign Lead to BDA" : "Bulk Assign to BDA"}
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500">Auto-create task for assigned BDA</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Auto-create task for assigned BDA</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAssignModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs font-bold text-purple-900">
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl text-xs font-bold text-purple-900 dark:text-purple-300">
               {selectedIds.length === 1 ? (
                 (() => {
                   const singleLead = leads.find(l => l.id === selectedIds[0]);
@@ -2487,13 +2487,13 @@ export default function BdaLeads({
             {/* Select BDA Dropdown */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-600">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-gray-300">
                   Select BDA / Sales Team Member *
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowAllEmployees(!showAllEmployees)}
-                  className="text-[10px] font-bold text-purple-700 hover:underline bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200"
+                  className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:underline bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border dark:border-gray-700 border-purple-200"
                 >
                   {showAllEmployees ? "Show BDA Users Only" : "Show All Employees"}
                 </button>
@@ -2502,7 +2502,7 @@ export default function BdaLeads({
               <select
                 value={targetBdaId}
                 onChange={(e) => setTargetBdaId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-extrabold text-slate-800 focus:outline-none focus:border-purple-600"
+                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-extrabold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
               >
                 <option value="">-- Choose BDA User ({finalBdaList.length}) --</option>
                 {finalBdaList.map((bda) => (
@@ -2514,11 +2514,11 @@ export default function BdaLeads({
             </div>
 
             {/* Modal Actions */}
-            <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200">
+            <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={() => setShowAssignModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
@@ -2541,16 +2541,16 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showDetailsModal && activeLead && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
 
             {/* Modal Header */}
-            <div className="flex justify-between items-center gap-3 pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center gap-3 pb-3 border-b border-slate-200 dark:border-gray-700">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-purple-600" />
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                   Lead Details & Management ({activeLead.leadId})
                 </h3>
-                <p className="text-xs font-semibold text-slate-500">All lead information, stage details, documents, remarks, and editing tools in one place · Source: {activeLead.source || "Excel Import"}</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">All lead information, stage details, documents, remarks, and editing tools in one place · Source: {activeLead.source || "Excel Import"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -2560,24 +2560,24 @@ export default function BdaLeads({
                 >
                   <Phone className="w-3.5 h-3.5" /> Log Call
                 </button>
-                <button onClick={() => setShowDetailsModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                <button onClick={() => setShowDetailsModal(false)} className="p-1.5 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             {/* CARD 1: BASIC LEAD INFO & STATUS */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-purple-600" />
+            <div className="space-y-3 bg-slate-50 dark:bg-gray-800 p-4 rounded-2xl border border-slate-200 dark:border-gray-700">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-gray-700">
+                <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                   Basic Information & Status
                 </h4>
                 <button
                   type="button"
                   onClick={() => setIsEditingInfo(!isEditingInfo)}
-                  className={`text-[11px] font-black px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                    isEditingInfo ? "bg-purple-600 text-white border-purple-600" : "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                  className={`text-[11px] font-black px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${
+                    isEditingInfo ? "bg-purple-600 text-white border-purple-600" : "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 hover:bg-purple-100 dark:hover:bg-purple-950/50"
                   }`}
                 >
                   <Edit className="w-3 h-3" />
@@ -2589,39 +2589,39 @@ export default function BdaLeads({
                 /* READ-ONLY VIEW GRID */
                 <div className="grid grid-cols-2 gap-3 text-xs font-bold">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Contact Person</span>
-                    <span className="text-slate-900 text-sm">{activeLead.name}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Contact Person</span>
+                    <span className="text-slate-900 dark:text-gray-100 text-sm">{activeLead.name}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Phone / Mobile</span>
-                    <span className="text-slate-800">{activeLead.phone || "N/A"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Phone / Mobile</span>
+                    <span className="text-slate-800 dark:text-gray-100">{activeLead.phone || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Company Name</span>
-                    <span className="text-slate-800">{activeLead.companyName || "N/A"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Company Name</span>
+                    <span className="text-slate-800 dark:text-gray-100">{activeLead.companyName || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Email Address</span>
-                    <span className="text-slate-800">{activeLead.email || "N/A"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Email Address</span>
+                    <span className="text-slate-800 dark:text-gray-100">{activeLead.email || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">City / Location</span>
-                    <span className="text-slate-800">{activeLead.city || "N/A"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">City / Location</span>
+                    <span className="text-slate-800 dark:text-gray-100">{activeLead.city || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Sales Purpose</span>
-                    <span className="text-slate-800">{activeLead.salesReason || "Pitching"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Sales Purpose</span>
+                    <span className="text-slate-800 dark:text-gray-100">{activeLead.salesReason || "Pitching"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Assigned BDA</span>
-                    <span className="text-blue-700">{activeLead.assignedToName || "Unassigned"}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Assigned BDA</span>
+                    <span className="text-blue-700 dark:text-blue-300">{activeLead.assignedToName || "Unassigned"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-black block">Status</span>
+                    <span className="text-[10px] text-slate-400 dark:text-gray-400 uppercase font-black block">Status</span>
                     <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold ${
-                      activeLead.status === "Converted" ? "bg-emerald-100 text-emerald-800" :
-                      activeLead.status === "Lost" ? "bg-rose-100 text-rose-800" :
-                      "bg-purple-100 text-purple-800"
+                      activeLead.status === "Converted" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300" :
+                      activeLead.status === "Lost" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300" :
+                      "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300"
                     }`}>
                       {activeLead.status}
                     </span>
@@ -2632,59 +2632,59 @@ export default function BdaLeads({
                 <div className="space-y-3 text-xs font-semibold">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Contact Person Name *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Contact Person Name *</label>
                       <input
                         type="text"
                         required
                         value={activeLead.name || ""}
                         onChange={e => setActiveLead({ ...activeLead, name: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Phone / Mobile</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Phone / Mobile</label>
                       <input
                         type="text"
                         value={activeLead.phone || ""}
                         onChange={e => setActiveLead({ ...activeLead, phone: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Email Address</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Email Address</label>
                       <input
                         type="email"
                         value={activeLead.email || ""}
                         onChange={e => setActiveLead({ ...activeLead, email: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Company Name</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Company Name</label>
                       <input
                         type="text"
                         value={activeLead.companyName || ""}
                         onChange={e => setActiveLead({ ...activeLead, companyName: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">City / Location</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">City / Location</label>
                       <input
                         type="text"
                         value={activeLead.city || ""}
                         onChange={e => setActiveLead({ ...activeLead, city: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Sales Reason / Purpose</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Sales Reason / Purpose</label>
                       <select
                         value={["Pitching", "Follow Up", "Client Meeting", "Proposal Shared"].includes(activeLead.salesReason || "") ? activeLead.salesReason : "Other"}
                         onChange={e => {
@@ -2695,7 +2695,7 @@ export default function BdaLeads({
                             setActiveLead({ ...activeLead, salesReason: val });
                           }
                         }}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       >
                         <option value="Pitching">Pitching</option>
                         <option value="Follow Up">Follow Up</option>
@@ -2710,7 +2710,7 @@ export default function BdaLeads({
                           placeholder="Specify custom sales reason / purpose..."
                           value={activeLead.salesReason === "Other" ? "" : activeLead.salesReason}
                           onChange={e => setActiveLead({ ...activeLead, salesReason: e.target.value || "Other" })}
-                          className="w-full bg-white border border-purple-300 rounded-xl p-2 mt-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600 animate-fade-in"
+                          className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 mt-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 animate-fade-in dark:[color-scheme:dark]"
                         />
                       )}
                     </div>
@@ -2718,11 +2718,11 @@ export default function BdaLeads({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Lead Status</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Lead Status</label>
                       <select
                         value={activeLead.status}
                         onChange={e => setActiveLead({ ...activeLead, status: e.target.value })}
-                        className="w-full bg-white border border-purple-300 rounded-xl p-2 font-extrabold text-slate-900 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-extrabold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                       >
                         <option value="New">New</option>
                         <option value="Assigned">Assigned</option>
@@ -2735,7 +2735,7 @@ export default function BdaLeads({
 
                     {isManagerial && (
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Assigned BDA</label>
+                        <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Assigned BDA</label>
                         <select
                           value={activeLead.assignedTo || ""}
                           onChange={e => {
@@ -2747,7 +2747,7 @@ export default function BdaLeads({
                               assignedToName: bdaObj ? bdaObj.name : undefined
                             });
                           }}
-                          className="w-full bg-white border border-purple-300 rounded-xl p-2 font-extrabold text-slate-900 focus:outline-none focus:border-purple-600"
+                          className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2 font-extrabold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                         >
                           <option value="">-- Unassigned --</option>
                           {finalBdaList.map(bda => (
@@ -2765,17 +2765,17 @@ export default function BdaLeads({
 
             {/* CARD 2: CONVERTED SERVICES & TOTAL VALUE */}
             {(activeLead.convertedServicesJson || activeLead.status === "Converted" || isEditingServices) && (
-              <div className="space-y-2.5 bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-2xl">
+              <div className="space-y-2.5 bg-emerald-50/70 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-3.5 rounded-2xl">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <h4 className="text-xs font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                     Converted Services & Amount Breakdown
                   </h4>
                   <button
                     type="button"
                     onClick={() => setIsEditingServices(!isEditingServices)}
-                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                      isEditingServices ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${
+                      isEditingServices ? "bg-emerald-600 text-white border-emerald-600" : "bg-white dark:bg-gray-900 text-emerald-800 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
                     }`}
                   >
                     <Edit className="w-3 h-3" />
@@ -2790,29 +2790,29 @@ export default function BdaLeads({
                       try {
                         const parsed = typeof activeLead.convertedServicesJson === "string" ? JSON.parse(activeLead.convertedServicesJson) : activeLead.convertedServicesJson;
                         const serviceList = Array.isArray(parsed) && parsed.length > 0 ? parsed : serviceRows.filter(r => r.serviceName.trim() !== "");
-                        if (serviceList.length === 0) return <p className="text-xs italic text-emerald-700">No specific services added yet.</p>;
+                        if (serviceList.length === 0) return <p className="text-xs italic text-emerald-700 dark:text-emerald-300">No specific services added yet.</p>;
 
                         return (
                           <table className="w-full text-left text-xs font-semibold">
                             <thead>
-                              <tr className="border-b border-emerald-200 text-[10px] uppercase font-black text-emerald-800">
+                              <tr className="border-b dark:border-gray-700 border-emerald-200 text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300">
                                 <th className="pb-1.5">#</th>
                                 <th className="pb-1.5">Service Name</th>
                                 <th className="pb-1.5 text-right">Amount (₹)</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-emerald-100">
+                            <tbody className="divide-y dark:divide-gray-700 divide-emerald-100">
                               {serviceList.map((s: any, idx: number) => (
                                 <tr key={idx}>
-                                  <td className="py-1.5 font-mono text-emerald-700 text-[11px]">{idx + 1}</td>
-                                  <td className="py-1.5 text-slate-900 font-extrabold">{s.serviceName}</td>
-                                  <td className="py-1.5 text-right font-mono font-bold text-emerald-900">₹ {(parseFloat(s.amount) || 0).toLocaleString('en-IN')}</td>
+                                  <td className="py-1.5 font-mono text-emerald-700 dark:text-emerald-300 text-[11px]">{idx + 1}</td>
+                                  <td className="py-1.5 text-slate-900 dark:text-gray-100 font-extrabold">{s.serviceName}</td>
+                                  <td className="py-1.5 text-right font-mono font-bold text-emerald-900 dark:text-emerald-300">₹ {(parseFloat(s.amount) || 0).toLocaleString('en-IN')}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         );
-                      } catch { return <p className="text-xs italic text-emerald-700">No services parsed.</p>; }
+                      } catch { return <p className="text-xs italic text-emerald-700 dark:text-emerald-300">No services parsed.</p>; }
                     })()}
 
                     <div className="flex justify-between items-center bg-emerald-600 text-white p-2.5 rounded-xl font-bold text-xs shadow-sm mt-2">
@@ -2824,7 +2824,7 @@ export default function BdaLeads({
                   /* INTERACTIVE SERVICES EDIT BUILDER */
                   <div className="space-y-2 text-xs font-semibold">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-emerald-800">Add / Edit Services</span>
+                      <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300">Add / Edit Services</span>
                       <button
                         type="button"
                         onClick={() => setServiceRows([...serviceRows, { serviceName: "", amount: "" }])}
@@ -2845,10 +2845,10 @@ export default function BdaLeads({
                             updated[idx].serviceName = e.target.value;
                             setServiceRows(updated);
                           }}
-                          className="flex-1 bg-white border border-emerald-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                          className="flex-1 bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                         />
                         <div className="relative w-32 shrink-0">
-                          <span className="absolute left-2.5 top-2 text-xs font-bold text-emerald-700">₹</span>
+                          <span className="absolute left-2.5 top-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">₹</span>
                           <input
                             type="number"
                             placeholder="Amount"
@@ -2858,14 +2858,14 @@ export default function BdaLeads({
                               updated[idx].amount = e.target.value;
                               setServiceRows(updated);
                             }}
-                            className="w-full pl-6 bg-white border border-emerald-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                            className="w-full pl-6 bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-xl p-2 font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                           />
                         </div>
                         {serviceRows.length > 1 && (
                           <button
                             type="button"
                             onClick={() => setServiceRows(serviceRows.filter((_, i) => i !== idx))}
-                            className="text-rose-500 hover:text-rose-700 p-1"
+                            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 p-1"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -2886,17 +2886,17 @@ export default function BdaLeads({
 
             {/* CARD 3: REASON FOR LOST LEAD */}
             {(activeLead.lostReason || activeLead.status === "Lost" || isEditingLost) && (
-              <div className="space-y-2 bg-rose-50 border border-rose-200 p-3.5 rounded-2xl">
+              <div className="space-y-2 bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 p-3.5 rounded-2xl">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-extrabold text-rose-900 flex items-center gap-1.5">
-                    <XCircle className="w-4 h-4 text-rose-600" />
+                  <h4 className="text-xs font-extrabold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+                    <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-300" />
                     Reason for Lost Lead
                   </h4>
                   <button
                     type="button"
                     onClick={() => setIsEditingLost(!isEditingLost)}
-                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                      isEditingLost ? "bg-rose-600 text-white border-rose-600" : "bg-white text-rose-800 border-rose-300 hover:bg-rose-100"
+                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${
+                      isEditingLost ? "bg-rose-600 text-white border-rose-600" : "bg-white dark:bg-gray-900 text-rose-800 dark:text-rose-300 border-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950/50"
                     }`}
                   >
                     <Edit className="w-3 h-3" />
@@ -2905,7 +2905,7 @@ export default function BdaLeads({
                 </div>
 
                 {!isEditingLost ? (
-                  <p className="text-xs font-semibold text-rose-800 bg-white p-2.5 rounded-xl border border-rose-200">
+                  <p className="text-xs font-semibold text-rose-800 dark:text-rose-300 bg-white dark:bg-gray-900 p-2.5 rounded-xl border dark:border-gray-700 border-rose-200">
                     {activeLead.lostReason || statusLostReason || "No lost reason specified."}
                   </p>
                 ) : (
@@ -2914,7 +2914,7 @@ export default function BdaLeads({
                     placeholder="Specify why lead was lost (e.g. Price high, Chosen competitor)..."
                     value={statusLostReason}
                     onChange={(e) => setStatusLostReason(e.target.value)}
-                    className="w-full bg-white border border-rose-300 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600"
+                    className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-300 rounded-xl p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-600 dark:[color-scheme:dark]"
                   />
                 )}
               </div>
@@ -2922,17 +2922,17 @@ export default function BdaLeads({
 
             {/* CARD 4: ATTACHMENTS & AUDIO RECORDINGS */}
             {(statusAttachments.length > 0 || activeLead.attachmentsJson || activeLead.status === "Converted" || activeLead.status === "Lost" || isEditingAtts) && (
-              <div className="space-y-2.5 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
+              <div className="space-y-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3.5 rounded-2xl">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <Paperclip className="w-4 h-4 text-purple-600" />
+                  <h4 className="text-xs font-extrabold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                     Attachments & Audio Recordings ({statusAttachments.length})
                   </h4>
                   <button
                     type="button"
                     onClick={() => setIsEditingAtts(!isEditingAtts)}
-                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                      isEditingAtts ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-800 border-purple-300 hover:bg-purple-100"
+                    className={`text-[11px] font-black px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${
+                      isEditingAtts ? "bg-purple-600 text-white border-purple-600" : "bg-white dark:bg-gray-900 text-purple-800 dark:text-purple-300 border-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950/50"
                     }`}
                   >
                     <Edit className="w-3 h-3" />
@@ -2946,7 +2946,7 @@ export default function BdaLeads({
                       type="file"
                       ref={statusFileInputRef}
                       onChange={handleStatusFileUpload}
-                      className="hidden"
+                      className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                       accept="audio/*,.aac,.mp3,.wav,.m4a,image/*,.pdf"
                     />
                     <button
@@ -2967,17 +2967,17 @@ export default function BdaLeads({
                       const isImage = att.type?.includes("image") || att.name?.endsWith(".png") || att.name?.endsWith(".jpg") || att.name?.endsWith(".jpeg");
 
                       return (
-                        <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-sm">
+                        <div key={idx} className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1.5 shadow-sm">
                           <div className="flex justify-between items-center text-xs font-bold">
                             <span className="flex items-center gap-1.5 truncate max-w-[280px]">
-                              {isAudio ? <Mic className="w-4 h-4 text-purple-600 shrink-0" /> : isImage ? <FileText className="w-4 h-4 text-emerald-600 shrink-0" /> : <Paperclip className="w-4 h-4 text-blue-600 shrink-0" />}
-                              <span className="truncate text-slate-900">{att.name}</span>
+                              {isAudio ? <Mic className="w-4 h-4 text-purple-600 dark:text-purple-300 shrink-0" /> : isImage ? <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-300 shrink-0" /> : <Paperclip className="w-4 h-4 text-blue-600 dark:text-blue-300 shrink-0" />}
+                              <span className="truncate text-slate-900 dark:text-gray-100">{att.name}</span>
                             </span>
                             <div className="flex items-center gap-1.5">
                               <a
                                 href={att.url}
                                 download={att.name}
-                                className="text-[11px] font-bold text-purple-700 hover:underline bg-purple-50 px-2 py-0.5 rounded border border-purple-200"
+                                className="text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:underline bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded border dark:border-gray-700 border-purple-200"
                               >
                                 Download
                               </a>
@@ -2985,7 +2985,7 @@ export default function BdaLeads({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveAttachment(idx)}
-                                  className="text-slate-400 hover:text-rose-600 p-1"
+                                  className="text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 p-1"
                                   title="Remove Attachment"
                                 >
                                   <X className="w-4 h-4" />
@@ -3001,7 +3001,7 @@ export default function BdaLeads({
                             const audioType = att.type?.includes("audio") ? att.type : (ext === 'aac' ? 'audio/aac' : ext === 'm4a' ? 'audio/mp4' : 'audio/mpeg');
 
                             return (
-                              <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-100 space-y-1">
+                              <div className="bg-purple-50 dark:bg-purple-950/50 p-2.5 rounded-lg border dark:border-gray-700 border-purple-100 space-y-1">
                                 <audio
                                   key={playableUrl.slice(0, 80) + idx}
                                   controls
@@ -3022,7 +3022,7 @@ export default function BdaLeads({
                           {/* Image Preview */}
                           {isImage && (
                             <a href={att.url} target="_blank" rel="noopener noreferrer">
-                              <img src={att.url} alt={att.name} className="h-24 object-cover rounded-lg border border-slate-200 hover:opacity-95 transition-opacity" />
+                              <img src={att.url} alt={att.name} className="h-24 object-cover rounded-lg border border-slate-200 dark:border-gray-700 hover:opacity-95 transition-opacity" />
                             </a>
                           )}
                         </div>
@@ -3030,23 +3030,23 @@ export default function BdaLeads({
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs italic text-slate-500">No attachments uploaded.</p>
+                  <p className="text-xs italic text-slate-500 dark:text-gray-400">No attachments uploaded.</p>
                 )}
               </div>
             )}
 
             {/* CARD 5: REMARKS & ACTIVITY NOTES */}
-            <div className="space-y-2 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
+            <div className="space-y-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3.5 rounded-2xl">
               <div className="flex justify-between items-center">
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-purple-600" />
+                <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                   Remarks & Details
                 </h4>
                 <button
                   type="button"
                   onClick={() => setIsEditingRemarks(!isEditingRemarks)}
-                  className={`text-[11px] font-black px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                    isEditingRemarks ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-800 border-purple-300 hover:bg-purple-100"
+                  className={`text-[11px] font-black px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer ${
+                    isEditingRemarks ? "bg-purple-600 text-white border-purple-600" : "bg-white dark:bg-gray-900 text-purple-800 dark:text-purple-300 border-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950/50"
                   }`}
                 >
                   <Edit className="w-3 h-3" />
@@ -3055,7 +3055,7 @@ export default function BdaLeads({
               </div>
 
               {!isEditingRemarks ? (
-                <p className="text-xs font-bold text-slate-800 bg-white p-2.5 rounded-xl border border-slate-200">
+                <p className="text-xs font-bold text-slate-800 dark:text-gray-100 bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-slate-200 dark:border-gray-700">
                   {activeLead.remarks || "No additional remarks."}
                 </p>
               ) : (
@@ -3063,7 +3063,7 @@ export default function BdaLeads({
                   rows={2}
                   value={activeLead.remarks || ""}
                   onChange={e => setActiveLead({ ...activeLead, remarks: e.target.value })}
-                  className="w-full bg-white border border-purple-300 rounded-xl p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                  className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                 />
               )}
             </div>
@@ -3071,26 +3071,26 @@ export default function BdaLeads({
             {/* Raw Unmapped Extra Columns from Excel/CSV File */}
             {activeLead.rawExtraJson && (
               <div className="space-y-2">
-                <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-xs font-extrabold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                   Preserved Extra Columns from Uploaded File
                 </h4>
-                <div className="bg-emerald-50/60 border border-emerald-200 p-3 rounded-2xl max-h-48 overflow-y-auto">
+                <div className="bg-emerald-50/60 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-3 rounded-2xl max-h-48 overflow-y-auto">
                   <table className="w-full text-left text-xs font-semibold">
                     <thead>
-                      <tr className="border-b border-emerald-200 text-[10px] uppercase font-black text-emerald-800">
+                      <tr className="border-b dark:border-gray-700 border-emerald-200 text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300">
                         <th className="pb-1.5">Excel Column Header</th>
                         <th className="pb-1.5">Value</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-emerald-100">
+                    <tbody className="divide-y dark:divide-gray-700 divide-emerald-100">
                       {(() => {
                         try {
                           const parsed = typeof activeLead.rawExtraJson === "string" ? JSON.parse(activeLead.rawExtraJson) : activeLead.rawExtraJson;
                           return Object.entries(parsed).map(([key, val]) => (
                             <tr key={key}>
-                              <td className="py-1.5 text-slate-600 font-mono text-[11px]">{key}</td>
-                              <td className="py-1.5 text-slate-900 font-bold">{String(val || "N/A")}</td>
+                              <td className="py-1.5 text-slate-600 dark:text-gray-300 font-mono text-[11px]">{key}</td>
+                              <td className="py-1.5 text-slate-900 dark:text-gray-100 font-bold">{String(val || "N/A")}</td>
                             </tr>
                           ));
                         } catch { return <tr><td colSpan={2}>Raw data format error</td></tr>; }
@@ -3102,7 +3102,7 @@ export default function BdaLeads({
             )}
 
             {/* MASTER FOOTER ACTIONS */}
-            <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-100 dark:border-gray-700">
               <button
                 type="button"
                 onClick={async () => {
@@ -3152,7 +3152,7 @@ export default function BdaLeads({
 
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="px-4 py-2.5 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 text-slate-800 dark:text-gray-100 text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
                 Close
               </button>
@@ -3166,26 +3166,26 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showStatusActionModal && targetStatusLead && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[92vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in max-h-[92vh] flex flex-col">
 
             {/* Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2.5 rounded-2xl text-white shadow-md ${targetNewStatus === "Converted" ? "bg-emerald-600" : "bg-rose-600"}`}>
                   {targetNewStatus === "Converted" ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">
                     Mark Lead as {targetNewStatus} ({targetStatusLead.leadId})
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">
                     {targetNewStatus === "Converted"
                       ? "Add converted services, amounts & recordings/documents"
                       : "Record loss reason & attachments"}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowStatusActionModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+              <button onClick={() => setShowStatusActionModal(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -3194,30 +3194,30 @@ export default function BdaLeads({
             <form onSubmit={handleSaveStatusActionModal} className="space-y-4 flex-1 overflow-y-auto pr-1 text-xs font-semibold">
 
               {/* Lead Summary Header Card */}
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center justify-between text-xs">
+              <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3 rounded-2xl flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-black text-slate-400 block">Client / Company</span>
-                  <span className="font-extrabold text-slate-900">{targetStatusLead.name}</span>
-                  {targetStatusLead.companyName && <span className="text-slate-500 ml-1.5">({targetStatusLead.companyName})</span>}
+                  <span className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 block">Client / Company</span>
+                  <span className="font-extrabold text-slate-900 dark:text-gray-100">{targetStatusLead.name}</span>
+                  {targetStatusLead.companyName && <span className="text-slate-500 dark:text-gray-400 ml-1.5">({targetStatusLead.companyName})</span>}
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase font-black text-slate-400 block">Current Status</span>
-                  <span className="font-bold text-purple-700">{targetStatusLead.status}</span>
+                  <span className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 block">Current Status</span>
+                  <span className="font-bold text-purple-700 dark:text-purple-300">{targetStatusLead.status}</span>
                 </div>
               </div>
 
               {/* CONVERTED FIELDS: MULTIPLE SERVICES BUILDER */}
               {targetNewStatus === "Converted" && (
-                <div className="space-y-3 bg-emerald-50/50 border border-emerald-200 p-4 rounded-2xl">
+                <div className="space-y-3 bg-emerald-50/50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-4 rounded-2xl">
                   <div className="flex justify-between items-center">
-                    <label className="text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
-                      <DollarSign className="w-4 h-4 text-emerald-600" />
+                    <label className="text-xs font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                       Converted Services & Value *
                     </label>
                     <button
                       type="button"
                       onClick={handleAddServiceRow}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 transition-all"
+                      className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 hover:bg-emerald-200 dark:hover:bg-emerald-950/50 px-2.5 py-1 rounded-lg border dark:border-gray-700 border-emerald-300 flex items-center gap-1 transition-all"
                     >
                       <PlusCircle className="w-3.5 h-3.5" />
                       + Add Another Service
@@ -3226,31 +3226,31 @@ export default function BdaLeads({
 
                   <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {serviceRows.map((row, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-emerald-200 shadow-sm">
-                        <span className="text-[11px] font-mono font-bold text-emerald-800 w-5">{idx + 1}.</span>
+                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-900 p-2.5 rounded-xl border dark:border-gray-700 border-emerald-200 shadow-sm">
+                        <span className="text-[11px] font-mono font-bold text-emerald-800 dark:text-emerald-300 w-5">{idx + 1}.</span>
                         <input
                           type="text"
                           required
                           placeholder="Service Name (e.g. GST Registration, Audit, Payroll)"
                           value={row.serviceName}
                           onChange={e => handleServiceChange(idx, "serviceName", e.target.value)}
-                          className="flex-1 bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-slate-800 focus:outline-none focus:border-emerald-600 text-xs"
+                          className="flex-1 bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 text-xs dark:[color-scheme:dark]"
                         />
                         <div className="relative w-32">
-                          <span className="absolute left-2.5 top-2 text-slate-400 font-bold text-xs">₹</span>
+                          <span className="absolute left-2.5 top-2 text-slate-400 dark:text-gray-400 font-bold text-xs">₹</span>
                           <input
                             type="number"
                             placeholder="Amount"
                             value={row.amount}
                             onChange={e => handleServiceChange(idx, "amount", e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded-lg py-2 pl-6 pr-2 font-extrabold text-slate-900 focus:outline-none focus:border-emerald-600 text-xs"
+                            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg py-2 pl-6 pr-2 font-extrabold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 text-xs dark:[color-scheme:dark]"
                           />
                         </div>
                         {serviceRows.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveServiceRow(idx)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            className="p-1.5 text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all"
                             title="Remove Service"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -3270,8 +3270,8 @@ export default function BdaLeads({
 
               {/* LOST FIELDS: REASON FOR LOSS */}
               {targetNewStatus === "Lost" && (
-                <div className="space-y-1.5 bg-rose-50/50 border border-rose-200 p-4 rounded-2xl">
-                  <label className="block text-xs font-extrabold text-rose-900">
+                <div className="space-y-1.5 bg-rose-50/50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 p-4 rounded-2xl">
+                  <label className="block text-xs font-extrabold text-rose-900 dark:text-rose-300">
                     Reason for Losing Lead *
                   </label>
                   <textarea
@@ -3280,20 +3280,20 @@ export default function BdaLeads({
                     placeholder="Enter reason why client opted out, price constraints, competitor chosen, or no requirement..."
                     value={statusLostReason}
                     onChange={e => setStatusLostReason(e.target.value)}
-                    className="w-full bg-white border border-rose-300 rounded-xl p-2.5 font-semibold text-slate-900 focus:outline-none focus:border-rose-600 text-xs"
+                    className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-300 rounded-xl p-2.5 font-semibold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-600 text-xs dark:[color-scheme:dark]"
                   />
                 </div>
               )}
 
               {/* ATTACHMENTS & RECORDINGS SECTION WITH + ADD MORE */}
-              <div className="space-y-2 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+              <div className="space-y-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-4 rounded-2xl">
                 <div className="flex justify-between items-center">
                   <div>
-                    <label className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                      <Paperclip className="w-4 h-4 text-purple-600" />
+                    <label className="text-xs font-extrabold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
+                      <Paperclip className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                       Recordings & Attachments
                     </label>
-                    <span className="text-[10px] text-slate-500 block">Supports call recordings (.aac, .mp3), screenshots, invoices & PDFs</span>
+                    <span className="text-[10px] text-slate-500 dark:text-gray-400 block">Supports call recordings (.aac, .mp3), screenshots, invoices & PDFs</span>
                   </div>
 
                   <input
@@ -3302,7 +3302,7 @@ export default function BdaLeads({
                     onChange={handleStatusFileUpload}
                     multiple
                     accept=".aac, .mp3, .wav, .m4a, .png, .jpg, .jpeg, .webp, .pdf, .doc, .docx, audio/*, image/*, application/pdf"
-                    className="hidden"
+                    className="hidden dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
 
                   <button
@@ -3323,16 +3323,16 @@ export default function BdaLeads({
                       const isImage = att.type?.includes("image") || att.name?.endsWith(".png") || att.name?.endsWith(".jpg") || att.name?.endsWith(".jpeg");
 
                       return (
-                        <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-sm">
+                        <div key={idx} className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-slate-200 dark:border-gray-700 space-y-1.5 shadow-sm">
                           <div className="flex justify-between items-center text-xs font-bold">
                             <span className="flex items-center gap-1.5 truncate max-w-[280px]">
-                              {isAudio ? <Mic className="w-4 h-4 text-purple-600 shrink-0" /> : isImage ? <FileText className="w-4 h-4 text-emerald-600 shrink-0" /> : <Paperclip className="w-4 h-4 text-blue-600 shrink-0" />}
-                              <span className="truncate text-slate-900">{att.name}</span>
+                              {isAudio ? <Mic className="w-4 h-4 text-purple-600 dark:text-purple-300 shrink-0" /> : isImage ? <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-300 shrink-0" /> : <Paperclip className="w-4 h-4 text-blue-600 dark:text-blue-300 shrink-0" />}
+                              <span className="truncate text-slate-900 dark:text-gray-100">{att.name}</span>
                             </span>
                             <button
                               type="button"
                               onClick={() => handleRemoveAttachment(idx)}
-                              className="text-slate-400 hover:text-rose-600 p-1"
+                              className="text-slate-400 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 p-1"
                               title="Remove Attachment"
                             >
                               <X className="w-4 h-4" />
@@ -3346,7 +3346,7 @@ export default function BdaLeads({
                             const audioType = att.type?.includes("audio") ? att.type : (ext === 'aac' ? 'audio/aac' : ext === 'm4a' ? 'audio/mp4' : 'audio/mpeg');
 
                             return (
-                              <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-100 space-y-1">
+                              <div className="bg-purple-50 dark:bg-purple-950/50 p-2.5 rounded-lg border dark:border-gray-700 border-purple-100 space-y-1">
                                 <audio
                                   key={playableUrl.slice(0, 80) + idx}
                                   controls
@@ -3366,7 +3366,7 @@ export default function BdaLeads({
 
                           {/* Image Preview */}
                           {isImage && (
-                            <img src={att.url} alt={att.name} className="h-20 object-cover rounded-lg border border-slate-200" />
+                            <img src={att.url} alt={att.name} className="h-20 object-cover rounded-lg border border-slate-200 dark:border-gray-700" />
                           )}
                         </div>
                       );
@@ -3375,18 +3375,18 @@ export default function BdaLeads({
                 ) : (
                   <div
                     onClick={() => statusFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 hover:border-purple-500 rounded-xl p-4 text-center cursor-pointer bg-white transition-colors space-y-1"
+                    className="border-2 border-dashed border-slate-300 dark:border-gray-700 hover:border-purple-500 rounded-xl p-4 text-center cursor-pointer bg-white dark:bg-gray-900 transition-colors space-y-1"
                   >
-                    <Paperclip className="w-6 h-6 text-slate-400 mx-auto" />
-                    <p className="text-xs font-bold text-slate-600">Click to browse or drag & drop files</p>
-                    <p className="text-[10px] text-slate-400">Audio recordings (.aac), Call logs, Images, PDFs</p>
+                    <Paperclip className="w-6 h-6 text-slate-400 dark:text-gray-400 mx-auto" />
+                    <p className="text-xs font-bold text-slate-600 dark:text-gray-300">Click to browse or drag & drop files</p>
+                    <p className="text-[10px] text-slate-400 dark:text-gray-400">Audio recordings (.aac), Call logs, Images, PDFs</p>
                   </div>
                 )}
               </div>
 
               {/* REMARKS FIELD */}
               <div className="space-y-1">
-                <label className="block text-[10px] font-black uppercase text-slate-600">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">
                   Additional Remarks / Notes
                 </label>
                 <textarea
@@ -3394,16 +3394,16 @@ export default function BdaLeads({
                   placeholder="Enter any additional details or final status notes..."
                   value={statusRemarks}
                   onChange={e => setStatusRemarks(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-purple-600 text-xs"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-purple-600 text-xs dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200">
+              <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowStatusActionModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -3427,10 +3427,10 @@ export default function BdaLeads({
       {/* MODAL 4: MANUAL SINGLE LEAD ADDITION */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-              <h3 className="font-extrabold text-base text-slate-900">Add New Single Lead</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">Add New Single Lead</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -3438,69 +3438,69 @@ export default function BdaLeads({
             <form onSubmit={handleAddSingleLead} className="space-y-3 text-xs font-semibold">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Contact Person Name *</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Contact Person Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Rahul Sharma"
                     value={manualForm.name}
                     onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Phone / Mobile</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Phone / Mobile</label>
                   <input
                     type="text"
                     placeholder="e.g. +91 9876543210"
                     value={manualForm.phone}
                     onChange={e => setManualForm({ ...manualForm, phone: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Company Name</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Company Name</label>
                   <input
                     type="text"
                     placeholder="e.g. ABC Tech Ltd"
                     value={manualForm.companyName}
                     onChange={e => setManualForm({ ...manualForm, companyName: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Email Address</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Email Address</label>
                   <input
                     type="email"
                     placeholder="e.g. client@example.com"
                     value={manualForm.email}
                     onChange={e => setManualForm({ ...manualForm, email: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">City / Location</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">City / Location</label>
                   <input
                     type="text"
                     placeholder="e.g. Jaipur"
                     value={manualForm.city}
                     onChange={e => setManualForm({ ...manualForm, city: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Sales Reason / Purpose</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Sales Reason / Purpose</label>
                   <select
                     required
                     value={manualForm.salesReason}
                     onChange={e => setManualForm({ ...manualForm, salesReason: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   >
                     <option value="" disabled>Select sales reason</option>
                     <option value="Pitching">Pitching</option>
@@ -3517,28 +3517,28 @@ export default function BdaLeads({
                       placeholder="Specify sales reason / purpose..."
                       value={manualForm.customSalesReason}
                       onChange={e => setManualForm({ ...manualForm, customSalesReason: e.target.value })}
-                      className="w-full border border-purple-300 rounded-xl p-2 mt-2 font-bold focus:outline-none focus:border-purple-600 animate-fade-in text-slate-900"
+                      className="w-full border dark:border-gray-700 border-purple-300 rounded-xl p-2 mt-2 font-bold focus:outline-none focus:border-purple-600 animate-fade-in text-slate-900 dark:text-gray-100 dark:bg-gray-800 dark:[color-scheme:dark]"
                     />
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks / Details</label>
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Remarks / Details</label>
                 <textarea
                   rows={2}
                   placeholder="Additional lead details..."
                   value={manualForm.remarks}
                   onChange={e => setManualForm({ ...manualForm, remarks: e.target.value })}
-                  className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
 
-              <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200">
+              <div className="flex justify-end items-center gap-2 pt-3 border-t border-slate-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -3557,75 +3557,75 @@ export default function BdaLeads({
       {/* BDA CALL LOG MODAL */}
       {showCallModal && callLead && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl max-h-[92vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-4xl w-full border border-slate-200 dark:border-gray-700 shadow-2xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-gray-700">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2"><Phone className="w-5 h-5 text-emerald-600" /> Log BDA Call</h3>
-                <p className="text-xs text-slate-500 mt-1">{callLead.leadId} · {callLead.name} {callLead.companyName ? `· ${callLead.companyName}` : ""}</p>
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100 flex items-center gap-2"><Phone className="w-5 h-5 text-emerald-600 dark:text-emerald-300" /> Log BDA Call</h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{callLead.leadId} · {callLead.name} {callLead.companyName ? `· ${callLead.companyName}` : ""}</p>
               </div>
-              <button type="button" onClick={() => setShowCallModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => setShowCallModal(false)} className="p-1.5 text-slate-400 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-y-auto">
-              <form onSubmit={saveCallLog} className="p-5 space-y-4 border-r border-slate-200">
+              <form onSubmit={saveCallLog} className="p-5 space-y-4 border-r border-slate-200 dark:border-gray-700">
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="text-[10px] font-black uppercase text-slate-600">Call Type *
-                    <select required value={callForm.callType} onChange={event => setCallForm({ ...callForm, callType: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Call Type *
+                    <select required value={callForm.callType} onChange={event => setCallForm({ ...callForm, callType: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold bg-white dark:bg-gray-900 dark:text-gray-100 dark:[color-scheme:dark]">
                       <option value="" disabled>Select call type</option>
                       <option value="Outgoing">Outgoing</option><option value="Incoming">Incoming</option><option value="WhatsApp">WhatsApp</option>
                     </select>
                   </label>
-                  <label className="text-[10px] font-black uppercase text-slate-600">Call Status *
-                    <select required value={callForm.callStatus} onChange={event => setCallForm({ ...callForm, callStatus: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Call Status *
+                    <select required value={callForm.callStatus} onChange={event => setCallForm({ ...callForm, callStatus: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold bg-white dark:bg-gray-900 dark:text-gray-100 dark:[color-scheme:dark]">
                       <option value="" disabled>Select call status</option>
                       <option>Connected</option><option>No Answer</option><option>Busy</option><option>Switched Off</option><option>Wrong Number</option>
                     </select>
                   </label>
-                  <label className="text-[10px] font-black uppercase text-slate-600">Customer Interest
-                    <select value={callForm.customerInterest} onChange={event => setCallForm({ ...callForm, customerInterest: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Customer Interest
+                    <select value={callForm.customerInterest} onChange={event => setCallForm({ ...callForm, customerInterest: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold bg-white dark:bg-gray-900 dark:text-gray-100 dark:[color-scheme:dark]">
                       <option value="">Select interest</option><option>Interested</option><option>Not Interested</option><option>Callback</option><option>Need Information</option>
                     </select>
                   </label>
-                  <label className="text-[10px] font-black uppercase text-slate-600">Call Duration (minutes)
-                    <input type="number" min="0" step="0.1" value={callForm.durationMinutes} onChange={event => setCallForm({ ...callForm, durationMinutes: event.target.value })} placeholder="e.g. 5" className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold" />
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Call Duration (minutes)
+                    <input type="number" min="0" step="0.1" value={callForm.durationMinutes} onChange={event => setCallForm({ ...callForm, durationMinutes: event.target.value })} placeholder="e.g. 5" className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
                   </label>
-                  <label className="text-[10px] font-black uppercase text-slate-600">Lead Status
-                    <select value={callForm.leadStatus} onChange={event => setCallForm({ ...callForm, leadStatus: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Lead Status
+                    <select value={callForm.leadStatus} onChange={event => setCallForm({ ...callForm, leadStatus: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold bg-white dark:bg-gray-900 dark:text-gray-100 dark:[color-scheme:dark]">
                       <option value="">Select lead status</option><option>New</option><option>Assigned</option><option>In Progress</option><option>Qualified</option><option>Converted</option><option>Lost</option>
                     </select>
                   </label>
-                  <label className="text-[10px] font-black uppercase text-slate-600">Next Callback
-                    <input type="datetime-local" value={callForm.nextCallbackAt} onChange={event => setCallForm({ ...callForm, nextCallbackAt: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold" />
+                  <label className="text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Next Callback
+                    <input type="datetime-local" value={callForm.nextCallbackAt} onChange={event => setCallForm({ ...callForm, nextCallbackAt: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
                   </label>
                 </div>
-                <label className="block text-[10px] font-black uppercase text-slate-600">Forwarded To
-                  <select value={callForm.forwardedTo} onChange={event => setCallForm({ ...callForm, forwardedTo: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Forwarded To
+                  <select value={callForm.forwardedTo} onChange={event => setCallForm({ ...callForm, forwardedTo: event.target.value })} className="mt-1 w-full border dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold bg-white dark:bg-gray-900 dark:text-gray-100 dark:[color-scheme:dark]">
                     <option value="">Not forwarded</option>
                     {finalBdaList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                   </select>
                 </label>
-                <label className="block text-[10px] font-black uppercase text-slate-600">Conversation Notes *
-                  <textarea required rows={4} value={callForm.conversationNotes} onChange={event => setCallForm({ ...callForm, conversationNotes: event.target.value })} placeholder="Enter the discussion, requirement, commitment, and next action..." className="mt-1 w-full border rounded-xl p-3 text-xs font-semibold" />
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300">Conversation Notes *
+                  <textarea required rows={4} value={callForm.conversationNotes} onChange={event => setCallForm({ ...callForm, conversationNotes: event.target.value })} placeholder="Enter the discussion, requirement, commitment, and next action..." className="mt-1 w-full border dark:border-gray-700 rounded-xl p-3 text-xs font-semibold dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]" />
                 </label>
                 <button disabled={savingCall} type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl py-2.5 text-xs font-black">{savingCall ? "Saving Call..." : "Save Call Entry"}</button>
               </form>
 
-              <div className="p-5 bg-slate-50">
-                <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2"><History className="w-4 h-4 text-purple-600" /> Complete Call History ({callHistory.length})</h4>
+              <div className="p-5 bg-slate-50 dark:bg-gray-800">
+                <h4 className="text-xs font-black uppercase text-slate-700 dark:text-gray-100 flex items-center gap-2"><History className="w-4 h-4 text-purple-600 dark:text-purple-300" /> Complete Call History ({callHistory.length})</h4>
                 <div className="mt-3 space-y-3 max-h-[590px] overflow-y-auto pr-1">
-                  {callHistoryLoading && <div className="py-12 text-center text-xs text-slate-400">Loading call history...</div>}
-                  {!callHistoryLoading && callHistory.length === 0 && <div className="py-12 text-center text-xs text-slate-400 border border-dashed rounded-xl">No calls have been logged for this lead.</div>}
+                  {callHistoryLoading && <div className="py-12 text-center text-xs text-slate-400 dark:text-gray-400">Loading call history...</div>}
+                  {!callHistoryLoading && callHistory.length === 0 && <div className="py-12 text-center text-xs text-slate-400 dark:text-gray-400 border dark:border-gray-700 border-dashed rounded-xl">No calls have been logged for this lead.</div>}
                   {callHistory.map(call => (
-                    <div key={call.id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-black text-emerald-700 bg-emerald-50 rounded-full px-2 py-1">{call.callStatus}</span><span className="ml-2 text-[10px] font-bold text-slate-500">{call.callType}</span></div><span className="text-[10px] text-slate-500 whitespace-nowrap">{new Date(call.callDateTime).toLocaleString("en-IN")}</span></div>
-                      <p className="mt-2 text-xs font-semibold text-slate-700 whitespace-pre-wrap">{call.conversationNotes}</p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-500">
+                    <div key={call.id} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 rounded-full px-2 py-1">{call.callStatus}</span><span className="ml-2 text-[10px] font-bold text-slate-500 dark:text-gray-400">{call.callType}</span></div><span className="text-[10px] text-slate-500 dark:text-gray-400 whitespace-nowrap">{new Date(call.callDateTime).toLocaleString("en-IN")}</span></div>
+                      <p className="mt-2 text-xs font-semibold text-slate-700 dark:text-gray-100 whitespace-pre-wrap">{call.conversationNotes}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-500 dark:text-gray-400">
                         {call.bdaName && <span>By: <b>{call.bdaName}</b></span>}
                         {call.durationSeconds != null && <span>Duration: <b>{Math.round(call.durationSeconds / 60)} min</b></span>}
                         {call.customerInterest && <span>Interest: <b>{call.customerInterest}</b></span>}
                         {call.leadStatus && <span>Lead: <b>{call.leadStatus}</b></span>}
                       </div>
-                      {call.nextCallbackAt && <div className="mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-1">Next callback: {new Date(call.nextCallbackAt).toLocaleString("en-IN")}</div>}
+                      {call.nextCallbackAt && <div className="mt-2 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 rounded-lg px-2 py-1">Next callback: {new Date(call.nextCallbackAt).toLocaleString("en-IN")}</div>}
                     </div>
                   ))}
                 </div>
@@ -3638,22 +3638,22 @@ export default function BdaLeads({
       {/* MODAL 6: BDA LEAD ASSIGNMENT BREAKDOWN */}
       {showBdaBreakdownModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
             
             {/* Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
               <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-blue-100 text-blue-700 rounded-2xl">
+                <div className="p-2.5 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-2xl">
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">BDA Lead Assignment Breakdown</h3>
-                  <p className="text-xs text-slate-500 font-semibold">Click on any BDA to filter their assigned leads list</p>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">BDA Lead Assignment Breakdown</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 font-semibold">Click on any BDA to filter their assigned leads list</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowBdaBreakdownModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-xl hover:bg-slate-100"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3702,7 +3702,7 @@ export default function BdaLeads({
 
                 if (bdaList.length === 0) {
                   return (
-                    <div className="p-8 text-center text-slate-500 font-bold text-xs">
+                    <div className="p-8 text-center text-slate-500 dark:text-gray-400 font-bold text-xs">
                       No BDA users found.
                     </div>
                   );
@@ -3725,8 +3725,8 @@ export default function BdaLeads({
                           }}
                           className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                             isSelected
-                              ? "bg-blue-50/80 border-blue-400 ring-2 ring-blue-300/40 shadow-sm"
-                              : "bg-slate-50/60 hover:bg-blue-50/40 border-slate-200 hover:border-blue-300"
+                              ? "bg-blue-50/80 dark:bg-blue-950/50 border-blue-400 ring-2 ring-blue-300/40 shadow-sm"
+                              : "bg-slate-50/60 dark:bg-slate-950/50 hover:bg-blue-50/40 dark:hover:bg-blue-950/50 border-slate-200 dark:border-gray-700 hover:border-blue-300"
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -3734,15 +3734,15 @@ export default function BdaLeads({
                               {item.bdaName.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <h4 className="font-extrabold text-xs text-slate-900">{item.bdaName}</h4>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-0.5">
-                                <span className="text-emerald-700 font-bold">{item.converted} Converted</span>
+                              <h4 className="font-extrabold text-xs text-slate-900 dark:text-gray-100">{item.bdaName}</h4>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-gray-400 font-semibold mt-0.5">
+                                <span className="text-emerald-700 dark:text-emerald-300 font-bold">{item.converted} Converted</span>
                                 <span>•</span>
-                                <span className="text-indigo-700 font-bold">{item.inProgress} Active</span>
+                                <span className="text-indigo-700 dark:text-indigo-300 font-bold">{item.inProgress} Active</span>
                                 {item.lost > 0 && (
                                   <>
                                     <span>•</span>
-                                    <span className="text-rose-600 font-bold">{item.lost} Lost</span>
+                                    <span className="text-rose-600 dark:text-rose-300 font-bold">{item.lost} Lost</span>
                                   </>
                                 )}
                               </div>
@@ -3754,7 +3754,7 @@ export default function BdaLeads({
                               <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-black rounded-xl shadow-sm">
                                 {item.count} Leads
                               </span>
-                              <span className="block text-[9px] text-slate-400 font-bold mt-1">
+                              <span className="block text-[9px] text-slate-400 dark:text-gray-400 font-bold mt-1">
                                 {percentage}% of Total
                               </span>
                             </div>
@@ -3768,7 +3768,7 @@ export default function BdaLeads({
             </div>
 
             {/* Footer */}
-            <div className="flex justify-between items-center pt-3 border-t border-slate-200 text-xs font-bold">
+            <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-gray-700 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => {
@@ -3776,7 +3776,7 @@ export default function BdaLeads({
                   setStatusFilter("All");
                   setShowBdaBreakdownModal(false);
                 }}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors"
+                className="px-3.5 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl transition-colors"
               >
                 Clear Filter (Show All Leads)
               </button>
@@ -3798,10 +3798,10 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showStatusUserBreakdownModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 dark:border-gray-700 shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
             
             {/* Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2.5 rounded-2xl text-white shadow-md ${
                   targetBreakdownStatus === "Converted" ? "bg-emerald-600" :
@@ -3813,26 +3813,26 @@ export default function BdaLeads({
                    <Users className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-gray-100">
                     {targetBreakdownStatus === "Converted" ? "Converted Clients by BDA User" :
                      targetBreakdownStatus === "Lost" ? "Lost Leads by BDA User" :
                      "BDA Lead Assignments Breakdown"}
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">
                     Select a BDA user below to view their specific {targetBreakdownStatus.toLowerCase()} leads
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowStatusUserBreakdownModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+              <button onClick={() => setShowStatusUserBreakdownModal(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Overview Summary Banner */}
             <div className={`p-3.5 rounded-2xl flex items-center justify-between font-bold text-xs shadow-xs ${
-              targetBreakdownStatus === "Converted" ? "bg-emerald-50 border border-emerald-200 text-emerald-900" :
-              targetBreakdownStatus === "Lost" ? "bg-rose-50 border border-rose-200 text-rose-900" :
-              "bg-blue-50 border border-blue-200 text-blue-900"
+              targetBreakdownStatus === "Converted" ? "bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 text-emerald-900 dark:text-emerald-300" :
+              targetBreakdownStatus === "Lost" ? "bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 text-rose-900 dark:text-rose-300" :
+              "bg-blue-50 dark:bg-blue-950/50 border dark:border-gray-700 border-blue-200 text-blue-900 dark:text-blue-300"
             }`}>
               <div>
                 <span className="text-[10px] uppercase font-black tracking-wider block opacity-75">
@@ -3849,7 +3849,7 @@ export default function BdaLeads({
                   <span className="text-[10px] uppercase font-black tracking-wider block opacity-75">
                     Total Converted Value
                   </span>
-                  <span className="text-lg font-black text-emerald-800">
+                  <span className="text-lg font-black text-emerald-800 dark:text-emerald-300">
                     ₹ {convertedTotalAmount.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -3863,9 +3863,9 @@ export default function BdaLeads({
                 setAssignmentFilter(isManagerial ? "All" : (currentBdaUser?.id || "All"));
                 setShowStatusUserBreakdownModal(false);
               }}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              className="w-full py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-800 dark:text-gray-100 rounded-xl text-xs font-bold transition-all border border-slate-300 dark:border-gray-700 flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <Eye className="w-4 h-4 text-slate-600" />
+              <Eye className="w-4 h-4 text-slate-600 dark:text-gray-300" />
               {isManagerial
                 ? `Show All ${targetBreakdownStatus} Leads Across All Users (${targetBreakdownStatus === "Converted" ? convertedCount : targetBreakdownStatus === "Lost" ? lostCount : assignedCount})`
                 : `Show My ${targetBreakdownStatus} Assigned Leads`}
@@ -3873,7 +3873,7 @@ export default function BdaLeads({
 
             {/* BDA User List Cards */}
             <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+              <span className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 tracking-wider">
                 User-wise Breakdown ({userBreakdownBdaList.length} BDA {userBreakdownBdaList.length === 1 ? "User" : "Users"})
               </span>
 
@@ -3911,37 +3911,37 @@ export default function BdaLeads({
                     }}
                     className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between cursor-pointer hover:shadow-md ${
                       isCurrentlySelected
-                        ? "bg-purple-50 border-purple-500 ring-2 ring-purple-300"
+                        ? "bg-purple-50 dark:bg-purple-950/50 border-purple-500 ring-2 ring-purple-300"
                         : count > 0
-                        ? "bg-white border-slate-200 hover:border-purple-300"
-                        : "bg-slate-50/60 border-slate-200 opacity-60 hover:opacity-100"
+                        ? "bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-700 hover:border-purple-300"
+                        : "bg-slate-50/60 dark:bg-slate-950/50 border-slate-200 dark:border-gray-700 opacity-60 hover:opacity-100"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-sm">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black text-sm">
                         {bda.name.charAt(0)}
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-900">{bda.name}</h4>
-                        <p className="text-[10px] font-semibold text-slate-500">{bda.role}{bda.department ? ` • ${bda.department}` : ""}</p>
+                        <h4 className="text-xs font-black text-slate-900 dark:text-gray-100">{bda.name}</h4>
+                        <p className="text-[10px] font-semibold text-slate-500 dark:text-gray-400">{bda.role}{bda.department ? ` • ${bda.department}` : ""}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-right">
                       {targetBreakdownStatus === "Converted" && bdaTotalAmt > 0 && (
                         <div className="hidden sm:block">
-                          <span className="text-[10px] uppercase font-black text-emerald-600 block">Value</span>
-                          <span className="text-xs font-extrabold text-emerald-800">₹ {bdaTotalAmt.toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] uppercase font-black text-emerald-600 dark:text-emerald-300 block">Value</span>
+                          <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">₹ {bdaTotalAmt.toLocaleString('en-IN')}</span>
                         </div>
                       )}
 
                       <div className="flex items-center gap-2">
                         <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
-                          count > 0 ? "bg-purple-600 text-white" : "bg-slate-200 text-slate-600"
+                          count > 0 ? "bg-purple-600 text-white" : "bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300"
                         }`}>
                           {count} {count === 1 ? "Lead" : "Leads"}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-gray-400" />
                       </div>
                     </div>
                   </div>
@@ -3949,10 +3949,10 @@ export default function BdaLeads({
               })}
             </div>
 
-            <div className="pt-2 border-t border-slate-200 text-right">
+            <div className="pt-2 border-t border-slate-200 dark:border-gray-700 text-right">
               <button
                 onClick={() => setShowStatusUserBreakdownModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Close
               </button>
@@ -3965,8 +3965,8 @@ export default function BdaLeads({
       {/* Fullscreen Image Lightbox Modal */}
       {previewImage && (
         <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-800">
-            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border dark:border-gray-700 border-slate-800">
+            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b dark:border-gray-700 border-slate-800">
               <h3 className="font-extrabold text-xs flex items-center gap-2 truncate max-w-md">
                 <Eye className="w-4 h-4 text-purple-400 shrink-0" />
                 {previewImage.title}
@@ -3982,7 +3982,7 @@ export default function BdaLeads({
                 <button
                   type="button"
                   onClick={() => setPreviewImage(null)}
-                  className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
+                  className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 dark:text-gray-400 hover:text-white transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -3992,7 +3992,7 @@ export default function BdaLeads({
               <img
                 src={previewImage.url}
                 alt={previewImage.title}
-                className="max-w-full max-h-[78vh] object-contain rounded-lg shadow-2xl border border-slate-800/80"
+                className="max-w-full max-h-[78vh] object-contain rounded-lg shadow-2xl border dark:border-gray-700 border-slate-800/80"
               />
             </div>
           </div>

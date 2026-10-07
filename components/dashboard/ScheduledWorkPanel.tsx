@@ -133,8 +133,8 @@ function ReportBreakdown({
   colors: string[];
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <h3 className="text-[10px] uppercase tracking-wider font-black text-slate-500 mb-2">{title}</h3>
+    <div className="rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 p-3">
+      <h3 className="text-[10px] uppercase tracking-wider font-black text-slate-500 dark:text-gray-400 mb-2">{title}</h3>
       <div className="space-y-2">
         {rows.length ? rows.map((row, index) => {
           const percentage = total ? Math.round((row.value / total) * 100) : 0;
@@ -142,14 +142,14 @@ function ReportBreakdown({
             <div key={row.label}>
               <div className="flex items-center justify-between gap-2 text-[10px] mb-1">
                 <span className="font-bold truncate" title={row.label}>{row.label}</span>
-                <span className="font-black shrink-0">{row.value} <span className="font-medium text-slate-400">({percentage}%)</span></span>
+                <span className="font-black shrink-0">{row.value} <span className="font-medium text-slate-400 dark:text-gray-400">({percentage}%)</span></span>
               </div>
-              <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-slate-200 dark:bg-gray-800 overflow-hidden">
                 <div className={`h-full rounded-full ${colors[index % colors.length]}`} style={{ width: `${percentage}%` }} />
               </div>
             </div>
           );
-        }) : <p className="text-[10px] text-slate-500">No data for current filters.</p>}
+        }) : <p className="text-[10px] text-slate-500 dark:text-gray-400">No data for current filters.</p>}
       </div>
     </div>
   );
@@ -342,7 +342,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const formatTimeTaken = (item: any) => {
     if (item.status !== "Completed") {
       return (
-        <span className="text-amber-600 font-bold text-[10px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1">
+        <span className="text-amber-600 dark:text-amber-300 font-bold text-[10px] bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded border dark:border-gray-700 border-amber-200 inline-flex items-center gap-1">
           <Clock3 className="w-3 h-3 text-amber-500" /> Pending / In Progress
         </span>
       );
@@ -357,7 +357,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
     if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
       return (
-        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+        <span className="text-emerald-700 dark:text-emerald-300 font-bold text-[10px] bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border dark:border-gray-700 border-emerald-200 inline-flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Completed
         </span>
       );
@@ -367,10 +367,10 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
     if (diffMins < 60) {
       return (
         <div className="space-y-0.5">
-          <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded inline-flex items-center gap-1">
+          <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded inline-flex items-center gap-1">
             ⏱️ {diffMins} min{diffMins !== 1 ? "s" : ""}
           </span>
-          <span className="text-[9px] text-slate-400 block font-mono">
+          <span className="text-[9px] text-slate-400 dark:text-gray-400 block font-mono">
             {new Date(endMs).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
@@ -381,10 +381,10 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
     const remainingMins = diffMins % 60;
     return (
       <div className="space-y-0.5">
-        <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded inline-flex items-center gap-1">
+        <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded inline-flex items-center gap-1">
           ⏱️ {hours} hr {remainingMins > 0 ? `${remainingMins}m` : ""}
         </span>
-        <span className="text-[9px] text-slate-400 block font-mono">
+        <span className="text-[9px] text-slate-400 dark:text-gray-400 block font-mono">
           {new Date(endMs).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
@@ -636,28 +636,28 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   };
 
   return (
-    <div className="space-y-4 animate-fadeIn text-slate-800 print:space-y-3">
+    <div className="space-y-4 animate-fadeIn text-slate-800 dark:text-gray-100 print:space-y-3">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-gray-700">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <CalendarClock className="w-5 h-5 text-[#714B67]" />
-            <h1 className="text-lg font-black tracking-tight text-slate-900">Schedule Work Report</h1>
+            <CalendarClock className="w-5 h-5 text-[#714B67] dark:text-purple-300" />
+            <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-gray-100">Schedule Work Report</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2 print:hidden">
           <button
             onClick={() => window.print()}
-            className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 border border-slate-300 shadow-2xs"
+            className="bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 border border-slate-300 dark:border-gray-700 shadow-2xs"
           >
             <Printer className="w-3.5 h-3.5" /> Print Report
           </button>
           <button
             onClick={fetchAllSchedules}
-            className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 border border-slate-300 shadow-2xs"
+            className="bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 border border-slate-300 dark:border-gray-700 shadow-2xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${loading ? "animate-spin" : ""}`} /> Refresh
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 dark:text-gray-300 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
           <button
             onClick={exportToCSV}
@@ -669,16 +669,16 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       </div>
 
       {/* Filter-aware management insights. All calculations are client-side. */}
-      <div className="bg-white rounded-2xl p-4 text-slate-900 border border-slate-200 shadow-sm print:shadow-none">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 text-slate-900 dark:text-gray-100 border border-slate-200 dark:border-gray-700 shadow-sm print:shadow-none">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#714B67]" />
+              <BarChart3 className="w-4 h-4 text-[#714B67] dark:text-purple-300" />
               <h2 className="text-sm font-black">Performance Insights</h2>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Live summary of the current search and filters</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Live summary of the current search and filters</p>
           </div>
-          <button onClick={() => setShowInsights(value => !value)} className="print:hidden text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 inline-flex items-center gap-1">
+          <button onClick={() => setShowInsights(value => !value)} className="print:hidden text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 inline-flex items-center gap-1">
             {showInsights ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {showInsights ? "Hide" : "Show"}
           </button>
@@ -691,13 +691,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
             { label: "Avg. Turnaround", value: reportInsights.avgTurnaround, icon: Timer, hint: "Based on completed records" },
             { label: "Active Employees", value: reportInsights.activeEmployees, icon: Users, hint: "In selected report view" }
           ].map(card => (
-            <div key={card.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div key={card.label} className="rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 p-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-black text-slate-500">{card.label}</span>
-                <card.icon className="w-4 h-4 text-[#714B67]" />
+                <span className="text-[10px] uppercase tracking-wider font-black text-slate-500 dark:text-gray-400">{card.label}</span>
+                <card.icon className="w-4 h-4 text-[#714B67] dark:text-purple-300" />
               </div>
               <div className="text-xl font-black mt-1">{card.value}</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">{card.hint}</div>
+              <div className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">{card.hint}</div>
             </div>
           ))}
         </div>
@@ -711,43 +711,43 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       </div>
 
       <div className="flex items-center justify-between gap-3 print:hidden">
-        <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-          <button onClick={() => setReportView("summary")} className={`px-3 py-1.5 rounded-lg text-xs font-black inline-flex items-center gap-1.5 ${reportView === "summary" ? "bg-white text-[#714B67] shadow-sm" : "text-slate-500"}`}>
+        <div className="inline-flex rounded-xl bg-slate-100 dark:bg-gray-800 p-1 border border-slate-200 dark:border-gray-700">
+          <button onClick={() => setReportView("summary")} className={`px-3 py-1.5 rounded-lg text-xs font-black inline-flex items-center gap-1.5 ${reportView === "summary" ? "bg-white dark:bg-gray-900 text-[#714B67] dark:text-purple-300 shadow-sm" : "text-slate-500 dark:text-gray-400"}`}>
             <LayoutDashboard className="w-3.5 h-3.5" /> Employee Summary
           </button>
-          <button onClick={() => setReportView("details")} className={`px-3 py-1.5 rounded-lg text-xs font-black inline-flex items-center gap-1.5 ${reportView === "details" ? "bg-white text-[#714B67] shadow-sm" : "text-slate-500"}`}>
+          <button onClick={() => setReportView("details")} className={`px-3 py-1.5 rounded-lg text-xs font-black inline-flex items-center gap-1.5 ${reportView === "details" ? "bg-white dark:bg-gray-900 text-[#714B67] dark:text-purple-300 shadow-sm" : "text-slate-500 dark:text-gray-400"}`}>
             <List className="w-3.5 h-3.5" /> Detailed Records
           </button>
         </div>
-        <span className="text-xs text-slate-500 font-semibold">Showing {reportInsights.total} filtered record{reportInsights.total === 1 ? "" : "s"}</span>
+        <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">Showing {reportInsights.total} filtered record{reportInsights.total === 1 ? "" : "s"}</span>
       </div>
 
       {reportView === "summary" && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-black text-slate-900">Employee-wise Work Report</h2>
-              <p className="text-[10px] text-slate-500 mt-0.5">{fromDate || "All time"}{toDate ? ` to ${toDate}` : ""}</p>
+              <h2 className="text-sm font-black text-slate-900 dark:text-gray-100">Employee-wise Work Report</h2>
+              <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">{fromDate || "All time"}{toDate ? ` to ${toDate}` : ""}</p>
             </div>
-            <span className="text-[10px] font-bold text-slate-500">Completion = completed ÷ assigned</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400">Completion = completed ÷ assigned</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+              <thead className="bg-slate-50 dark:bg-gray-800 text-[10px] uppercase tracking-wider text-slate-500 dark:text-gray-400">
                 <tr><th className="px-4 py-2.5">Employee</th><th className="px-3 py-2.5 text-center">Assigned</th><th className="px-3 py-2.5 text-center">Completed</th><th className="px-3 py-2.5 text-center">In Progress</th><th className="px-3 py-2.5 text-center">Pending</th><th className="px-3 py-2.5 text-center">Overdue</th><th className="px-4 py-2.5">Completion</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
                 {reportInsights.employeeData.length ? reportInsights.employeeData.map(employee => (
-                  <tr key={employee.name} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-bold text-slate-900">{employee.name}</td>
+                  <tr key={employee.name} className="hover:bg-slate-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-gray-100">{employee.name}</td>
                     <td className="px-3 py-3 text-center font-black">{employee.total}</td>
-                    <td className="px-3 py-3 text-center font-black text-emerald-700">{employee.completed}</td>
-                    <td className="px-3 py-3 text-center font-black text-sky-700">{employee.inProgress}</td>
-                    <td className="px-3 py-3 text-center font-black text-amber-700">{employee.pending}</td>
-                    <td className="px-3 py-3 text-center font-black text-rose-700">{employee.overdue}</td>
-                    <td className="px-4 py-3 min-w-[150px]"><div className="flex items-center gap-2"><div className="h-2 bg-slate-100 rounded-full overflow-hidden flex-1"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${employee.rate}%` }} /></div><span className="font-black w-9 text-right">{employee.rate}%</span></div></td>
+                    <td className="px-3 py-3 text-center font-black text-emerald-700 dark:text-emerald-300">{employee.completed}</td>
+                    <td className="px-3 py-3 text-center font-black text-sky-700 dark:text-sky-300">{employee.inProgress}</td>
+                    <td className="px-3 py-3 text-center font-black text-amber-700 dark:text-amber-300">{employee.pending}</td>
+                    <td className="px-3 py-3 text-center font-black text-rose-700 dark:text-rose-300">{employee.overdue}</td>
+                    <td className="px-4 py-3 min-w-[150px]"><div className="flex items-center gap-2"><div className="h-2 bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden flex-1"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${employee.rate}%` }} /></div><span className="font-black w-9 text-right">{employee.rate}%</span></div></td>
                   </tr>
-                )) : <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">No employee data found for the selected filters.</td></tr>}
+                )) : <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400 dark:text-gray-400">No employee data found for the selected filters.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -758,73 +758,73 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
         <div
           onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setEmployeeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter === "all" && typeFilter === "all" && employeeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20" : "border-purple-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter === "all" && typeFilter === "all" && employeeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20 dark:bg-purple-950/50" : "border-purple-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-slate-500 font-mono tracking-wider">Total Schedules</span>
+          <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 font-mono tracking-wider">Total Schedules</span>
           <div className="text-lg font-black text-purple-950 flex items-center gap-1.5">
-            <FileSpreadsheet className="w-4 h-4 text-purple-600" /> {totalCount}
+            <FileSpreadsheet className="w-4 h-4 text-purple-600 dark:text-purple-300" /> {totalCount}
           </div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Pending"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "pending" ? "border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-amber-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "pending" ? "border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/30 dark:bg-amber-950/50" : "border-amber-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-amber-600 font-mono tracking-wider">Pending</span>
-          <div className="text-lg font-black text-amber-700 flex items-center gap-1.5">
+          <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-300 font-mono tracking-wider">Pending</span>
+          <div className="text-lg font-black text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
             <Clock3 className="w-4 h-4 text-amber-500" /> {pendingCount}
           </div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("In Progress"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "in progress" ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/30" : "border-blue-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "in progress" ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/30 dark:bg-blue-950/50" : "border-blue-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-blue-600 font-mono tracking-wider">In Progress</span>
-          <div className="text-lg font-black text-blue-700 flex items-center gap-1.5">
+          <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-300 font-mono tracking-wider">In Progress</span>
+          <div className="text-lg font-black text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-blue-500" /> {inProgressCount}
           </div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Completed"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "completed" ? "border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-emerald-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "completed" ? "border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/50" : "border-emerald-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-emerald-600 font-mono tracking-wider">Completed</span>
-          <div className="text-lg font-black text-emerald-700 flex items-center gap-1.5">
+          <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-300 font-mono tracking-wider">Completed</span>
+          <div className="text-lg font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {completedCount}
           </div>
         </div>
 
         <div
           onClick={() => { setTypeFilter("Bank Related"); setStatusFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "bank related" ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30" : "border-indigo-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "bank related" ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30 dark:bg-indigo-950/50" : "border-indigo-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-indigo-600 font-mono tracking-wider">Bank</span>
-          <div className="text-lg font-black text-indigo-900 flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-indigo-600" /> {bankCount}
+          <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-300 font-mono tracking-wider">Bank</span>
+          <div className="text-lg font-black text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> {bankCount}
           </div>
         </div>
 
         <div
           onClick={() => { setTypeFilter("NBFC"); setStatusFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "nbfc" ? "border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/30" : "border-teal-100"
+          className={`bg-white border dark:border-gray-700 p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "nbfc" ? "border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/30 dark:bg-teal-950/50" : "border-teal-100"
             }`}
         >
-          <span className="text-[10px] font-black uppercase text-teal-600 font-mono tracking-wider">NBFC</span>
-          <div className="text-lg font-black text-teal-900 flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-teal-600" /> {nbfcCount}
+          <span className="text-[10px] font-black uppercase text-teal-600 dark:text-teal-300 font-mono tracking-wider">NBFC</span>
+          <div className="text-lg font-black text-teal-900 dark:text-teal-300 flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-300" /> {nbfcCount}
           </div>
         </div>
       </div>
 
       {/* Filter Header Row matching reference screenshot layout */}
-      <div className="bg-white border border-slate-200/80 p-3 rounded-2xl shadow-2xs space-y-2.5 relative">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-slate-200/80 p-3 rounded-2xl shadow-2xs space-y-2.5 relative">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Left Date Preset Pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -834,7 +834,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 datePreset === "month"
                   ? "bg-[#714B67] text-white shadow-xs font-extrabold"
-                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+                  : "bg-slate-100/80 dark:bg-slate-950/50 text-slate-700 dark:text-gray-100 hover:bg-slate-200/80 dark:hover:bg-slate-950/50 border border-slate-200 dark:border-gray-700"
               }`}
             >
               Current Month
@@ -845,7 +845,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 datePreset === "last_month"
                   ? "bg-[#714B67] text-white shadow-xs font-extrabold"
-                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+                  : "bg-slate-100/80 dark:bg-slate-950/50 text-slate-700 dark:text-gray-100 hover:bg-slate-200/80 dark:hover:bg-slate-950/50 border border-slate-200 dark:border-gray-700"
               }`}
             >
               Last Month
@@ -856,7 +856,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 datePreset === "all"
                   ? "bg-[#714B67] text-white shadow-xs font-extrabold"
-                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+                  : "bg-slate-100/80 dark:bg-slate-950/50 text-slate-700 dark:text-gray-100 hover:bg-slate-200/80 dark:hover:bg-slate-950/50 border border-slate-200 dark:border-gray-700"
               }`}
             >
               All Time
@@ -870,14 +870,14 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               onClick={() => setShowFilterModal(!showFilterModal)}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm cursor-pointer ${
                 activeFilterCount > 0 || showFilterModal
-                  ? "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236]"
-                  : "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236]"
+                  ? "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236] dark:border-gray-700"
+                  : "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236] dark:border-gray-700"
               }`}
             >
               <Filter className="w-4 h-4 text-white" />
               <span>Filter Schedules</span>
               {activeFilterCount > 0 && (
-                <span className="bg-white text-[#c49a45] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="bg-white dark:bg-gray-900 text-[#c49a45] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -885,16 +885,16 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
             {/* FILTER POPOVER CARD matching reference screenshot */}
             {showFilterModal && (
-              <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-stone-200 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-gray-700 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
                 {/* Header */}
-                <div className="flex items-center justify-between pb-1 border-b border-stone-100">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-mono">
+                <div className="flex items-center justify-between pb-1 border-b border-stone-100 dark:border-gray-700">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-gray-100 font-mono">
                     FILTER SCHEDULES
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowFilterModal(false)}
-                    className="text-slate-400 hover:text-slate-600 p-1"
+                    className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -902,7 +902,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                 {/* 1. SEARCH KEYWORD */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                  <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">
                     SEARCH KEYWORD
                   </label>
                   <input
@@ -910,19 +910,19 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                     value={searchTerm}
                     onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                     placeholder="Search employee, bank, branch..."
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                   />
                 </div>
 
                 {/* 2. SELECT EMPLOYEE */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                  <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">
                     SELECT EMPLOYEE
                   </label>
                   <select
                     value={employeeFilter}
                     onChange={e => { setEmployeeFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer dark:[color-scheme:dark]"
                   >
                     <option value="all">All Employees ({uniqueEmployees.length})</option>
                     {uniqueEmployees.map(name => (
@@ -933,13 +933,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                 {/* 3. WORK TYPE */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                  <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">
                     WORK TYPE
                   </label>
                   <select
                     value={typeFilter}
                     onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer dark:[color-scheme:dark]"
                   >
                     <option value="all">All Types</option>
                     <option value="General">General</option>
@@ -953,13 +953,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                 {/* 4. EXECUTION STATUS */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                  <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">
                     APPROVAL STATUS / STATUS
                   </label>
                   <select
                     value={statusFilter}
                     onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer dark:[color-scheme:dark]"
                   >
                     <option value="all">All Statuses</option>
                     <option value="Pending">Pending</option>
@@ -970,13 +970,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                 {/* 5. DATE PRESET */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                  <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-400 font-mono tracking-wider">
                     DATE PRESET
                   </label>
                   <select
                     value={datePreset}
                     onChange={e => handlePresetChange(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer dark:[color-scheme:dark]"
                   >
                     <option value="month">Current Month</option>
                     <option value="last_month">Last Month</option>
@@ -991,21 +991,21 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                 {datePreset === "custom" && (
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <div>
-                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">From Date:</span>
+                      <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 block mb-0.5">From Date:</span>
                       <input
                         type="date"
                         value={fromDate}
                         onChange={e => { setFromDate(e.target.value); setCurrentPage(1); }}
-                        className="w-full border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                       />
                     </div>
                     <div>
-                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">To Date:</span>
+                      <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 block mb-0.5">To Date:</span>
                       <input
                         type="date"
                         value={toDate}
                         onChange={e => { setToDate(e.target.value); setCurrentPage(1); }}
-                        className="w-full border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                        className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#c49a45] dark:focus:border-gray-700 bg-white dark:bg-gray-900 dark:[color-scheme:dark]"
                       />
                     </div>
                   </div>
@@ -1025,7 +1025,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       setDatePreset("all");
                       setCurrentPage(1);
                     }}
-                    className="py-2.5 px-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                    className="py-2.5 px-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-800 transition-all cursor-pointer"
                   >
                     Clear All
                   </button>
@@ -1044,28 +1044,28 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         {/* Active Filter Chips Bar */}
         {activeFilterCount > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-slate-100">
-            <span className="text-[10px] font-black text-slate-500 uppercase font-mono">Active Filters:</span>
+          <div className="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-slate-100 dark:border-gray-700">
+            <span className="text-[10px] font-black text-slate-500 dark:text-gray-400 uppercase font-mono">Active Filters:</span>
             {fromDate && toDate && (
-              <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span className="bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 border dark:border-gray-700 border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                 📅 {fromDate} to {toDate}
                 <X className="w-3 h-3 cursor-pointer hover:text-purple-950" onClick={() => { setFromDate(""); setToDate(""); }} />
               </span>
             )}
             {employeeFilter !== "all" && (
-              <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span className="bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 border dark:border-gray-700 border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                 👤 User: {employeeFilter}
                 <X className="w-3 h-3 cursor-pointer hover:text-purple-950" onClick={() => setEmployeeFilter("all")} />
               </span>
             )}
             {typeFilter !== "all" && (
-              <span className="bg-indigo-100 text-indigo-900 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                 🏷️ Type: {typeFilter}
                 <X className="w-3 h-3 cursor-pointer hover:text-indigo-950" onClick={() => setTypeFilter("all")} />
               </span>
             )}
             {statusFilter !== "all" && (
-              <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+              <span className="bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border dark:border-gray-700 border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                 📌 Status: {statusFilter}
                 <X className="w-3 h-3 cursor-pointer hover:text-amber-950" onClick={() => setStatusFilter("all")} />
               </span>
@@ -1081,7 +1081,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                 setDatePreset("all");
                 setCurrentPage(1);
               }}
-              className="text-[10px] font-bold text-slate-500 hover:text-rose-600 underline ml-1 cursor-pointer"
+              className="text-[10px] font-bold text-slate-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 underline ml-1 cursor-pointer"
             >
               Clear All
             </button>
@@ -1090,10 +1090,10 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       </div>
 
       {/* Main Data Table with Compact Padding & Reduced Column Gaps */}
-      <div className={`${reportView === "details" ? "block" : "hidden print:block"} bg-white border border-purple-200/80 rounded-xl shadow-2xs overflow-hidden`}>
+      <div className={`${reportView === "details" ? "block" : "hidden print:block"} bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-200/80 rounded-xl shadow-2xs overflow-hidden`}>
         <div className="overflow-x-auto max-h-[750px] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-10 bg-purple-100/90 backdrop-blur-xs border-b border-purple-200">
+            <thead className="sticky top-0 z-10 bg-purple-100/90 dark:bg-purple-950/50 backdrop-blur-xs border-b dark:border-gray-700 border-purple-200">
               <tr className="text-purple-950 text-[10px] uppercase font-mono font-black">
                 <th className="py-2.5 px-2 w-8">#</th>
                 <th className="py-2.5 px-2 w-36">Employee</th>
@@ -1107,17 +1107,17 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                 <th className="py-2.5 px-2 w-14 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-purple-100 text-slate-800 font-semibold">
+            <tbody className="divide-y dark:divide-gray-700 divide-purple-100 text-slate-800 dark:text-gray-100 font-semibold">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-600" />
+                  <td colSpan={10} className="py-10 text-center text-slate-400 dark:text-gray-400">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-600 dark:text-purple-300" />
                     Loading scheduled work database...
                   </td>
                 </tr>
               ) : paginatedSchedules.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
+                  <td colSpan={10} className="py-10 text-center text-slate-400 dark:text-gray-400">
                     <AlertCircle className="w-7 h-7 mx-auto mb-2 text-purple-400 opacity-50" />
                     No scheduled work entries found matching your filters.
                   </td>
@@ -1126,18 +1126,18 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                 paginatedSchedules.map((item, idx) => {
                   const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
                   return (
-                    <tr key={item.id || idx} className="hover:bg-purple-50/40 transition-colors">
-                      <td className="py-1.5 px-2 font-mono text-slate-400 font-bold">{globalIdx}</td>
+                    <tr key={item.id || idx} className="hover:bg-purple-50/40 dark:hover:bg-purple-950/50 transition-colors">
+                      <td className="py-1.5 px-2 font-mono text-slate-400 dark:text-gray-400 font-bold">{globalIdx}</td>
 
                       {/* Employee Column */}
                       <td className="py-1.5 px-2">
                         <div className="space-y-0.5">
-                          <div className="font-bold text-slate-900 flex items-center gap-1 truncate">
-                            <User className="w-3 h-3 text-purple-700 shrink-0" />
+                          <div className="font-bold text-slate-900 dark:text-gray-100 flex items-center gap-1 truncate">
+                            <User className="w-3 h-3 text-purple-700 dark:text-purple-300 shrink-0" />
                             <span className="truncate">{item.user?.name || item.employeeId || "—"}</span>
                           </div>
                           {item.user?.role && (
-                            <span className="bg-purple-100 text-purple-800 text-[9px] font-black px-1.5 py-0.2 rounded font-mono">
+                            <span className="bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 text-[9px] font-black px-1.5 py-0.2 rounded font-mono">
                               {item.user.role}
                             </span>
                           )}
@@ -1147,17 +1147,17 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       {/* Date & Time Column */}
                       <td className="py-1.5 px-2 font-mono whitespace-nowrap">
                         <div className="space-y-0.5">
-                          <span className="bg-purple-50 border border-purple-200 text-purple-950 font-black px-1.5 py-0.5 rounded text-[10px] block">
+                          <span className="bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 text-purple-950 font-black px-1.5 py-0.5 rounded text-[10px] block">
                             📅 {item.date}
                           </span>
-                          <span className="text-purple-700 font-bold text-[10px] block">
+                          <span className="text-purple-700 dark:text-purple-300 font-bold text-[10px] block">
                             ⏰ {item.time}
                           </span>
                         </div>
                       </td>
 
                       {/* Work Section Column */}
-                      <td className="py-1.5 px-2 font-extrabold text-slate-900">
+                      <td className="py-1.5 px-2 font-extrabold text-slate-900 dark:text-gray-100">
                         <div className="space-y-1">
                           <span className="line-clamp-2 block">
                             {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
@@ -1165,11 +1165,11 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                               : item.workSection}
                           </span>
                           {item.sodId ? (
-                            <span className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8.5px] font-black px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
+                            <span className="bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 text-[8.5px] font-black px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
                               ✨ SOD Scheduled
                             </span>
                           ) : (
-                            <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[8.5px] font-bold px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
+                            <span className="bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 text-[8.5px] font-bold px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
                               📌 Direct Task
                             </span>
                           )}
@@ -1180,17 +1180,17 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       <td className="py-1.5 px-2 whitespace-nowrap">
                         <div className="space-y-0.5">
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-black inline-block ${item.type === "Bank Related" || item.type === "NBFC"
-                              ? "bg-purple-100 text-purple-800 border border-purple-200"
+                              ? "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border dark:border-gray-700 border-purple-200"
                               : item.type === "Field Visit"
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200"
                                 : item.type === "Others"
-                                  ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                  : "bg-blue-100 text-blue-800 border border-blue-200"
+                                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-200"
+                                  : "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-200"
                             }`}>
                             {item.type === "Others" && item.otherType ? `Others (${item.otherType})` : item.type}
                           </span>
                           {item.subType && (
-                            <span className="bg-purple-200/60 text-purple-950 text-[9px] font-black px-1.5 py-0.2 rounded block w-fit">
+                            <span className="bg-purple-200/60 dark:bg-purple-950/50 text-purple-950 text-[9px] font-black px-1.5 py-0.2 rounded block w-fit">
                               {item.subType}
                             </span>
                           )}
@@ -1201,23 +1201,23 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       <td className="py-1.5 px-2">
                         {(item.bankName || item.branchName || item.officerName || item.caseDetails || item.otherType || item.aoName || item.rboName) ? (
                           <div className="flex flex-wrap gap-1 text-[9px]">
-                            {item.bankName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏦 {item.bankName}</span>}
-                            {item.branchName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏢 {item.branchName}</span>}
-                            {item.officerName && <span className="bg-purple-50 text-purple-900 px-1 py-0.2 rounded border border-purple-200 font-bold">👤 {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
-                            {item.aoName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏛️ {item.aoName}</span>}
-                            {item.rboName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">📍 {item.rboName}</span>}
-                            {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.2 rounded border border-rose-200 font-black">⚖️ {item.caseDetails}</span>}
-                            {item.otherType && <span className="bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200 font-bold">{item.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Site"}: {item.otherType}</span>}
+                            {item.bankName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.2 rounded border border-slate-200 dark:border-gray-700 font-bold text-slate-800 dark:text-gray-100">🏦 {item.bankName}</span>}
+                            {item.branchName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.2 rounded border border-slate-200 dark:border-gray-700 font-bold text-slate-800 dark:text-gray-100">🏢 {item.branchName}</span>}
+                            {item.officerName && <span className="bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 px-1 py-0.2 rounded border dark:border-gray-700 border-purple-200 font-bold">👤 {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
+                            {item.aoName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.2 rounded border border-slate-200 dark:border-gray-700 font-bold text-slate-800 dark:text-gray-100">🏛️ {item.aoName}</span>}
+                            {item.rboName && <span className="bg-slate-100 dark:bg-gray-800 px-1 py-0.2 rounded border border-slate-200 dark:border-gray-700 font-bold text-slate-800 dark:text-gray-100">📍 {item.rboName}</span>}
+                            {item.caseDetails && <span className="bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 px-1 py-0.2 rounded border dark:border-gray-700 border-rose-200 font-black">⚖️ {item.caseDetails}</span>}
+                            {item.otherType && <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1 py-0.2 rounded border dark:border-gray-700 border-emerald-200 font-bold">{item.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Site"}: {item.otherType}</span>}
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic text-[10px]">—</span>
+                          <span className="text-slate-400 dark:text-gray-400 italic text-[10px]">—</span>
                         )}
                       </td>
 
                       {/* Remarks Column & Attachment */}
                       <td className="py-1.5 px-2">
                         <div className="space-y-1">
-                          <span className="text-slate-700 text-[10px] font-medium leading-tight block line-clamp-2">
+                          <span className="text-slate-700 dark:text-gray-100 text-[10px] font-medium leading-tight block line-clamp-2">
                             {getCleanRemarks(item)}
                           </span>
                           {(() => {
@@ -1226,16 +1226,16 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                             return (
                               <div
                                 onClick={() => setSelectedDetailItem(item)}
-                                className="bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-amber-900 rounded p-1 text-[9px] font-medium leading-tight space-y-0.5 shadow-2xs cursor-pointer transition-colors group"
+                                className="bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100/90 dark:hover:bg-amber-950/50 border dark:border-gray-700 border-amber-200/90 text-amber-900 dark:text-amber-300 rounded p-1 text-[9px] font-medium leading-tight space-y-0.5 shadow-2xs cursor-pointer transition-colors group"
                                 title="Click to open full task details & full progress note"
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="font-bold text-amber-800 block">📝 Progress Note:</span>
-                                  <span className="text-[8px] font-black text-purple-700 opacity-70 group-hover:opacity-100 flex items-center gap-0.5">
+                                  <span className="font-bold text-amber-800 dark:text-amber-300 block">📝 Progress Note:</span>
+                                  <span className="text-[8px] font-black text-purple-700 dark:text-purple-300 opacity-70 group-hover:opacity-100 flex items-center gap-0.5">
                                     <Eye className="w-2.5 h-2.5" /> Tap to expand
                                   </span>
                                 </div>
-                                <span className="text-slate-800 block line-clamp-2 whitespace-pre-line">
+                                <span className="text-slate-800 dark:text-gray-100 block line-clamp-2 whitespace-pre-line">
                                   {cleanNote}
                                 </span>
                               </div>
@@ -1249,7 +1249,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 bg-purple-100 hover:bg-purple-200 text-purple-900 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-300 transition-colors"
+                                className="inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-950/50 hover:bg-purple-200 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-300 text-[9px] font-black px-1.5 py-0.5 rounded border dark:border-gray-700 border-purple-300 transition-colors"
                               >
                                 📎 View Attachment
                               </a>
@@ -1260,11 +1260,11 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                       {/* Status Column - Read-only badge mapped dynamically from My Tasks */}
                       <td className="py-1.5 px-2 whitespace-nowrap">
-                        <span className={`text-[10px] font-black rounded-lg px-2 py-0.5 border inline-flex items-center gap-1 ${item.status === "Completed"
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        <span className={`text-[10px] font-black rounded-lg px-2 py-0.5 border dark:border-gray-700 inline-flex items-center gap-1 ${item.status === "Completed"
+                            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300"
                             : item.status === "In Progress"
-                              ? "bg-blue-100 text-blue-800 border-blue-300"
-                              : "bg-amber-100 text-amber-800 border-amber-300"
+                              ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border-blue-300"
+                              : "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300"
                           }`}>
                           {item.status === "Completed" ? "✅ Completed" : item.status === "In Progress" ? "⏳ In Progress" : "🕒 Pending"}
                         </span>
@@ -1280,14 +1280,14 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setSelectedDetailItem(item)}
-                            className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-100 rounded-lg transition-all"
+                            className="text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-300 p-1 hover:bg-purple-100 dark:hover:bg-purple-950/50 rounded-lg transition-all"
                             title="View Full Task & Progress Note Details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteSchedule(item.id)}
-                            className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded-lg transition-all"
+                            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 p-1 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all"
                             title="Delete Scheduled Entry"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1304,7 +1304,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         {/* Table Footer Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-3 py-2 bg-purple-50/50 border-t border-purple-200 text-xs text-slate-600 font-semibold">
+          <div className="flex items-center justify-between px-3 py-2 bg-purple-50/50 dark:bg-purple-950/50 border-t dark:border-gray-700 border-purple-200 text-xs text-slate-600 dark:text-gray-300 font-semibold">
             <span>
               Showing {paginatedSchedules.length} of {filteredSchedules.length} Entries (Page {currentPage} of {totalPages})
             </span>
@@ -1312,7 +1312,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="p-1 rounded border border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white"
+                className="p-1 rounded border border-slate-300 dark:border-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-gray-900"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -1320,7 +1320,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="p-1 rounded border border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white"
+                className="p-1 rounded border border-slate-300 dark:border-gray-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-gray-900"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -1332,20 +1332,20 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       {/* Task & Full Progress Note Detail Modal */}
       {selectedDetailItem && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-purple-200 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700 border-purple-200 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-4 flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-purple-100">
+                  <span className="text-xs font-mono font-bold bg-white/20 dark:bg-gray-900 px-2 py-0.5 rounded text-purple-100">
                     📅 {selectedDetailItem.date} {selectedDetailItem.time}
                   </span>
                   {selectedDetailItem.sodId ? (
-                    <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 text-[10px] font-black px-2 py-0.5 rounded">
+                    <span className="bg-indigo-500/30 text-indigo-200 border dark:border-gray-700 border-indigo-400/40 text-[10px] font-black px-2 py-0.5 rounded">
                       ✨ SOD Scheduled Task
                     </span>
                   ) : (
-                    <span className="bg-slate-700/50 text-slate-300 border border-slate-600/40 text-[10px] font-bold px-2 py-0.5 rounded">
+                    <span className="bg-slate-700/50 text-slate-300 border dark:border-gray-700 border-slate-600/40 text-[10px] font-bold px-2 py-0.5 rounded">
                       📌 Direct Task
                     </span>
                   )}
@@ -1366,39 +1366,39 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
               <button
                 onClick={() => setSelectedDetailItem(null)}
-                className="p-1.5 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                className="p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-900 text-white/80 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4 flex-1 text-slate-800 text-xs">
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 text-slate-800 dark:text-gray-100 text-xs">
               {/* Status & Category Info */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-purple-50/60 dark:bg-purple-950/50 p-3 rounded-xl border dark:border-gray-700 border-purple-100">
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Status</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-gray-400 block">Status</span>
                   <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black mt-0.5 ${selectedDetailItem.status === "Completed"
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-300"
                       : selectedDetailItem.status === "In Progress"
-                        ? "bg-blue-100 text-blue-800 border border-blue-300"
-                        : "bg-amber-100 text-amber-800 border border-amber-300"
+                        ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border dark:border-gray-700 border-blue-300"
+                        : "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-300"
                     }`}>
                     {selectedDetailItem.status || "Pending"}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Type</span>
-                  <span className="font-bold text-slate-900 text-xs mt-0.5 block">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-gray-400 block">Type</span>
+                  <span className="font-bold text-slate-900 dark:text-gray-100 text-xs mt-0.5 block">
                     {selectedDetailItem.type} {selectedDetailItem.subType ? `(${selectedDetailItem.subType})` : ""}
                   </span>
                 </div>
 
                 {(selectedDetailItem.bankName || selectedDetailItem.branchName) && (
                   <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block">Bank / Branch</span>
-                    <span className="font-bold text-purple-900 text-xs mt-0.5 block truncate">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-gray-400 block">Bank / Branch</span>
+                    <span className="font-bold text-purple-900 dark:text-purple-300 text-xs mt-0.5 block truncate">
                       {selectedDetailItem.bankName || "—"} {selectedDetailItem.branchName ? `(${selectedDetailItem.branchName})` : ""}
                     </span>
                   </div>
@@ -1407,14 +1407,14 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
               {/* Bank & Officer Extra Meta if available */}
               {(selectedDetailItem.aoName || selectedDetailItem.rboName || selectedDetailItem.officerName || selectedDetailItem.caseDetails || selectedDetailItem.otherType) && (
-                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Additional Details</span>
+                <div className="space-y-1.5 bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400 block">Additional Details</span>
                   <div className="flex flex-wrap gap-2 text-xs font-bold">
-                    {selectedDetailItem.aoName && <span className="bg-white px-2 py-1 rounded border border-slate-300">🏛️ AO: {selectedDetailItem.aoName}</span>}
-                    {selectedDetailItem.rboName && <span className="bg-white px-2 py-1 rounded border border-slate-300">📍 RBO: {selectedDetailItem.rboName}</span>}
-                    {selectedDetailItem.otherType && <span className="bg-white px-2 py-1 rounded border border-slate-300">{selectedDetailItem.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Other"}: {selectedDetailItem.otherType}</span>}
-                    {selectedDetailItem.officerName && <span className="bg-purple-50 text-purple-900 px-2 py-1 rounded border border-purple-200">👤 Officer: {selectedDetailItem.officerName}{selectedDetailItem.officerPhone ? ` (${selectedDetailItem.officerPhone})` : ""}</span>}
-                    {selectedDetailItem.caseDetails && <span className="bg-rose-50 text-rose-800 px-2 py-1 rounded border border-rose-200">⚖️ Case: {selectedDetailItem.caseDetails}</span>}
+                    {selectedDetailItem.aoName && <span className="bg-white dark:bg-gray-900 px-2 py-1 rounded border border-slate-300 dark:border-gray-700">🏛️ AO: {selectedDetailItem.aoName}</span>}
+                    {selectedDetailItem.rboName && <span className="bg-white dark:bg-gray-900 px-2 py-1 rounded border border-slate-300 dark:border-gray-700">📍 RBO: {selectedDetailItem.rboName}</span>}
+                    {selectedDetailItem.otherType && <span className="bg-white dark:bg-gray-900 px-2 py-1 rounded border border-slate-300 dark:border-gray-700">{selectedDetailItem.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Other"}: {selectedDetailItem.otherType}</span>}
+                    {selectedDetailItem.officerName && <span className="bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-300 px-2 py-1 rounded border dark:border-gray-700 border-purple-200">👤 Officer: {selectedDetailItem.officerName}{selectedDetailItem.officerPhone ? ` (${selectedDetailItem.officerPhone})` : ""}</span>}
+                    {selectedDetailItem.caseDetails && <span className="bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 px-2 py-1 rounded border dark:border-gray-700 border-rose-200">⚖️ Case: {selectedDetailItem.caseDetails}</span>}
                   </div>
                 </div>
               )}
@@ -1422,8 +1422,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               {/* Initial Remarks / Details */}
               {getCleanRemarks(selectedDetailItem) !== "—" && (
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Task Description / Remarks</span>
-                  <div className="bg-slate-100/80 p-3 rounded-xl border border-slate-200 text-slate-800 font-medium whitespace-pre-line leading-relaxed">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-gray-400 block">Task Description / Remarks</span>
+                  <div className="bg-slate-100/80 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-gray-100 font-medium whitespace-pre-line leading-relaxed">
                     {getCleanRemarks(selectedDetailItem)}
                   </div>
                 </div>
@@ -1431,7 +1431,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
               {/* Full Progress Notes & Updates Section */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block flex items-center gap-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 block flex items-center gap-1">
                   📝 Full Progress Notes & History
                 </span>
                 {(() => {
@@ -1442,13 +1442,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                   );
                   if (!fullNote) {
                     return (
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-400 italic">
+                      <div className="bg-slate-50 dark:bg-gray-800 p-3 rounded-xl border border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-400 italic">
                         No progress notes added for this task yet.
                       </div>
                     );
                   }
                   return (
-                    <div className="bg-amber-50/90 border border-amber-200/90 p-4 rounded-xl text-slate-900 text-xs font-normal leading-relaxed whitespace-pre-line shadow-2xs">
+                    <div className="bg-amber-50/90 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200/90 p-4 rounded-xl text-slate-900 dark:text-gray-100 text-xs font-normal leading-relaxed whitespace-pre-line shadow-2xs">
                       {fullNote}
                     </div>
                   );
@@ -1461,7 +1461,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                 if (!url) return null;
                 return (
                   <div className="space-y-1.5 pt-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block">Proof Attachment</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-gray-400 block">Proof Attachment</span>
                     <a
                       href={url}
                       target="_blank"
@@ -1476,7 +1476,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-slate-50 p-3 border-t border-slate-200 flex justify-end">
+            <div className="bg-slate-50 dark:bg-gray-800 p-3 border-t border-slate-200 dark:border-gray-700 flex justify-end">
               <button
                 onClick={() => setSelectedDetailItem(null)}
                 className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors"

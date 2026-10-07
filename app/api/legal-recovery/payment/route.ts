@@ -1,3 +1,4 @@
+import { invoiceUpdateAudit } from "@/lib/invoice-update-audit";
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import LegalRecoveryPayment from "@/models/sequelize/LegalRecoveryPayment";
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
 
         const newDue = Math.max(0, currentDue - amount - tdsAmount);
         await invoice.update({
+          ...invoiceUpdateAudit(session.user),
           receivedAmount: Number(invoice.receivedAmount || 0) + amount,
           tdsAmount: Number(invoice.tdsAmount || 0) + tdsAmount,
           dueAmount: Number(newDue.toFixed(2)),
@@ -313,11 +315,13 @@ export async function PUT(request: Request) {
       if (payment.invoiceId && diffAmount !== 0) {
         const invoice = await LegalRecoveryBill.findByPk(payment.invoiceId, { transaction: dbTransaction, lock: dbTransaction.LOCK.UPDATE });
         if (!invoice) throw new Error("Linked invoice not found");
+        if (invoice.status === "Settled") throw new Error("Reopen the settled invoice before changing its payments");
         const nextReceived = Number(invoice.receivedAmount || 0) + diffAmount;
         const nextDue = Number(invoice.dueAmount || 0) - diffAmount;
         if (nextReceived < -0.005) throw new Error("Payment cannot be less than the amount already allocated");
         if (nextDue < -0.005) throw new Error("Payment cannot exceed the invoice due amount");
         await invoice.update({
+          ...invoiceUpdateAudit(session.user),
           receivedAmount: Number(Math.max(0, nextReceived).toFixed(2)),
           dueAmount: Number(Math.max(0, nextDue).toFixed(2)),
           paymentReceivedDate: paymentDate || invoice.paymentReceivedDate,
@@ -388,7 +392,9 @@ export async function DELETE(request: Request) {
       if (payment.invoiceId) {
         const invoice = await LegalRecoveryBill.findByPk(payment.invoiceId, { transaction, lock: transaction.LOCK.UPDATE });
         if (!invoice) throw new Error("Linked invoice not found");
+        if (invoice.status === "Settled") throw new Error("Reopen the settled invoice before changing its payments");
         await invoice.update({
+          ...invoiceUpdateAudit(session.user),
           receivedAmount: Number(Math.max(0, Number(invoice.receivedAmount || 0) - deletedAmount).toFixed(2)),
           tdsAmount: Number(Math.max(0, Number(invoice.tdsAmount || 0) - deletedTds).toFixed(2)),
           dueAmount: Number((Number(invoice.dueAmount || 0) + deletedAmount + deletedTds).toFixed(2)),

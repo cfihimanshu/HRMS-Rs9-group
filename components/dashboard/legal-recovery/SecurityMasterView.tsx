@@ -162,7 +162,7 @@ function DatePickerInput({
             }
           }}
           onFocus={() => setIsOpen(true)}
-          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] pr-9"
+          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] pr-9 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
         />
         <button
           type="button"
@@ -277,7 +277,7 @@ function HeaderFilter({
               type="checkbox"
               checked={tempSelected.includes(opt)}
               onChange={() => handleToggle(opt)}
-              className="rounded border-slate-300 text-[#714B67] focus:ring-[#714B67]"
+              className="rounded border-slate-300 text-[#714B67] focus:ring-[#714B67] dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
             />
             <span className="truncate">{opt || "(Blank)"}</span>
           </label>
@@ -2344,7 +2344,7 @@ export default function SecurityMasterView({
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
       {/* Hide number spinners CSS */}
       <style jsx global>{`
         input[type="number"]::-webkit-inner-spin-button,
@@ -2358,14 +2358,14 @@ export default function SecurityMasterView({
       `}</style>
 
       {/* Top Header Card */}
-      <div className="bg-white border border-[#E8E4DF] rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-indigo-50 text-indigo-700 rounded-xl">
+            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">Security Management</h1>
+              <h1 className="text-xl font-black text-slate-900 dark:text-gray-100">Security Management</h1>
             </div>
           </div>
         </div>
@@ -2373,7 +2373,7 @@ export default function SecurityMasterView({
         <div className="flex items-center gap-2.5">
           <button
             onClick={fetchEntries}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
+            className="p-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl transition-all"
             title="Refresh List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -2391,10 +2391,10 @@ export default function SecurityMasterView({
 
           <button
             onClick={handleOpenAddBillingModal}
-            className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-black px-4 py-2.5 rounded-xl shadow-2xs transition-all"
+            className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 text-xs font-black px-4 py-2.5 rounded-xl shadow-2xs transition-all"
             title="Add Initial Billing & Work Order Entry"
           >
-            <Receipt className="w-4 h-4 text-indigo-600" />
+            <Receipt className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
             <span>Add Billing Details</span>
           </button>
         </div>
@@ -2409,27 +2409,27 @@ export default function SecurityMasterView({
             setEntriesModalSearch("");
           }}
           title="Click to view Bank / NBFC Wise Summary & All Works"
-          className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-indigo-400 ring-1 ring-transparent hover:ring-indigo-100 transition-all group"
+          className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-indigo-400 ring-1 ring-transparent hover:ring-indigo-100 transition-all group"
         >
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 group-hover:bg-indigo-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-indigo-600 transition-colors truncate">Total Entries</p>
-              <span className="text-[8px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-150 group-hover:bg-indigo-100 shrink-0">Breakdown</span>
+              <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors truncate">Total Entries</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border dark:border-gray-700 border-indigo-150 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-950/50 shrink-0">Breakdown</span>
             </div>
-            <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{entries.length}</p>
+            <p className="text-lg font-black text-slate-900 dark:text-gray-100 leading-tight mt-0.5">{entries.length}</p>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold">
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] uppercase font-black text-slate-400">Total Bill Amount</p>
-            <p className="text-lg font-black text-blue-700">₹{totalBilled.toLocaleString("en-IN")}</p>
+            <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400">Total Bill Amount</p>
+            <p className="text-lg font-black text-blue-700 dark:text-blue-300">₹{totalBilled.toLocaleString("en-IN")}</p>
           </div>
         </div>
 
@@ -2440,19 +2440,19 @@ export default function SecurityMasterView({
             setReceivedModalSearch("");
           }}
           title="Click to view Bank / NBFC Wise Received & Pending Summary"
-          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-emerald-400 ring-1 ring-transparent hover:ring-emerald-100 transition-all group ${
-            filterStatus === "Received" ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"
+          className={`bg-white dark:bg-gray-900 border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-emerald-400 ring-1 ring-transparent hover:ring-emerald-100 transition-all group ${
+            filterStatus === "Received" ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200 dark:border-gray-700"
           }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-emerald-600 transition-colors truncate">Total Received</p>
-              <span className="text-[8px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-150 group-hover:bg-emerald-100 shrink-0">Breakdown</span>
+              <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors truncate">Total Received</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border dark:border-gray-700 border-emerald-150 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950/50 shrink-0">Breakdown</span>
             </div>
-            <p className="text-lg font-black text-emerald-700 leading-tight mt-0.5">₹{totalReceived.toLocaleString("en-IN")}</p>
+            <p className="text-lg font-black text-emerald-700 dark:text-emerald-300 leading-tight mt-0.5">₹{totalReceived.toLocaleString("en-IN")}</p>
           </div>
         </div>
 
@@ -2463,19 +2463,19 @@ export default function SecurityMasterView({
             setPendingDueModalSearch("");
           }}
           title="Click to view Bank / NBFC Wise Pending Due Cases Summary"
-          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 ring-1 ring-transparent hover:ring-rose-100 transition-all group ${
-            filterStatus === "Due" ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200"
+          className={`bg-white dark:bg-gray-900 border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 ring-1 ring-transparent hover:ring-rose-100 transition-all group ${
+            filterStatus === "Due" ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200 dark:border-gray-700"
           }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
+          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-rose-600 transition-colors truncate">Pending Due Cases</p>
-              <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-150 group-hover:bg-rose-100 shrink-0">Breakdown</span>
+              <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors truncate">Pending Due Cases</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded border dark:border-gray-700 border-rose-150 group-hover:bg-rose-100 dark:group-hover:bg-rose-950/50 shrink-0">Breakdown</span>
             </div>
-            <p className="text-lg font-black text-rose-700 leading-tight mt-0.5">{totalDueCount} Entries</p>
+            <p className="text-lg font-black text-rose-700 dark:text-rose-300 leading-tight mt-0.5">{totalDueCount} Entries</p>
           </div>
         </div>
 
@@ -2486,28 +2486,28 @@ export default function SecurityMasterView({
             setPendingDueModalSearch("");
           }}
           title="Click to view pending bill amount breakdown"
-          className="bg-white border border-rose-200 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 transition-all group"
+          className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-rose-200 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 transition-all group"
         >
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center shrink-0">
             <Banknote className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-rose-600 truncate">Pending Bill Amount</p>
-              <span className="text-[8px] font-black uppercase text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-150">Breakdown</span>
+              <p className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 truncate">Pending Bill Amount</p>
+              <span className="text-[8px] font-black uppercase text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.5 rounded border dark:border-gray-700 border-rose-150">Breakdown</span>
             </div>
-            <p className="text-lg font-black text-rose-700 leading-tight mt-0.5">₹{totalPendingAmount.toLocaleString("en-IN")}</p>
+            <p className="text-lg font-black text-rose-700 dark:text-rose-300 leading-tight mt-0.5">₹{totalPendingAmount.toLocaleString("en-IN")}</p>
           </div>
         </div>
       </div>
 
       {/* Filter, Export & Toggle Columns Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center relative z-20">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center relative z-20">
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400 dark:text-gray-400" />
           <input
             type="text"
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#714B67]"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-3 py-2 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
             placeholder="Search by Bill No, Bank, Branch, Site..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -2518,7 +2518,7 @@ export default function SecurityMasterView({
           {hasActiveColumnFilters && (
             <button
               onClick={clearAllColumnFilters}
-              className="text-[10px] font-bold text-rose-600 hover:underline px-2 py-1 bg-rose-50 rounded-lg border border-rose-200"
+              className="text-[10px] font-bold text-rose-600 dark:text-rose-300 hover:underline px-2 py-1 bg-rose-50 dark:bg-rose-950/50 rounded-lg border dark:border-gray-700 border-rose-200"
             >
               Clear Column Filters
             </button>
@@ -2538,19 +2538,19 @@ export default function SecurityMasterView({
           <div className="relative">
             <button
               onClick={() => setShowColumnToggle(!showColumnToggle)}
-              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all border border-slate-200 flex items-center justify-center"
+              className="p-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl transition-all border border-slate-200 dark:border-gray-700 flex items-center justify-center"
               title="Toggle Columns"
             >
-              <SlidersHorizontal className="w-4 h-4 text-slate-600" />
+              <SlidersHorizontal className="w-4 h-4 text-slate-600 dark:text-gray-300" />
             </button>
 
             {showColumnToggle && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-2xl z-[9999] p-3 text-xs">
-                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-2">
-                  <span className="font-black text-slate-700 uppercase tracking-wider text-[10px]">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-2xl z-[9999] p-3 text-xs">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-gray-700 mb-2">
+                  <span className="font-black text-slate-700 dark:text-gray-100 uppercase tracking-wider text-[10px]">
                     Visible Columns
                   </span>
-                  <button onClick={() => setShowColumnToggle(false)} className="text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setShowColumnToggle(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300">
                     ✕
                   </button>
                 </div>
@@ -2575,16 +2575,16 @@ export default function SecurityMasterView({
                     remarks: "Remarks",
                     actions: "Actions",
                   }).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                    <label key={key} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-800 p-1 rounded">
                       <input
                         type="checkbox"
                         checked={(visibleColumns as any)[key]}
                         onChange={(e) =>
                           setVisibleColumns({ ...visibleColumns, [key]: e.target.checked })
                         }
-                        className="rounded border-slate-300 text-[#714B67] focus:ring-[#714B67]"
+                        className="rounded border-slate-300 dark:border-gray-700 text-[#714B67] focus:ring-[#714B67] dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                       />
-                      <span className="text-slate-700 font-semibold text-xs">{label}</span>
+                      <span className="text-slate-700 dark:text-gray-100 font-semibold text-xs">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -2595,22 +2595,22 @@ export default function SecurityMasterView({
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm z-10 relative min-h-[420px]">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm z-10 relative min-h-[420px]">
         {loading ? (
-          <div className="h-64 flex flex-col items-center justify-center text-slate-500">
+          <div className="h-64 flex flex-col items-center justify-center text-slate-500 dark:text-gray-400">
             <RefreshCw className="w-8 h-8 animate-spin mb-2 text-[#714B67]" />
             <span className="text-xs font-bold">Loading security records...</span>
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-slate-400">
+          <div className="h-64 flex flex-col items-center justify-center text-slate-400 dark:text-gray-400">
             <ShieldCheck className="w-10 h-10 mb-2 text-slate-300" />
             <span className="text-xs font-bold">No security entries found.</span>
           </div>
         ) : (
-          <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[380px] rounded-b-xl border-t border-slate-200/80">
+          <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[380px] rounded-b-xl border-t dark:border-gray-700 border-slate-200/80">
             <table className="min-w-[1950px] w-full text-left text-xs border-collapse">
-              <thead className="sticky top-0 z-20 bg-slate-100 shadow-2xs">
-                <tr className="bg-slate-100 text-black font-black uppercase font-mono tracking-wider border-b border-slate-300 text-[11px]">
+              <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-gray-800 shadow-2xs">
+                <tr className="bg-slate-100 dark:bg-gray-800 text-black dark:text-gray-100 font-black uppercase font-mono tracking-wider border-b border-slate-300 dark:border-gray-700 text-[11px]">
                   <th className="py-3.5 px-3 text-center min-w-[45px]">#</th>
 
                   {/* 1. Company */}
@@ -2618,7 +2618,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[200px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "company" ? null : "company")}>
                         <span>Company</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.company?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.company?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "company" && (
                         <HeaderFilter
@@ -2637,7 +2637,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[180px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "nbfcName" ? null : "nbfcName")}>
                         <span>Bank / NBFC Name</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.nbfcName?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.nbfcName?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "nbfcName" && (
                         <HeaderFilter
@@ -2656,7 +2656,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[130px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "branchName" ? null : "branchName")}>
                         <span>Branch</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.branchName?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.branchName?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "branchName" && (
                         <HeaderFilter
@@ -2677,7 +2677,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[150px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "location" ? null : "location")}>
                         <span>Site Area</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.location?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.location?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "location" && (
                         <HeaderFilter
@@ -2696,7 +2696,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[120px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "siteType" ? null : "siteType")}>
                         <span>Site Type</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.siteType?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.siteType?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "siteType" && (
                         <HeaderFilter
@@ -2715,7 +2715,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[150px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "deploymentInfo" ? null : "deploymentInfo")}>
                         <span>Guards / Deployment</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.deploymentInfo?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.deploymentInfo?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "deploymentInfo" && (
                         <HeaderFilter
@@ -2734,7 +2734,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[160px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "shiftsInfo" ? null : "shiftsInfo")}>
                         <span>Shifts</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.shiftsInfo?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.shiftsInfo?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "shiftsInfo" && (
                         <HeaderFilter
@@ -2753,7 +2753,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[210px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "guardContact" ? null : "guardContact")}>
                         <span>Guard Contact</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.guardContact?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.guardContact?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "guardContact" && (
                         <HeaderFilter
@@ -2772,7 +2772,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[130px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billNo" ? null : "billNo")}>
                         <span>Bill No.</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billNo?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.billNo?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "billNo" && (
                         <HeaderFilter
@@ -2791,7 +2791,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[110px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billDate" ? null : "billDate")}>
                         <span>Bill Date</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billDate?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.billDate?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "billDate" && (
                         <HeaderFilter
@@ -2810,7 +2810,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[130px] text-right relative">
                       <div className="flex items-center justify-end gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billAmount" ? null : "billAmount")}>
                         <span>Bill Amount</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billAmount?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.billAmount?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "billAmount" && (
                         <HeaderFilter
@@ -2829,7 +2829,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[130px] text-center relative">
                       <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "paymentStatus" ? null : "paymentStatus")}>
                         <span>Payment Status</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.paymentStatus?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.paymentStatus?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "paymentStatus" && (
                         <HeaderFilter
@@ -2848,7 +2848,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[130px] text-center relative">
                       <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "paymentDays" ? null : "paymentDays")}>
                         <span>Payment Timeline</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.paymentDays?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.paymentDays?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "paymentDays" && (
                         <HeaderFilter
@@ -2868,7 +2868,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[140px] text-right relative">
                       <div className="flex items-center justify-end gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "receivedAmount" ? null : "receivedAmount")}>
                         <span>Received Amount</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.receivedAmount?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.receivedAmount?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "receivedAmount" && (
                         <HeaderFilter
@@ -2888,7 +2888,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[110px] text-center relative">
                       <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "receivedDate" ? null : "receivedDate")}>
                         <span>Received Date</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.receivedDate?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.receivedDate?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "receivedDate" && (
                         <HeaderFilter
@@ -2908,7 +2908,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[100px] text-center relative">
                       <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "source" ? null : "source")}>
                         <span>Source</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.source?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.source?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "source" && (
                         <HeaderFilter
@@ -2927,7 +2927,7 @@ export default function SecurityMasterView({
                     <th className="py-3.5 px-3.5 min-w-[180px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "remarks" ? null : "remarks")}>
                         <span>Remarks</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.remarks?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                        <Filter className={`w-3 h-3 ${columnFilters.remarks?.length ? "text-indigo-600 dark:text-indigo-300 font-bold" : "text-slate-400 dark:text-gray-400"}`} />
                       </div>
                       {activeFilterKey === "remarks" && (
                         <HeaderFilter
@@ -2946,24 +2946,24 @@ export default function SecurityMasterView({
                   {visibleColumns.actions && <th className="py-3.5 px-3.5 min-w-[140px] text-center">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                 {filteredEntries.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-3 text-center text-slate-400 font-mono">{index + 1}</td>
+                  <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors">
+                    <td className="py-3.5 px-3 text-center text-slate-400 dark:text-gray-400 font-mono">{index + 1}</td>
 
                     {/* 1. Company */}
-                    {visibleColumns.company && <td className="py-3.5 px-3.5 font-bold text-slate-900 leading-snug">{item.company}</td>}
+                    {visibleColumns.company && <td className="py-3.5 px-3.5 font-bold text-slate-900 dark:text-gray-100 leading-snug">{item.company}</td>}
 
                     {/* 2. Bank / NBFC Name */}
                     {visibleColumns.nbfcName && <td className="py-3.5 px-3.5 font-bold text-slate-850 leading-snug">{item.nbfcName || "—"}</td>}
 
                     {/* 3. Branch */}
-                    {visibleColumns.branchName && <td className="py-3.5 px-3.5 text-slate-600 whitespace-nowrap">{item.branchName || "—"}</td>}
+                    {visibleColumns.branchName && <td className="py-3.5 px-3.5 text-slate-600 dark:text-gray-300 whitespace-nowrap">{item.branchName || "—"}</td>}
 
                     <td className="py-2.5 px-3.5">
                       {(() => {
                         if (!String(item.workflowJson || "").trim()) {
-                          return <div className="text-[10px] text-slate-400 italic">Legacy pending bill<br/><span className="font-semibold not-italic">Not linked to pipeline</span></div>;
+                          return <div className="text-[10px] text-slate-400 dark:text-gray-400 italic">Legacy pending bill<br/><span className="font-semibold not-italic">Not linked to pipeline</span></div>;
                         }
                         let stages: any = {};
                         try { stages = JSON.parse(item.workflowJson || "{}"); } catch {}
@@ -2971,17 +2971,17 @@ export default function SecurityMasterView({
                         const proofCount = SECURITY_WORKFLOW_STAGES.reduce((sum, stage) => sum
                           + (Array.isArray(stages?.[stage.key]?.proofUrls) ? stages[stage.key].proofUrls.length : 0)
                           + (Array.isArray(stages?.[stage.key]?.followUps) ? stages[stage.key].followUps.reduce((proofSum: number, followUp: any) => proofSum + (Array.isArray(followUp.proofUrls) ? followUp.proofUrls.length : 0), 0) : 0), 0);
-                        return <div className="min-w-[210px]"><div className="flex justify-between text-[10px] font-black"><span className="text-purple-700">{completedStages}/10 Stages</span><span className="text-slate-500">{proofCount} Documents</span></div><div className="flex gap-1 mt-1.5">{SECURITY_WORKFLOW_STAGES.map((stage, stageIndex) => <span key={stage.key} title={`${stageIndex + 1}. ${stage.label}: ${stages?.[stage.key]?.status || "pending"}`} className={`h-2 flex-1 rounded-full ${stages?.[stage.key]?.status === "completed" ? "bg-emerald-500" : stages?.[stage.key]?.status === "in_progress" ? "bg-amber-400" : stages?.[stage.key]?.status === "rejected" ? "bg-rose-500" : "bg-slate-200"}`}/>)}</div><button type="button" onClick={() => setWorkflowItem(item)} className="mt-2 text-[10px] font-black text-indigo-700 underline">View stages & documents</button></div>;
+                        return <div className="min-w-[210px]"><div className="flex justify-between text-[10px] font-black"><span className="text-purple-700 dark:text-purple-300">{completedStages}/10 Stages</span><span className="text-slate-500 dark:text-gray-400">{proofCount} Documents</span></div><div className="flex gap-1 mt-1.5">{SECURITY_WORKFLOW_STAGES.map((stage, stageIndex) => <span key={stage.key} title={`${stageIndex + 1}. ${stage.label}: ${stages?.[stage.key]?.status || "pending"}`} className={`h-2 flex-1 rounded-full ${stages?.[stage.key]?.status === "completed" ? "bg-emerald-500" : stages?.[stage.key]?.status === "in_progress" ? "bg-amber-400" : stages?.[stage.key]?.status === "rejected" ? "bg-rose-500" : "bg-slate-200 dark:bg-gray-800"}`}/>)}</div><button type="button" onClick={() => setWorkflowItem(item)} className="mt-2 text-[10px] font-black text-indigo-700 dark:text-indigo-300 underline">View stages & documents</button></div>;
                       })()}
                     </td>
 
                     {/* 4. Site Area */}
-                    {visibleColumns.location && <td className="py-3.5 px-3.5 text-slate-700 font-bold whitespace-nowrap">{item.location || "—"}</td>}
+                    {visibleColumns.location && <td className="py-3.5 px-3.5 text-slate-700 dark:text-gray-100 font-bold whitespace-nowrap">{item.location || "—"}</td>}
 
                     {/* 5. Site Type */}
                     {visibleColumns.siteType && (
                       <td className="py-3.5 px-3.5 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-100">
                           {item.siteType || "Building"}
                         </span>
                       </td>
@@ -3005,7 +3005,7 @@ export default function SecurityMasterView({
 
                           if (count === 0) {
                             return (
-                              <span className="text-slate-400 font-medium text-[11px] italic">
+                              <span className="text-slate-400 dark:text-gray-400 font-medium text-[11px] italic">
                                 No guards assigned
                               </span>
                             );
@@ -3013,7 +3013,7 @@ export default function SecurityMasterView({
 
                           return (
                             <div className="flex flex-col gap-1">
-                              <span className="font-bold text-slate-900 font-mono">
+                              <span className="font-bold text-slate-900 dark:text-gray-100 font-mono">
                                 {count} Guard Shift{count === 1 ? "" : "s"}
                               </span>
                               <button
@@ -3022,10 +3022,10 @@ export default function SecurityMasterView({
                                   setRosterModalFilterDate("ALL");
                                   setShowRosterDetailsModal({ show: true, item });
                                 }}
-                                className="text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded flex items-center gap-1 w-fit transition-all shadow-2xs"
+                                className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 px-2 py-0.5 rounded flex items-center gap-1 w-fit transition-all shadow-2xs"
                                 title="View Day-Wise Guard Deployment & Payment Details"
                               >
-                                <Calendar className="w-3 h-3 text-indigo-600" /> View Breakdown
+                                <Calendar className="w-3 h-3 text-indigo-600 dark:text-indigo-300" /> View Breakdown
                               </button>
                             </div>
                           );
@@ -3038,15 +3038,15 @@ export default function SecurityMasterView({
                       <td className="py-3.5 px-3.5 text-xs whitespace-nowrap">
                         {item.shiftHours && item.coverageHours ? (
                           <>
-                            <div className="font-bold text-indigo-700">
+                            <div className="font-bold text-indigo-700 dark:text-indigo-300">
                               {item.shiftHours}h Shift ({item.coverageHours}h Coverage)
                             </div>
-                            <div className="text-[10px] text-slate-500 font-mono">
+                            <div className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                               ₹{item.shiftRate || 0}/shift {item.allowancePerShift ? `(+₹${item.allowancePerShift} All.)` : ""}
                             </div>
                           </>
                         ) : (
-                          <span className="text-slate-400 font-normal">—</span>
+                          <span className="text-slate-400 dark:text-gray-400 font-normal">—</span>
                         )}
                       </td>
                     )}
@@ -3078,31 +3078,31 @@ export default function SecurityMasterView({
                             } catch (e) { }
                           }
 
-                          if (allGuards.length === 0) return <span className="text-slate-400">—</span>;
+                          if (allGuards.length === 0) return <span className="text-slate-400 dark:text-gray-400">—</span>;
 
                           return (
                             <div className="flex flex-col gap-1.5 max-w-[260px]">
                               {allGuards.map((g, i) => (
-                                <div key={i} className="flex flex-col gap-0.5 bg-slate-50/80 p-1.5 rounded-lg border border-slate-200/70">
+                                <div key={i} className="flex flex-col gap-0.5 bg-slate-50/80 dark:bg-slate-950/50 p-1.5 rounded-lg border dark:border-gray-700 border-slate-200/70">
                                   <div className="flex items-center gap-1.5 text-xs leading-none">
                                     {g.photoUrl ? (
                                       <a href={g.photoUrl} target="_blank" rel="noreferrer" title={`Click to view photo of ${g.name}`}>
-                                        <img src={g.photoUrl} alt={g.name} className="w-5 h-5 rounded-full object-cover border border-indigo-200 shadow-2xs shrink-0" />
+                                        <img src={g.photoUrl} alt={g.name} className="w-5 h-5 rounded-full object-cover border dark:border-gray-700 border-indigo-200 shadow-2xs shrink-0" />
                                       </a>
                                     ) : (
-                                      <div className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center justify-center font-bold text-[9px] shrink-0">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 flex items-center justify-center font-bold text-[9px] shrink-0">
                                         {g.name ? g.name.charAt(0).toUpperCase() : "G"}
                                       </div>
                                     )}
-                                    <span className="font-bold text-slate-800 truncate">{g.name}</span>
+                                    <span className="font-bold text-slate-800 dark:text-gray-100 truncate">{g.name}</span>
                                     {g.phone && (
-                                      <span className="text-[10px] font-mono text-indigo-600 font-bold whitespace-nowrap">
+                                      <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-300 font-bold whitespace-nowrap">
                                         ({g.phone})
                                       </span>
                                     )}
                                   </div>
                                   {(g.shiftType || g.shiftTiming) && (
-                                    <div className="text-[9px] font-mono text-purple-700 font-bold pl-6">
+                                    <div className="text-[9px] font-mono text-purple-700 dark:text-purple-300 font-bold pl-6">
                                       ⏰ {g.shiftType || "Shift"} {g.shiftTiming ? `(${g.shiftTiming})` : ""}
                                     </div>
                                   )}
@@ -3116,7 +3116,7 @@ export default function SecurityMasterView({
 
                     {/* 9. Bill No. */}
                     {visibleColumns.billNo && (
-                      <td className="py-3.5 px-3.5 font-bold text-indigo-700 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 font-bold text-indigo-700 dark:text-indigo-300 font-mono whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <span>{item.billNo || "—"}</span>
                           {item.billInvoiceUrl && (
@@ -3124,7 +3124,7 @@ export default function SecurityMasterView({
                               href={item.billInvoiceUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded hover:underline flex items-center gap-0.5"
+                              className="text-[10px] bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 px-1.5 py-0.2 rounded hover:underline flex items-center gap-0.5"
                               title="View Bill Copy"
                             >
                               <Receipt className="w-3 h-3" /> Bill
@@ -3136,14 +3136,14 @@ export default function SecurityMasterView({
 
                     {/* 10. Bill Date */}
                     {visibleColumns.billDate && (
-                      <td className="py-3.5 px-3.5 text-slate-600 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-slate-600 dark:text-gray-300 font-mono whitespace-nowrap">
                         {item.billDate ? item.billDate.split("-").reverse().join("/") : "—"}
                       </td>
                     )}
 
                     {/* 11. Bill Amount */}
                     {visibleColumns.billAmount && (
-                      <td className="py-3.5 px-3.5 text-right font-black text-slate-900 whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-right font-black text-slate-900 dark:text-gray-100 whitespace-nowrap">
                         ₹{Number(item.billAmount || 0).toLocaleString("en-IN")}
                       </td>
                     )}
@@ -3153,12 +3153,12 @@ export default function SecurityMasterView({
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border dark:border-gray-700 ${
                               item.paymentStatus === "Payment Done"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
                                 : item.paymentStatus === "Partially Paid"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-rose-50 text-rose-700 border-rose-200"
+                                ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
+                                : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
                             }`}
                           >
                             {item.paymentStatus || "Due"}
@@ -3170,7 +3170,7 @@ export default function SecurityMasterView({
                                 if (Array.isArray(parsed) && parsed.length > 0) {
                                   const paidCount = parsed.filter((p: any) => p.status === "Received").length;
                                   return (
-                                    <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded mt-0.5">
+                                    <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 px-1.5 py-0.2 rounded mt-0.5">
                                       Installments ({paidCount}/{parsed.length} Paid)
                                     </span>
                                   );
@@ -3179,7 +3179,7 @@ export default function SecurityMasterView({
                             }
                             if (item.paymentStatus !== "Due" && item.paymentMethod) {
                               return (
-                                <span className="text-[9px] font-bold text-slate-500 font-mono">
+                                <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 font-mono">
                                   ({item.paymentMethod})
                                 </span>
                               );
@@ -3192,14 +3192,14 @@ export default function SecurityMasterView({
 
                     {/* 13. Payment Timeline */}
                     {visibleColumns.paymentDays && (
-                      <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-700 dark:text-gray-100 whitespace-nowrap">
                         {item.paymentDays || "—"}
                       </td>
                     )}
 
                     {/* 14. Received Amount */}
                     {visibleColumns.receivedAmount && (
-                      <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
                         {Number(item.receivedAmount || 0) > 0 ? (
                           `₹${Number(item.receivedAmount).toLocaleString("en-IN")}`
                         ) : (
@@ -3210,7 +3210,7 @@ export default function SecurityMasterView({
 
                     {/* 15. Received Date */}
                     {visibleColumns.receivedDate && (
-                      <td className="py-3.5 px-3.5 text-center text-slate-500 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-center text-slate-500 dark:text-gray-400 font-mono whitespace-nowrap">
                         {item.receivedDate ? item.receivedDate.split("-").reverse().join("/") : "—"}
                       </td>
                     )}
@@ -3218,14 +3218,14 @@ export default function SecurityMasterView({
                     {/* 16. Source */}
                     {visibleColumns.source && (
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                        <span className="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">
                           {item.source || "—"}
                         </span>
                       </td>
                     )}
 
                     {/* 17. Remarks */}
-                    {visibleColumns.remarks && <td className="py-3.5 px-3.5 text-slate-600 max-w-[200px] truncate">{item.remarks || "—"}</td>}
+                    {visibleColumns.remarks && <td className="py-3.5 px-3.5 text-slate-600 dark:text-gray-300 max-w-[200px] truncate">{item.remarks || "—"}</td>}
 
                     {/* 18. Actions */}
                     {visibleColumns.actions && (
@@ -3234,7 +3234,7 @@ export default function SecurityMasterView({
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(item)}
-                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all shadow-2xs"
+                            className="p-2 text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg transition-all shadow-2xs"
                             title="Edit Record & Guard Details"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -3244,7 +3244,7 @@ export default function SecurityMasterView({
                           <button
                             type="button"
                             onClick={() => handleDelete(item.id)}
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all shadow-2xs"
+                            className="p-2 text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-950/50 border dark:border-gray-700 border-rose-200 rounded-lg transition-all shadow-2xs"
                             title="Delete Record"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3275,16 +3275,16 @@ export default function SecurityMasterView({
 
       {showModal && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 flex flex-col overflow-hidden my-auto max-h-[90vh]">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-gray-700 flex flex-col overflow-hidden my-auto max-h-[90vh]">
 
             {/* Fixed Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-50 text-indigo-700 rounded-lg">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-lg">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-slate-900">
+                  <h2 className="text-base font-black text-slate-900 dark:text-gray-100">
                     {editingId ? "Edit Security Record" : "Add Security Entry"}
                   </h2>
                 </div>
@@ -3292,7 +3292,7 @@ export default function SecurityMasterView({
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-slate-600 font-bold transition-all"
+                className="w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-800 hover:bg-rose-100 dark:hover:bg-rose-950/50 hover:text-rose-700 dark:hover:text-rose-300 flex items-center justify-center text-slate-600 dark:text-gray-300 font-bold transition-all"
                 title="Close"
               >
                 ✕
@@ -3304,8 +3304,8 @@ export default function SecurityMasterView({
               <div className="p-6 overflow-y-auto flex-1 space-y-5">
 
                 {/* SECTION 1: BANK & COMPANY DETAILS */}
-                <div className="flex items-center gap-2 pb-2 border-b border-indigo-100 text-indigo-900">
-                  <Tag className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pb-2 border-b dark:border-gray-700 border-indigo-100 text-indigo-900 dark:text-indigo-300">
+                  <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h3 className="text-xs font-black uppercase tracking-wider font-mono">
                     1. COMPANY &amp; BANK/NBFC DETAILS
                   </h3>
@@ -3315,19 +3315,19 @@ export default function SecurityMasterView({
                   {/* Company */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider">
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">
                         Company *
                       </label>
                       <button
                         type="button"
                         onClick={() => setShowAddCompanyModal(true)}
-                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-0.5"
                       >
                         <Plus className="w-3 h-3" /> Add Company
                       </button>
                     </div>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={form.company}
                       onChange={(e) => {
                         if (e.target.value === "ADD_NEW_COMPANY") {
@@ -3343,7 +3343,7 @@ export default function SecurityMasterView({
                           {comp}
                         </option>
                       ))}
-                      <option value="ADD_NEW_COMPANY" className="font-bold text-indigo-600">
+                      <option value="ADD_NEW_COMPANY" className="font-bold text-indigo-600 dark:text-indigo-300">
                         + Add New Company...
                       </option>
                     </select>
@@ -3351,11 +3351,11 @@ export default function SecurityMasterView({
 
                   {/* Bank / NBFC Name (from NBFC Master) */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Bank / NBFC Name (Master)
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={form.nbfcId}
                       onChange={(e) => {
                         const selId = e.target.value;
@@ -3380,12 +3380,12 @@ export default function SecurityMasterView({
 
                   {/* Branch (from Branch Master) */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Branch (Master)
                     </label>
                     <select
                       disabled={!form.nbfcId}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 disabled:opacity-60 disabled:cursor-not-allowed dark:[color-scheme:dark]"
                       value={form.branchId}
                       onChange={(e) => {
                         const selId = e.target.value;
@@ -3410,8 +3410,8 @@ export default function SecurityMasterView({
                 </div>
 
                 {/* SECTION 2: SITE & OFFER DETAILS */}
-                <div className="flex items-center gap-2 pt-2 pb-2 border-b border-indigo-100 text-indigo-900">
-                  <MapPin className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pt-2 pb-2 border-b dark:border-gray-700 border-indigo-100 text-indigo-900 dark:text-indigo-300">
+                  <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h3 className="text-xs font-black uppercase tracking-wider font-mono">
                     2. SITE &amp; WORK ORDER / OFFER DETAILS
                   </h3>
@@ -3420,12 +3420,12 @@ export default function SecurityMasterView({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Site Location / Area */}
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Site Name / Area / Jagah Address *
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="e.g. Building Plot #4, Industrial Area, Jaipur"
                       value={form.location}
                       onChange={(e) => setForm({ ...form, location: e.target.value })}
@@ -3434,11 +3434,11 @@ export default function SecurityMasterView({
 
                   {/* Site Type */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Site Type
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={form.siteType}
                       onChange={(e) => setForm({ ...form, siteType: e.target.value, customSiteType: "" })}
                     >
@@ -3454,7 +3454,7 @@ export default function SecurityMasterView({
                         type="text"
                         required
                         autoFocus
-                        className="w-full mt-2 bg-white border border-[#714B67] rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none placeholder:text-slate-400"
+                        className="w-full mt-2 bg-white dark:bg-gray-900 border border-[#714B67] dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-400 dark:[color-scheme:dark]"
                         placeholder="Type custom site type (e.g. Hospital, School, Construction Site)..."
                         value={form.customSiteType}
                         onChange={(e) => setForm({ ...form, customSiteType: e.target.value })}
@@ -3464,9 +3464,9 @@ export default function SecurityMasterView({
                 </div>
 
                 {/* SECTION 3: TOTAL CALCULATED BILL SUMMARY & GUARD DEPLOYMENT LOGS */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 pb-2 border-b border-indigo-100 text-indigo-900">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 pb-2 border-b dark:border-gray-700 border-indigo-100 text-indigo-900 dark:text-indigo-300">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-indigo-600" />
+                    <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                     <h3 className="text-xs font-black uppercase tracking-wider font-mono">
                       3. BILL SUMMARY &amp; MONTHLY GUARD LOGS
                     </h3>
@@ -3474,9 +3474,9 @@ export default function SecurityMasterView({
                   <div className="flex items-center gap-2">
                     {dailyRosterList.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold text-slate-500 font-mono">Filter</span>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400 font-mono">Filter</span>
                         <select
-                          className="bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none shadow-2xs cursor-pointer"
+                          className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none shadow-2xs cursor-pointer dark:[color-scheme:dark]"
                           value={selectedRosterFilterDate}
                           onChange={(e) => setSelectedRosterFilterDate(e.target.value)}
                         >
@@ -3501,35 +3501,35 @@ export default function SecurityMasterView({
                 </div>
 
                 {/* Summary KPI Cards & Interactive Day Roster Cards */}
-                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 space-y-4">
+                <div className="bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-100 rounded-xl p-4 space-y-4">
                   {/* KPI Summary Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-2xs">
-                      <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Active Months Recorded</span>
-                      <span className="text-sm font-bold text-slate-900 mt-0.5 block">{computedShiftDetails.days} {computedShiftDetails.days === 1 ? "Month" : "Months"}</span>
+                    <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 rounded-lg shadow-2xs">
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-black block tracking-wider">Active Months Recorded</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-gray-100 mt-0.5 block">{computedShiftDetails.days} {computedShiftDetails.days === 1 ? "Month" : "Months"}</span>
                     </div>
-                    <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-2xs">
-                      <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Total Guard Shifts</span>
-                      <span className="text-sm font-bold text-slate-900 mt-0.5 block">{computedShiftDetails.totalGuardsCount} Guards / Shifts</span>
+                    <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3 rounded-lg shadow-2xs">
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-black block tracking-wider">Total Guard Shifts</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-gray-100 mt-0.5 block">{computedShiftDetails.totalGuardsCount} Guards / Shifts</span>
                     </div>
-                    <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg shadow-2xs">
-                      <span className="text-[10px] text-emerald-800 uppercase font-black block tracking-wider">Calculated Grand Total</span>
-                      <span className="text-base font-black font-mono text-emerald-700 mt-0.5 block">₹{computedShiftDetails.grandTotalBill.toLocaleString("en-IN")}</span>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-3 rounded-lg shadow-2xs">
+                      <span className="text-[10px] text-emerald-800 dark:text-emerald-300 uppercase font-black block tracking-wider">Calculated Grand Total</span>
+                      <span className="text-base font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5 block">₹{computedShiftDetails.grandTotalBill.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
 
                   {/* Editable Guard Shift Cards inside Summary Section */}
-                  <div className="space-y-3 pt-2 border-t border-indigo-100">
+                  <div className="space-y-3 pt-2 border-t dark:border-gray-700 border-indigo-100">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase text-indigo-900 font-mono flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-700" /> Monthly Guard &amp; Shift Records ({dailyRosterList.length})
+                      <span className="text-[11px] font-black uppercase text-indigo-900 dark:text-indigo-300 font-mono flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-300" /> Monthly Guard &amp; Shift Records ({dailyRosterList.length})
                       </span>
                       <div className="flex items-center gap-2">
                         {selectedRosterFilterDate !== "ALL" && selectedRosterFilterDate !== "NONE" && (
                           <button
                             type="button"
                             onClick={() => setSelectedRosterFilterDate("ALL")}
-                            className="text-[10px] font-bold text-indigo-600 hover:underline font-mono"
+                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline font-mono"
                           >
                             Show All Months
                           </button>
@@ -3537,7 +3537,7 @@ export default function SecurityMasterView({
                         <button
                           type="button"
                           onClick={() => setSelectedRosterFilterDate(selectedRosterFilterDate === "NONE" ? "ALL" : "NONE")}
-                          className="text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md font-mono transition-all flex items-center gap-1"
+                          className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 px-2 py-0.5 rounded-md font-mono transition-all flex items-center gap-1"
                         >
                           {selectedRosterFilterDate === "NONE" ? "👁️ View Cards" : "🙈 Hide Cards"}
                         </button>
@@ -3545,11 +3545,11 @@ export default function SecurityMasterView({
                     </div>
 
                     {dailyRosterList.length === 0 ? (
-                      <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-6 text-center space-y-3">
+                      <div className="bg-white dark:bg-gray-900 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl p-6 text-center space-y-3">
                         <Clock className="w-8 h-8 text-indigo-400 mx-auto opacity-60" />
                         <div>
-                          <p className="text-xs font-bold text-slate-700">No Monthly Guard Shift Logs Added Yet</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Click '+ Add Monthly Guard Shift' above to record monthly guard deployments and calculate total bill.</p>
+                          <p className="text-xs font-bold text-slate-700 dark:text-gray-100">No Monthly Guard Shift Logs Added Yet</p>
+                          <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Click '+ Add Monthly Guard Shift' above to record monthly guard deployments and calculate total bill.</p>
                         </div>
                         <button
                           type="button"
@@ -3560,14 +3560,14 @@ export default function SecurityMasterView({
                         </button>
                       </div>
                     ) : selectedRosterFilterDate === "NONE" ? (
-                      <div className="bg-white border border-slate-200 rounded-xl p-3.5 text-center flex items-center justify-between shadow-2xs">
-                        <span className="text-[11px] text-slate-500 font-mono font-medium">
+                      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 text-center flex items-center justify-between shadow-2xs">
+                        <span className="text-[11px] text-slate-500 dark:text-gray-400 font-mono font-medium">
                           🙈 Shift log cards are currently hidden/collapsed.
                         </span>
                         <button
                           type="button"
                           onClick={() => setSelectedRosterFilterDate("ALL")}
-                          className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all"
+                          className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 rounded-lg text-xs font-bold transition-all"
                         >
                           👁️ Expand Shift Cards ({dailyRosterList.length})
                         </button>
@@ -3579,13 +3579,13 @@ export default function SecurityMasterView({
                           const idx = dailyRosterList.indexOf(item);
                           if (item.isSaved) {
                             return (
-                              <div key={`roster-row-${idx}`} className="bg-indigo-50/40 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+                              <div key={`roster-row-${idx}`} className="bg-indigo-50/40 dark:bg-indigo-950/50 border border-slate-200 dark:border-gray-700 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono uppercase text-[9px] font-black">
+                                  <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded font-mono uppercase text-[9px] font-black">
                                     Month #{item.dayNo || idx + 1}
                                   </span>
-                                  <span className="text-xs font-bold text-slate-700">
-                                    {formatMonthStr(item.date, item.endDate)}: <span className="text-indigo-700">{item.guardName || "No Guard"}</span> - ₹{((Number(item.shiftRate) || 0) + (Number(item.allowancePerShift) || 0)).toLocaleString("en-IN")}
+                                  <span className="text-xs font-bold text-slate-700 dark:text-gray-100">
+                                    {formatMonthStr(item.date, item.endDate)}: <span className="text-indigo-700 dark:text-indigo-300">{item.guardName || "No Guard"}</span> - ₹{((Number(item.shiftRate) || 0) + (Number(item.allowancePerShift) || 0)).toLocaleString("en-IN")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -3596,14 +3596,14 @@ export default function SecurityMasterView({
                                       updated[idx].isSaved = false;
                                       setDailyRosterList(updated);
                                     }}
-                                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 hover:underline"
+                                    className="text-xs font-black text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline"
                                   >
                                     ✏️ Edit
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setDailyRosterList(dailyRosterList.filter((_, i) => i !== idx))}
-                                    className="text-xs font-bold text-rose-500 hover:text-rose-700"
+                                    className="text-xs font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-300"
                                   >
                                     ✕ Remove
                                   </button>
@@ -3612,14 +3612,14 @@ export default function SecurityMasterView({
                             );
                           }
                           return (
-                            <div key={`roster-row-${idx}`} className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-3 shadow-2xs hover:border-indigo-200 transition-all">
-                              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                            <div key={`roster-row-${idx}`} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 space-y-3 shadow-2xs hover:border-indigo-200 transition-all">
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-gray-700">
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-black text-[10px] rounded-lg font-mono uppercase">
+                                  <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-black text-[10px] rounded-lg font-mono uppercase">
                                     Month #{item.dayNo || idx + 1}
                                   </span>
                                   {item.date && (
-                                    <span className="text-xs font-bold text-slate-600 font-mono">
+                                    <span className="text-xs font-bold text-slate-600 dark:text-gray-300 font-mono">
                                       Range: {formatMonthStr(item.date, item.endDate)}
                                     </span>
                                   )}
@@ -3627,7 +3627,7 @@ export default function SecurityMasterView({
                                 <button
                                   type="button"
                                   onClick={() => setDailyRosterList(dailyRosterList.filter((_, i) => i !== idx))}
-                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded font-bold text-xs"
+                                  className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded font-bold text-xs"
                                   title="Remove Month Record"
                                 >
                                   ✕ Remove
@@ -3639,12 +3639,12 @@ export default function SecurityMasterView({
                                 <div className="space-y-2">
                                   {!(item.startDate && item.endDate) ? (
                                     <div>
-                                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                         Month *
                                       </label>
                                       <input
                                         type="month"
-                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                         value={item.date || ""}
                                         onChange={(e) => {
                                           const newDate = e.target.value;
@@ -3659,12 +3659,12 @@ export default function SecurityMasterView({
                                   ) : (
                                     <div className="grid grid-cols-2 gap-2">
                                       <div>
-                                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                           From *
                                         </label>
                                         <input
                                           type="date"
-                                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                          className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                           value={item.startDate || item.date || ""}
                                           onChange={(e) => {
                                             const newStart = e.target.value;
@@ -3678,12 +3678,12 @@ export default function SecurityMasterView({
                                         />
                                       </div>
                                       <div>
-                                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                           To *
                                         </label>
                                         <input
                                           type="date"
-                                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                          className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                           value={item.endDate || ""}
                                           onChange={(e) => {
                                             const newEnd = e.target.value;
@@ -3704,7 +3704,7 @@ export default function SecurityMasterView({
                                     <input
                                       type="checkbox"
                                       id={`custom-range-toggle-${idx}`}
-                                      className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5"
+                                      className="rounded text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                                       checked={!!(item.startDate && item.endDate)}
                                       onChange={(e) => {
                                         const isChecked = e.target.checked;
@@ -3726,7 +3726,7 @@ export default function SecurityMasterView({
                                     />
                                     <label
                                       htmlFor={`custom-range-toggle-${idx}`}
-                                      className="text-[10px] font-bold text-slate-500 uppercase cursor-pointer tracking-wide select-none"
+                                      className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase cursor-pointer tracking-wide select-none"
                                     >
                                       📆 Select Custom Date Range
                                     </label>
@@ -3736,7 +3736,7 @@ export default function SecurityMasterView({
                                 {/* Guard Name & Photo Upload */}
                                 <div className="md:col-span-2">
                                   <div className="flex justify-between items-center mb-1">
-                                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider flex items-center gap-1">
+                                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider flex items-center gap-1">
                                       Guard Deployed *
                                     </label>
                                     <button
@@ -3745,7 +3745,7 @@ export default function SecurityMasterView({
                                         setAddGuardForRosterIdx(idx);
                                         setShowAddGuardModal(true);
                                       }}
-                                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                                      className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-0.5"
                                     >
                                       + Add Guard (Master)
                                     </button>
@@ -3767,7 +3767,7 @@ export default function SecurityMasterView({
                                               }}
                                             />
                                           ) : (
-                                            <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-400">
+                                            <div className="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 flex items-center justify-center text-indigo-400">
                                               <User className="w-4.5 h-4.5" />
                                             </div>
                                           )}
@@ -3776,7 +3776,7 @@ export default function SecurityMasterView({
                                             <input
                                               type="file"
                                               accept="image/*"
-                                              className="hidden"
+                                              className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                                               onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
@@ -3821,7 +3821,7 @@ export default function SecurityMasterView({
 
                                     {/* Guard Select Dropdown */}
                                     <select
-                                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                       value={item.guardName || ""}
                                       onChange={(e) => {
                                         const val = e.target.value;
@@ -3860,14 +3860,14 @@ export default function SecurityMasterView({
                               </div>
 
                               {/* Row 2: Shift Type & Shift Time / Timing */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-gray-700">
                                 {/* Shift Type */}
                                 <div>
-                                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                     Shift Type *
                                   </label>
                                   <select
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                     value={
                                       STANDARD_SHIFTS.includes(item.shiftType)
                                         ? item.shiftType
@@ -3904,7 +3904,7 @@ export default function SecurityMasterView({
                                     <input
                                       type="text"
                                       placeholder="Type Custom Shift Name (e.g. 6 Hours Special Shift)"
-                                      className="mt-1.5 w-full bg-amber-50 border border-amber-300 rounded-lg p-2 text-xs font-bold text-amber-900 focus:outline-none placeholder:font-normal placeholder:text-amber-500"
+                                      className="mt-1.5 w-full bg-amber-50 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 rounded-lg p-2 text-xs font-bold text-amber-900 dark:text-amber-300 focus:outline-none placeholder:font-normal placeholder:text-amber-500 dark:[color-scheme:dark]"
                                       value={item.shiftType || ""}
                                       onChange={(e) => {
                                         const updated = [...dailyRosterList];
@@ -3917,11 +3917,11 @@ export default function SecurityMasterView({
 
                                 {/* Shift Time / Timing */}
                                 <div>
-                                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                     Shift Time / Timing
                                   </label>
                                   <select
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                     value={
                                       !item.shiftTiming
                                         ? ""
@@ -3958,7 +3958,7 @@ export default function SecurityMasterView({
                                     <input
                                       type="text"
                                       placeholder="Type Custom Timing (e.g. 07:30 AM - 04:30 PM)"
-                                      className="mt-1.5 w-full bg-amber-50 border border-amber-300 rounded-lg p-2 text-xs font-bold text-amber-900 focus:outline-none placeholder:font-normal placeholder:text-amber-500 font-mono"
+                                      className="mt-1.5 w-full bg-amber-50 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-300 rounded-lg p-2 text-xs font-bold text-amber-900 dark:text-amber-300 focus:outline-none placeholder:font-normal placeholder:text-amber-500 font-mono dark:[color-scheme:dark]"
                                       value={item.shiftTiming || ""}
                                       onChange={(e) => {
                                         const updated = [...dailyRosterList];
@@ -3971,7 +3971,7 @@ export default function SecurityMasterView({
 
                                 {/* Rate per Shift */}
                                 <div>
-                                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                     Rate / Guard / Month (₹)
                                   </label>
                                   <input
@@ -3979,7 +3979,7 @@ export default function SecurityMasterView({
                                     min="0"
                                     step="any"
                                     placeholder="e.g. 15000"
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                     value={item.shiftRate === "" || item.shiftRate === undefined ? "" : item.shiftRate}
                                     onChange={(e) => {
                                       const updated = [...dailyRosterList];
@@ -3991,10 +3991,10 @@ export default function SecurityMasterView({
                               </div>
 
                               {/* Row 3: Allowance & Shift Subtotal */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-gray-700">
                                 {/* Allowance per Shift */}
                                 <div>
-                                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                                     Allowance / Month (₹)
                                   </label>
                                   <input
@@ -4002,7 +4002,7 @@ export default function SecurityMasterView({
                                     min="0"
                                     step="any"
                                     placeholder="e.g. 1000"
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none dark:[color-scheme:dark]"
                                     value={item.allowancePerShift === "" || item.allowancePerShift === undefined ? "" : item.allowancePerShift}
                                     onChange={(e) => {
                                       const updated = [...dailyRosterList];
@@ -4013,16 +4013,16 @@ export default function SecurityMasterView({
                                 </div>
 
                                 {/* Daily Subtotal */}
-                                <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-2 bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-100 self-center">
-                                  <span className="text-[10px] font-black uppercase text-emerald-800">Month Total:</span>
-                                  <span className="text-sm font-black font-mono text-emerald-700">
+                                <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-2 bg-emerald-50/60 dark:bg-emerald-950/50 p-2.5 rounded-lg border dark:border-gray-700 border-emerald-100 self-center">
+                                  <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300">Month Total:</span>
+                                  <span className="text-sm font-black font-mono text-emerald-700 dark:text-emerald-300">
                                     ₹{(((Number(item.shiftRate) || 0) + (Number(item.allowancePerShift) || 0)) * Math.max(1, Number(item.guardsCount) || 1)).toLocaleString("en-IN")}
                                   </span>
                                 </div>
                               </div>
 
                               {/* Bottom Controls: Add Another & Save buttons inline */}
-                              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-3">
+                              <div className="pt-2 border-t border-slate-100 dark:border-gray-700 flex flex-wrap items-center gap-3">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -4046,7 +4046,7 @@ export default function SecurityMasterView({
                                     ]);
                                     if (sameDate) setSelectedRosterFilterDate(sameDate);
                                   }}
-                                  className="flex items-center justify-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-dashed border-indigo-300 rounded-lg text-[11px] font-bold transition-all"
+                                  className="flex items-center justify-center gap-1 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-dashed border-indigo-300 rounded-lg text-[11px] font-bold transition-all"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                   <span>+ Add Another Guard</span>
@@ -4081,8 +4081,8 @@ export default function SecurityMasterView({
                 </div>
 
                 {/* SECTION 5: PAYMENT STATUS & REMARKS */}
-                <div className="flex items-center gap-2 pt-2 pb-2 border-b border-indigo-100 text-indigo-900">
-                  <DollarSign className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pt-2 pb-2 border-b dark:border-gray-700 border-indigo-100 text-indigo-900 dark:text-indigo-300">
+                  <DollarSign className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h3 className="text-xs font-black uppercase tracking-wider font-mono">
                     5. PAYMENT STATUS &amp; REMARKS
                   </h3>
@@ -4099,11 +4099,11 @@ export default function SecurityMasterView({
 
                   {/* Payment Status */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Payment Status
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={form.paymentStatus}
                       onChange={(e) => setForm({ ...form, paymentStatus: e.target.value })}
                     >
@@ -4115,11 +4115,11 @@ export default function SecurityMasterView({
                   {/* Payment Method (Shown when Payment Done) */}
                   {form.paymentStatus !== "Due" && (
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                         Payment Method
                       </label>
                       <select
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                         value={form.paymentMethod}
                         onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
                       >
@@ -4135,11 +4135,11 @@ export default function SecurityMasterView({
 
                   {/* Source */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Source
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={form.source}
                       onChange={(e) => setForm({ ...form, source: e.target.value })}
                     >
@@ -4157,12 +4157,12 @@ export default function SecurityMasterView({
 
                 {/* Additional Remarks */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Remarks / Notes
                   </label>
                   <textarea
                     rows={2}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] resize-none"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 resize-none dark:[color-scheme:dark]"
                     placeholder="Additional security or payment notes..."
                     value={form.remarks}
                     onChange={(e) => setForm({ ...form, remarks: e.target.value })}
@@ -4172,11 +4172,11 @@ export default function SecurityMasterView({
               </div>
 
               {/* Fixed Modal Footer */}
-              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>
@@ -4198,22 +4198,22 @@ export default function SecurityMasterView({
       {/* ── Add New Company Sub-Modal ── */}
       {showAddCompanyModal && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] backdrop-blur-md bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 space-y-4 animate-scale-in">
-            <div className="flex items-center justify-between border-b pb-3 border-slate-100">
-              <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-indigo-600" /> Add New Company
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-gray-700 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-gray-700">
+              <h3 className="font-black text-slate-900 dark:text-gray-100 text-sm flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> Add New Company
               </h3>
-              <button onClick={() => setShowAddCompanyModal(false)} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button onClick={() => setShowAddCompanyModal(false)} className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 font-bold">
                 ✕
               </button>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+              <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                 Company Name *
               </label>
               <input
                 type="text"
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                 placeholder="e.g. Acme Tech Solutions Pvt Ltd"
                 value={newCompanyName}
                 onChange={(e) => setNewCompanyName(e.target.value)}
@@ -4224,7 +4224,7 @@ export default function SecurityMasterView({
               <button
                 type="button"
                 onClick={() => setShowAddCompanyModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
               >
                 Cancel
               </button>
@@ -4244,42 +4244,42 @@ export default function SecurityMasterView({
       {/* ── Quick Add New Guard Modal ── */}
       {showAddGuardModal && mounted && createPortal(
         <div className="fixed inset-0 z-[999999] backdrop-blur-md bg-slate-900/60 flex items-center justify-center p-4 font-sans">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 space-y-4 animate-scale-in">
-            <div className="flex items-center justify-between border-b pb-3 border-slate-100">
-              <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" /> Add New Guard to DB
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-gray-700 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-gray-700">
+              <h3 className="font-black text-slate-900 dark:text-gray-100 text-sm flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-300" /> Add New Guard to DB
               </h3>
-              <button onClick={() => { setShowAddGuardModal(false); setAddGuardForCard(null); setAddGuardForRosterIdx(null); }} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+              <button onClick={() => { setShowAddGuardModal(false); setAddGuardForCard(null); setAddGuardForRosterIdx(null); }} className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 font-bold">✕</button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Guard Name *</label>
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">Guard Name *</label>
                 <input
                   type="text"
                   autoFocus
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-500 dark:[color-scheme:dark]"
                   placeholder="e.g. Ramesh Kumar"
                   value={newGuardForm.name}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Guard Phone Number</label>
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">Guard Phone Number</label>
                 <input
                   type="text"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-500 font-mono dark:[color-scheme:dark]"
                   placeholder="e.g. 9876543210"
                   value={newGuardForm.phone}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, phone: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Monthly Salary (₹)</label>
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">Monthly Salary (₹)</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-500 dark:[color-scheme:dark]"
                   placeholder="e.g. 20000"
                   value={newGuardForm.monthlySalary}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, monthlySalary: e.target.value })}
@@ -4288,10 +4288,10 @@ export default function SecurityMasterView({
 
               {/* Guard Photo / Image Upload */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Guard Photo / Image
                 </label>
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 border border-slate-300 rounded-lg">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 p-2.5 border border-slate-300 dark:border-gray-700 rounded-lg">
                   {newGuardForm.photoUrl ? (
                     <img
                       src={newGuardForm.photoUrl}
@@ -4299,31 +4299,31 @@ export default function SecurityMasterView({
                       className="w-10 h-10 rounded-full object-cover border-2 border-indigo-300 shrink-0 shadow-2xs"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-400 text-sm font-bold shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 flex items-center justify-center text-indigo-400 text-sm font-bold shrink-0">
                       <User className="w-5 h-5" />
                     </div>
                   )}
                   <div className="flex flex-col gap-1">
-                    <label className="cursor-pointer px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-[11px] font-bold flex items-center gap-1.5 w-fit shadow-2xs transition-all">
-                      <Upload className="w-3 h-3 text-indigo-600" />
+                    <label className="cursor-pointer px-2.5 py-1 bg-white dark:bg-gray-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1.5 w-fit shadow-2xs transition-all">
+                      <Upload className="w-3 h-3 text-indigo-600 dark:text-indigo-300" />
                       <span>{newGuardForm.photoUrl ? "Change Photo" : "Upload Guard Photo"}</span>
                       <input
                         type="file"
-                        className="hidden"
+                        className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                         accept="image/*"
                         onChange={handleGuardPhotoUpload}
                       />
                     </label>
-                    <span className="text-[9px] text-slate-400 font-medium">JPG, PNG or WEBP (Max 5MB)</span>
+                    <span className="text-[9px] text-slate-400 dark:text-gray-400 font-medium">JPG, PNG or WEBP (Max 5MB)</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-gray-700">
               <button
                 type="button"
                 onClick={() => { setShowAddGuardModal(false); setAddGuardForCard(null); setAddGuardForRosterIdx(null); }}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
               >
                 Cancel
               </button>
@@ -4344,45 +4344,45 @@ export default function SecurityMasterView({
       {/* ── Separate Log Received Payment Modal (From Table Actions) ── */}
       {showReceiveModal.show && showReceiveModal.item && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] backdrop-blur-md bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 overflow-hidden animate-scale-in my-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 dark:border-gray-700 overflow-hidden animate-scale-in my-auto">
             {/* Header */}
-            <div className="px-6 py-4 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
+            <div className="px-6 py-4 bg-emerald-50 dark:bg-emerald-950/50 border-b dark:border-gray-700 border-emerald-100 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-lg">
                   <Banknote className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-sm">{editingReceivedPayment ? "Correct Received Payment" : "Log Received Payment"}</h3>
-                  <p className="text-[11px] font-bold text-emerald-800">
+                  <h3 className="font-black text-slate-900 dark:text-gray-100 text-sm">{editingReceivedPayment ? "Correct Received Payment" : "Log Received Payment"}</h3>
+                  <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
                     {showReceiveModal.item.nbfcName || showReceiveModal.item.company} | Branch: {showReceiveModal.item.branchName || "General"} | Bill: {showReceiveModal.item.billNo || "No Bill"}
                   </p>
                 </div>
               </div>
-              <button onClick={() => { setEditingReceivedPayment(false); setShowReceiveModal({ show: false, item: null }); }} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button onClick={() => { setEditingReceivedPayment(false); setShowReceiveModal({ show: false, item: null }); }} className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 font-bold">
                 ✕
               </button>
             </div>
 
             {/* Bill Summary Card */}
-            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
-                <span className="text-[9px] text-slate-500 uppercase font-black block">Total Bill Amount</span>
-                <span className="font-black text-slate-800 font-mono text-sm">₹{Number(showReceiveModal.item.billAmount || 0).toLocaleString("en-IN")}</span>
+            <div className="bg-slate-50 dark:bg-gray-800 px-6 py-3 border-b dark:border-gray-700 border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs">
+                <span className="text-[9px] text-slate-500 dark:text-gray-400 uppercase font-black block">Total Bill Amount</span>
+                <span className="font-black text-slate-800 dark:text-gray-100 font-mono text-sm">₹{Number(showReceiveModal.item.billAmount || 0).toLocaleString("en-IN")}</span>
               </div>
-              <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
-                <span className="text-[9px] text-slate-500 uppercase font-black block">Already Received</span>
-                <span className="font-black text-emerald-700 font-mono text-sm">₹{Number(showReceiveModal.item.receivedAmount || 0).toLocaleString("en-IN")}</span>
+              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs">
+                <span className="text-[9px] text-slate-500 dark:text-gray-400 uppercase font-black block">Already Received</span>
+                <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono text-sm">₹{Number(showReceiveModal.item.receivedAmount || 0).toLocaleString("en-IN")}</span>
               </div>
-              <div className="bg-amber-50 p-2 rounded-lg border border-amber-200 shadow-2xs">
-                <span className="text-[9px] text-amber-700 uppercase font-black block">TDS Deducted</span>
-                <span className="font-black text-amber-800 font-mono text-sm">₹{Number(showReceiveModal.item.tdsAmount || 0).toLocaleString("en-IN")}</span>
+              <div className="bg-amber-50 dark:bg-amber-950/50 p-2 rounded-lg border dark:border-gray-700 border-amber-200 shadow-2xs">
+                <span className="text-[9px] text-amber-700 dark:text-amber-300 uppercase font-black block">TDS Deducted</span>
+                <span className="font-black text-amber-800 dark:text-amber-300 font-mono text-sm">₹{Number(showReceiveModal.item.tdsAmount || 0).toLocaleString("en-IN")}</span>
               </div>
-              <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
-                <span className="text-[9px] text-slate-500 uppercase font-black block">Pending Balance</span>
+              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs">
+                <span className="text-[9px] text-slate-500 dark:text-gray-400 uppercase font-black block">Pending Balance</span>
                 {(() => {
                   const pending = Math.max(0, Number(showReceiveModal.item.billAmount || 0) - Number(showReceiveModal.item.receivedAmount || 0) - Number(showReceiveModal.item.tdsAmount || 0));
                   return (
-                    <span className="font-black text-rose-700 font-mono text-sm">
+                    <span className="font-black text-rose-700 dark:text-rose-300 font-mono text-sm">
                       ₹{pending.toLocaleString("en-IN")}
                     </span>
                   );
@@ -4393,8 +4393,8 @@ export default function SecurityMasterView({
             {/* Form */}
             <form onSubmit={handleReceiveSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
               {/* Option Switcher / Action Bar */}
-              <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-700 font-mono">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-gray-700 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-100 font-mono">
                   {receiveInstallments.length > 0 ? "Installments Schedule Mode" : "Payment Mode"}
                 </span>
 
@@ -4413,22 +4413,22 @@ export default function SecurityMasterView({
               {/* INSTALLMENTS MODE */}
               {receiveInstallments.length > 0 ? (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 p-2.5 rounded-xl text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 dark:bg-emerald-950/50 p-2.5 rounded-xl text-xs">
                     <div className="flex items-center gap-2">
-                      <ListOrdered className="w-4 h-4 text-emerald-800" />
-                      <span className="font-bold text-emerald-900">
+                      <ListOrdered className="w-4 h-4 text-emerald-800 dark:text-emerald-300" />
+                      <span className="font-bold text-emerald-900 dark:text-emerald-300">
                         Installments Schedule ({receiveInstallments.length} Part{receiveInstallments.length === 1 ? "" : "s"})
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] text-emerald-800 font-bold">Auto Split:</span>
+                      <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">Auto Split:</span>
                       {[2, 3, 4].map((cnt) => (
                         <button
                           key={cnt}
                           type="button"
                           onClick={() => handleAutoSplitReceiveInstallments(cnt)}
-                          className="px-2 py-0.5 text-[10px] font-bold bg-white text-emerald-800 rounded border border-emerald-300 hover:bg-emerald-50 transition-colors shadow-2xs"
+                          className="px-2 py-0.5 text-[10px] font-bold bg-white dark:bg-gray-900 text-emerald-800 dark:text-emerald-300 rounded border dark:border-gray-700 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors shadow-2xs"
                         >
                           {cnt} Parts
                         </button>
@@ -4436,7 +4436,7 @@ export default function SecurityMasterView({
                       <button
                         type="button"
                         onClick={() => setReceiveInstallments([])}
-                        className="text-[10px] text-emerald-800 underline hover:text-emerald-950 font-bold ml-1"
+                        className="text-[10px] text-emerald-800 dark:text-emerald-300 underline hover:text-emerald-950 font-bold ml-1"
                       >
                         Reset to Single
                       </button>
@@ -4454,21 +4454,21 @@ export default function SecurityMasterView({
 
                     return (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
-                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Bill Amount</span>
-                          <span className="font-black text-slate-900 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
+                        <div className="bg-slate-50 dark:bg-gray-800 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-gray-400 block">Bill Amount</span>
+                          <span className="font-black text-slate-900 dark:text-gray-100 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
                         </div>
-                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
-                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Installments Total</span>
-                          <span className="font-black font-mono text-indigo-700">₹{instTotal.toLocaleString("en-IN")}</span>
+                        <div className="bg-slate-50 dark:bg-gray-800 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-gray-400 block">Installments Total</span>
+                          <span className="font-black font-mono text-indigo-700 dark:text-indigo-300">₹{instTotal.toLocaleString("en-IN")}</span>
                         </div>
-                        <div className="bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                          <span className="text-[9px] uppercase font-bold text-emerald-600 block">Total Received</span>
-                          <span className="font-black font-mono text-emerald-700">₹{instReceived.toLocaleString("en-IN")}</span>
+                        <div className="bg-emerald-50 dark:bg-emerald-950/50 p-2 rounded-lg border dark:border-gray-700 border-emerald-200">
+                          <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-300 block">Total Received</span>
+                          <span className="font-black font-mono text-emerald-700 dark:text-emerald-300">₹{instReceived.toLocaleString("en-IN")}</span>
                         </div>
-                        <div className="bg-rose-50 p-2 rounded-lg border border-rose-200">
-                          <span className="text-[9px] uppercase font-bold text-rose-600 block">Pending Balance</span>
-                          <span className="font-black font-mono text-rose-700">₹{instPending.toLocaleString("en-IN")}</span>
+                        <div className="bg-rose-50 dark:bg-rose-950/50 p-2 rounded-lg border dark:border-gray-700 border-rose-200">
+                          <span className="text-[9px] uppercase font-bold text-rose-600 dark:text-rose-300 block">Pending Balance</span>
+                          <span className="font-black font-mono text-rose-700 dark:text-rose-300">₹{instPending.toLocaleString("en-IN")}</span>
                         </div>
                       </div>
                     );
@@ -4483,17 +4483,17 @@ export default function SecurityMasterView({
                           key={inst.id}
                           className={`p-3 rounded-xl border transition-all ${
                             isReceived
-                              ? "bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-200"
-                              : "bg-white border-slate-200 shadow-2xs"
+                              ? "bg-emerald-50/50 dark:bg-emerald-950/50 border-emerald-300 ring-1 ring-emerald-200"
+                              : "bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-700 shadow-2xs"
                           }`}
                         >
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                             {/* Number */}
                             <div className="sm:col-span-3 flex items-center gap-1.5">
-                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-[10px] font-black flex items-center justify-center shrink-0">
                                 {idx + 1}
                               </span>
-                              <span className="text-xs font-black text-slate-800">
+                              <span className="text-xs font-black text-slate-800 dark:text-gray-100">
                                 Installment #{idx + 1}
                               </span>
                             </div>
@@ -4501,14 +4501,14 @@ export default function SecurityMasterView({
                             {/* Amount */}
                             <div className="sm:col-span-3">
                               <div className="relative">
-                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">₹</span>
+                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400 dark:text-gray-400">₹</span>
                                 <input
                                   type="number"
                                   min="0"
                                   step="any"
                                   required
                                   placeholder="Amount"
-                                  className="w-full bg-white border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                                  className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                   value={inst.amount}
                                   onChange={(e) => handleUpdateReceiveInstallment(inst.id, "amount", e.target.value)}
                                 />
@@ -4520,7 +4520,7 @@ export default function SecurityMasterView({
                               <input
                                 type="date"
                                 required
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 font-mono"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 font-mono dark:[color-scheme:dark]"
                                 value={inst.date}
                                 onChange={(e) => handleUpdateReceiveInstallment(inst.id, "date", e.target.value)}
                               />
@@ -4533,10 +4533,10 @@ export default function SecurityMasterView({
                                 onClick={() =>
                                   handleUpdateReceiveInstallment(inst.id, "status", isReceived ? "Pending" : "Received")
                                 }
-                                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1 ${
+                                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border dark:border-gray-700 flex items-center justify-center gap-1 ${
                                   isReceived
                                     ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-2xs"
-                                    : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
+                                    : "bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300"
                                 }`}
                               >
                                 {isReceived ? (
@@ -4555,7 +4555,7 @@ export default function SecurityMasterView({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveReceiveInstallment(inst.id)}
-                                className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                                className="p-1.5 text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors shrink-0"
                                 title="Remove Installment"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -4565,13 +4565,13 @@ export default function SecurityMasterView({
 
                           {/* Extra details if received */}
                           {isReceived && (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-emerald-200/80 animate-fadeIn text-[11px]">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t dark:border-gray-700 border-emerald-200/80 animate-fadeIn text-[11px]">
                               <div>
-                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                   Payment Method
                                 </label>
                                 <select
-                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                   value={inst.paymentMethod}
                                   onChange={(e) => handleUpdateReceiveInstallment(inst.id, "paymentMethod", e.target.value)}
                                 >
@@ -4585,12 +4585,12 @@ export default function SecurityMasterView({
                               </div>
 
                               <div>
-                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                   UTR / Ref No.
                                 </label>
                                 <input
                                   type="text"
-                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                   placeholder="e.g. UTR123456"
                                   value={inst.transactionId}
                                   onChange={(e) => handleUpdateReceiveInstallment(inst.id, "transactionId", e.target.value)}
@@ -4598,12 +4598,12 @@ export default function SecurityMasterView({
                               </div>
 
                               <div>
-                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                   Payer / Sender Bank
                                 </label>
                                 <input
                                   type="text"
-                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                   placeholder="e.g. Balaji / HDFC"
                                   value={inst.payerName}
                                   onChange={(e) => handleUpdateReceiveInstallment(inst.id, "payerName", e.target.value)}
@@ -4619,7 +4619,7 @@ export default function SecurityMasterView({
                   <button
                     type="button"
                     onClick={handleAddReceiveInstallment}
-                    className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                    className="w-full py-2 bg-white dark:bg-gray-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Add Another Installment Row</span>
@@ -4631,7 +4631,7 @@ export default function SecurityMasterView({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Received Amount */}
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                         Received Amount (₹) *
                       </label>
                       <input
@@ -4639,7 +4639,7 @@ export default function SecurityMasterView({
                         min="0"
                         step="any"
                         required={!editingReceivedPayment}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                         placeholder="Enter amount e.g. 45000"
                         value={receiveForm.receivedAmount}
                         onChange={(e) => setReceiveForm({ ...receiveForm, receivedAmount: e.target.value })}
@@ -4647,19 +4647,19 @@ export default function SecurityMasterView({
                     </div>
 
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-amber-700 tracking-wider mb-1">
+                      <label className="block text-[10px] uppercase font-black text-amber-700 dark:text-amber-300 tracking-wider mb-1">
                         TDS Deducted (₹)
                       </label>
                       <input
                         type="number"
                         min="0"
                         step="any"
-                        className="w-full bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        className="w-full bg-amber-50 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-amber-500 dark:[color-scheme:dark]"
                         placeholder="e.g. 2700"
                         value={receiveForm.tdsAmount}
                         onChange={(e) => setReceiveForm({ ...receiveForm, tdsAmount: e.target.value })}
                       />
-                      <p className="mt-1 text-[9px] font-medium text-amber-700">TDS bhi bill payment mein count hoga.</p>
+                      <p className="mt-1 text-[9px] font-medium text-amber-700 dark:text-amber-300">TDS bhi bill payment mein count hoga.</p>
                     </div>
 
                     {/* Received Date */}
@@ -4672,15 +4672,15 @@ export default function SecurityMasterView({
                   </div>
 
                   {/* Payment Method / Mode & Dynamic Mode Details */}
-                  <div className="space-y-3 bg-emerald-50/40 p-4 border border-emerald-100 rounded-xl">
+                  <div className="space-y-3 bg-emerald-50/40 dark:bg-emerald-950/50 p-4 border dark:border-gray-700 border-emerald-100 rounded-xl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* Payment Method / Mode */}
                       <div>
-                        <label className="block text-[10px] uppercase font-black text-slate-600 tracking-wider mb-1">
+                        <label className="block text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 tracking-wider mb-1">
                           Payment Method / Mode *
                         </label>
                         <select
-                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 font-bold"
+                          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-bold dark:[color-scheme:dark]"
                           value={receiveForm.paymentMethod}
                           onChange={(e) => setReceiveForm({ ...receiveForm, paymentMethod: e.target.value })}
                         >
@@ -4697,14 +4697,14 @@ export default function SecurityMasterView({
                       {/* If "Other" selected -> Custom Method Input */}
                       {receiveForm.paymentMethod === "Other" && (
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                             Specify Custom Payment Method *
                           </label>
                           <input
                             type="text"
                             required
                             autoFocus
-                            className="w-full bg-white border border-emerald-600 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none placeholder:text-slate-400"
+                            className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-600 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-400 dark:[color-scheme:dark]"
                             placeholder="e.g. Wallet, Crypto, Adjustment, Voucher..."
                             value={receiveForm.customPaymentMethod}
                             onChange={(e) => setReceiveForm({ ...receiveForm, customPaymentMethod: e.target.value })}
@@ -4718,25 +4718,25 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "Bank Transfer (NEFT/RTGS)" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             UTR / Transaction Ref No. *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. UTR129381923"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Sender Bank Name
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. HDFC Bank / SBI"
                             value={receiveForm.bankName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
@@ -4749,25 +4749,25 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "UPI / QR Code" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             UPI Ref / UTR No. *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. 419283019283"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             UPI App / VPA ID
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. PhonePe / Google Pay / user@upi"
                             value={receiveForm.payerName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
@@ -4780,25 +4780,25 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "Cheque" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Cheque Number *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. CHQ-819203"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Issuing Bank Name
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. ICICI Bank"
                             value={receiveForm.bankName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
@@ -4819,24 +4819,24 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "Cash" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Cash Receipt / Slip No.
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. RCP-10293"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Handed Over By / Collector
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. Ramesh Kumar (Agent)"
                             value={receiveForm.payerName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
@@ -4849,25 +4849,25 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "Demand Draft (DD)" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             DD Number *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. DD-991823"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Issuing Bank Name
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. Axis Bank"
                             value={receiveForm.bankName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
@@ -4888,25 +4888,25 @@ export default function SecurityMasterView({
                     {receiveForm.paymentMethod === "Credit / Debit Card" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Card Ref / Auth Code *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. AUTH-881920"
                             value={receiveForm.transactionId}
                             onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                             Card Type / Last 4 Digits
                           </label>
                           <input
                             type="text"
-                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                             placeholder="e.g. HDFC Visa ending 4321"
                             value={receiveForm.payerName}
                             onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
@@ -4918,12 +4918,12 @@ export default function SecurityMasterView({
                     {/* 7. Other */}
                     {receiveForm.paymentMethod === "Other" && (
                       <div className="pt-1">
-                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                        <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                           Transaction Ref / Receipt / Details
                         </label>
                         <input
                           type="text"
-                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                           placeholder="e.g. Ref #12345 or transaction details..."
                           value={receiveForm.transactionId}
                           onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
@@ -4936,21 +4936,21 @@ export default function SecurityMasterView({
 
               {/* Payment Proof File Upload */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Upload Payment Proof / Receipt Copy (Photo / PDF)
                 </label>
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 border border-slate-300 rounded-lg">
-                  <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
-                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 p-2.5 border border-slate-300 dark:border-gray-700 rounded-lg">
+                  <label className="cursor-pointer px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
+                    <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                     Choose File
                     <input
                       type="file"
-                      className="hidden"
+                      className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                       accept="image/*,application/pdf"
                       onChange={(e) => setReceiveProofFile(e.target.files?.[0] || null)}
                     />
                   </label>
-                  <span className="text-xs text-slate-600 truncate max-w-[240px]">
+                  <span className="text-xs text-slate-600 dark:text-gray-300 truncate max-w-[240px]">
                     {receiveProofFile ? receiveProofFile.name : "No proof file chosen"}
                   </span>
                 </div>
@@ -4958,12 +4958,12 @@ export default function SecurityMasterView({
 
               {/* Remarks */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Payment Remarks / Notes
                 </label>
                 <textarea
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 resize-none"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 resize-none dark:[color-scheme:dark]"
                   placeholder="Additional payment details or UTR notes..."
                   value={receiveForm.remarks}
                   onChange={(e) => setReceiveForm({ ...receiveForm, remarks: e.target.value })}
@@ -4971,11 +4971,11 @@ export default function SecurityMasterView({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => { setEditingReceivedPayment(false); setShowReceiveModal({ show: false, item: null }); }}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4996,23 +4996,23 @@ export default function SecurityMasterView({
       {/* ── Combined Billing & Payment Management Modal (From Table Actions) ── */}
       {showBillModal.show && showBillModal.item && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200/80 overflow-hidden animate-scale-in my-auto max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl border dark:border-gray-700 border-slate-200/80 overflow-hidden animate-scale-in my-auto max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200/80 flex justify-between items-center shrink-0">
+            <div className="px-6 py-4 bg-slate-50/90 dark:bg-slate-950/50 border-b dark:border-gray-700 border-slate-200/80 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl border dark:border-gray-700 border-indigo-100">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-sm">Billing &amp; Payment Management</h3>
-                  <p className="text-[11px] font-bold text-indigo-600 truncate max-w-[320px]">
+                  <h3 className="font-black text-slate-900 dark:text-gray-100 text-sm">Billing &amp; Payment Management</h3>
+                  <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-300 truncate max-w-[320px]">
                     {showBillModal.item.location} | {showBillModal.item.nbfcName || showBillModal.item.company}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowBillModal({ show: false, item: null })}
-                className="w-7 h-7 rounded-full bg-slate-200/70 hover:bg-slate-300/80 text-slate-600 flex items-center justify-center font-bold text-xs transition-all"
+                className="w-7 h-7 rounded-full bg-slate-200/70 dark:bg-slate-950/50 hover:bg-slate-300/80 text-slate-600 dark:text-gray-300 flex items-center justify-center font-bold text-xs transition-all"
               >
                 ✕
               </button>
@@ -5022,22 +5022,22 @@ export default function SecurityMasterView({
             <form onSubmit={handleBillSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
 
               {/* LIVE FINANCIAL CALCULATION WIDGET (ELEGANT LIGHT GRADIENT CARD) */}
-              <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-slate-50 rounded-2xl p-4.5 border border-indigo-100/90 shadow-sm space-y-3.5">
-                <div className="flex justify-between items-center pb-2 border-b border-indigo-100/80 text-[10px] font-mono font-black uppercase tracking-wider text-indigo-900">
+              <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-slate-50 rounded-2xl p-4.5 border dark:border-gray-700 border-indigo-100/90 shadow-sm space-y-3.5">
+                <div className="flex justify-between items-center pb-2 border-b dark:border-gray-700 border-indigo-100/80 text-[10px] font-mono font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
                   <span className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                    <Tag className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                     FINANCIAL SUMMARY &amp; G.P. CALCULATOR
                   </span>
-                  <span className="text-indigo-600 font-sans normal-case font-bold bg-indigo-100/70 px-2.5 py-0.5 rounded-full text-[10px]">
+                  <span className="text-indigo-600 dark:text-indigo-300 font-sans normal-case font-bold bg-indigo-100/70 dark:bg-indigo-950/50 px-2.5 py-0.5 rounded-full text-[10px]">
                     Real-time Calculation
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                   {/* Billed Amount (with Guard Expense subtext) */}
-                  <div className="bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
-                    <p className="text-[10px] uppercase font-bold text-indigo-600">Billed Amount</p>
-                    <p className="text-base font-black text-indigo-700 font-mono">
+                  <div className="bg-white/90 dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-700 border-indigo-100/80 shadow-2xs">
+                    <p className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-300">Billed Amount</p>
+                    <p className="text-base font-black text-indigo-700 dark:text-indigo-300 font-mono">
                       ₹{(Number(billForm.billAmount) || Number(showBillModal.item?.billAmount) || 0).toLocaleString("en-IN")}
                     </p>
                     {(() => {
@@ -5045,7 +5045,7 @@ export default function SecurityMasterView({
                       const allowance = Number(showBillModal.item?.totalAllowanceCost || 0);
                       const totalExp = cost + allowance;
                       return (
-                        <p className="text-[9px] text-slate-500 font-mono mt-0.5">
+                        <p className="text-[9px] text-slate-500 dark:text-gray-400 font-mono mt-0.5">
                           Guard Expense: ₹{totalExp.toLocaleString("en-IN")} (₹{cost.toLocaleString("en-IN")} + ₹{allowance.toLocaleString("en-IN")} All.)
                         </p>
                       );
@@ -5053,16 +5053,16 @@ export default function SecurityMasterView({
                   </div>
 
                   {/* Received Amount */}
-                  <div className="bg-white/90 p-3 rounded-xl border border-emerald-100/80 shadow-2xs flex flex-col justify-center">
-                    <p className="text-[10px] uppercase font-bold text-emerald-600">Received Amount</p>
-                    <p className="text-base font-black text-emerald-700 font-mono">
+                  <div className="bg-white/90 dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-700 border-emerald-100/80 shadow-2xs flex flex-col justify-center">
+                    <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-300">Received Amount</p>
+                    <p className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">
                       ₹{(Number(billForm.receivedAmount) || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
 
                   {/* Gross Profit (G.P.) Margin */}
-                  <div className="bg-white/90 p-3 rounded-xl border border-purple-100/80 shadow-2xs flex flex-col justify-center">
-                    <p className="text-[10px] uppercase font-bold text-purple-600">G.P. Profit Margin</p>
+                  <div className="bg-white/90 dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-700 border-purple-100/80 shadow-2xs flex flex-col justify-center">
+                    <p className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-300">G.P. Profit Margin</p>
                     {(() => {
                       const billedVal = Number(billForm.billAmount) || Number(showBillModal.item?.billAmount) || 0;
                       const cost = Number(showBillModal.item?.totalGuardCost || 0);
@@ -5070,7 +5070,7 @@ export default function SecurityMasterView({
                       const totalGuardExpense = cost + allowance;
                       const gp = billedVal - totalGuardExpense;
                       return (
-                        <p className={`text-base font-black font-mono ${gp >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        <p className={`text-base font-black font-mono ${gp >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}`}>
                           {gp >= 0 ? `+₹${gp.toLocaleString("en-IN")}` : `-₹${Math.abs(gp).toLocaleString("en-IN")}`}
                         </p>
                       );
@@ -5079,18 +5079,18 @@ export default function SecurityMasterView({
                 </div>
 
                 {/* Outstanding Pending Balance Notice (Kitna Bacha) */}
-                <div className="pt-2.5 border-t border-indigo-100/80 flex justify-between items-center text-xs">
-                  <span className="text-slate-700 font-bold">Outstanding Pending Balance (Baki Bacha):</span>
+                <div className="pt-2.5 border-t dark:border-gray-700 border-indigo-100/80 flex justify-between items-center text-xs">
+                  <span className="text-slate-700 dark:text-gray-100 font-bold">Outstanding Pending Balance (Baki Bacha):</span>
                   {(() => {
                     const billedVal = Number(billForm.billAmount) || Number(showBillModal.item.billAmount) || 0;
                     const recVal = Number(billForm.receivedAmount) || 0;
                     const pending = Math.max(0, billedVal - recVal);
                     return pending > 0 ? (
-                      <span className="bg-rose-100 text-rose-800 border border-rose-200 px-3 py-0.5 rounded-full font-black font-mono text-xs shadow-2xs">
+                      <span className="bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border dark:border-gray-700 border-rose-200 px-3 py-0.5 rounded-full font-black font-mono text-xs shadow-2xs">
                         ₹{pending.toLocaleString("en-IN")} Due
                       </span>
                     ) : (
-                      <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-0.5 rounded-full font-black text-xs shadow-2xs">
+                      <span className="bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 px-3 py-0.5 rounded-full font-black text-xs shadow-2xs">
                         ✓ Fully Settled
                       </span>
                     );
@@ -5099,8 +5099,8 @@ export default function SecurityMasterView({
               </div>
 
               {/* 1. LOG RECEIVED PAYMENT DETAILS (FIRST SECTION) */}
-              <div className="flex items-center gap-2 pb-1.5 border-b border-emerald-100 text-emerald-900">
-                <Banknote className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center gap-2 pb-1.5 border-b dark:border-gray-700 border-emerald-100 text-emerald-900 dark:text-emerald-300">
+                <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                 <h4 className="text-xs font-black uppercase tracking-wider font-mono">
                   1. LOG RECEIVED PAYMENT DETAILS
                 </h4>
@@ -5109,14 +5109,14 @@ export default function SecurityMasterView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Received Amount */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Received Amount (₹)
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="any"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 dark:[color-scheme:dark]"
                     placeholder="Enter collected amount e.g. 15000"
                     value={billForm.receivedAmount}
                     onChange={(e) => setBillForm({ ...billForm, receivedAmount: e.target.value })}
@@ -5133,8 +5133,8 @@ export default function SecurityMasterView({
               </div>
 
               {/* 2. BILLING & INVOICE DETAILS (SECOND SECTION) */}
-              <div className="flex items-center gap-2 pt-2 pb-1.5 border-b border-indigo-100 text-indigo-900">
-                <Receipt className="w-4 h-4 text-indigo-600" />
+              <div className="flex items-center gap-2 pt-2 pb-1.5 border-b dark:border-gray-700 border-indigo-100 text-indigo-900 dark:text-indigo-300">
+                <Receipt className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                 <h4 className="text-xs font-black uppercase tracking-wider font-mono">
                   2. BILLING &amp; INVOICE DETAILS
                 </h4>
@@ -5143,12 +5143,12 @@ export default function SecurityMasterView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Bill No */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Bill No.
                   </label>
                   <input
                     type="text"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                     placeholder="e.g. BILL-2026-001"
                     value={billForm.billNo}
                     onChange={(e) => setBillForm({ ...billForm, billNo: e.target.value })}
@@ -5166,7 +5166,7 @@ export default function SecurityMasterView({
                 {/* Bill Amount */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">
                       Bill Amount (₹)
                     </label>
                     {showBillModal.item && (Number(showBillModal.item?.totalGuardCost || 0) + Number(showBillModal.item?.totalAllowanceCost || 0)) > 0 && (
@@ -5177,7 +5177,7 @@ export default function SecurityMasterView({
                           const allowance = Number(showBillModal.item?.totalAllowanceCost || 0);
                           setBillForm({ ...billForm, billAmount: String(cost + allowance) });
                         }}
-                        className="text-[9px] font-bold text-indigo-600 hover:underline"
+                        className="text-[9px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline"
                         title="Copy Total Guard Deployment Expenses (Cost + Allowance)"
                       >
                         Auto-fill Total Expense
@@ -5188,7 +5188,7 @@ export default function SecurityMasterView({
                     type="number"
                     min="0"
                     step="any"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                     placeholder="0.00"
                     value={billForm.billAmount}
                     onChange={(e) => setBillForm({ ...billForm, billAmount: e.target.value })}
@@ -5197,12 +5197,12 @@ export default function SecurityMasterView({
 
                 {/* Payment Timeline */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Payment Timeline
                   </label>
                   <input
                     type="text"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                     placeholder="e.g. 30 Days"
                     value={billForm.paymentDays}
                     onChange={(e) => setBillForm({ ...billForm, paymentDays: e.target.value })}
@@ -5211,21 +5211,21 @@ export default function SecurityMasterView({
 
                 {/* Upload Bill / Invoice Image / PDF */}
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Upload Bill / Invoice Copy (Photo / PDF)
                   </label>
-                  <div className="flex items-center gap-3 bg-slate-50 p-2.5 border border-slate-300 rounded-lg">
-                    <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
-                      <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 p-2.5 border border-slate-300 dark:border-gray-700 rounded-lg">
+                    <label className="cursor-pointer px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                       Choose Bill Copy
                       <input
                         type="file"
-                        className="hidden"
+                        className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                         accept="image/*,application/pdf"
                         onChange={(e) => setBillFile(e.target.files?.[0] || null)}
                       />
                     </label>
-                    <span className="text-xs text-slate-600 truncate max-w-[240px]">
+                    <span className="text-xs text-slate-600 dark:text-gray-300 truncate max-w-[240px]">
                       {billFile ? billFile.name : (billForm.billInvoiceUrl ? "✓ Attached Copy" : "No file chosen")}
                     </span>
                     {billForm.billInvoiceUrl && (
@@ -5233,7 +5233,7 @@ export default function SecurityMasterView({
                         href={billForm.billInvoiceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 ml-auto"
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-300 hover:underline flex items-center gap-1 ml-auto"
                       >
                         <Receipt className="w-3.5 h-3.5" /> View Uploaded Bill
                       </a>
@@ -5245,11 +5245,11 @@ export default function SecurityMasterView({
               {/* Payment Status & Payment Method */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Payment Status
                   </label>
                   <select
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                     value={billForm.paymentStatus}
                     onChange={(e) => setBillForm({ ...billForm, paymentStatus: e.target.value })}
                   >
@@ -5261,11 +5261,11 @@ export default function SecurityMasterView({
 
                 {billForm.paymentStatus !== "Due" && (
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Payment Method
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 font-bold"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 font-bold dark:[color-scheme:dark]"
                       value={billForm.paymentMethod}
                       onChange={(e) => setBillForm({ ...billForm, paymentMethod: e.target.value })}
                     >
@@ -5282,12 +5282,12 @@ export default function SecurityMasterView({
 
               {/* Remarks */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Billing &amp; Payment Notes
                 </label>
                 <textarea
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] resize-none"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 resize-none dark:[color-scheme:dark]"
                   placeholder="Enter invoice details, payment receipt UTR, or notes..."
                   value={billForm.remarks}
                   onChange={(e) => setBillForm({ ...billForm, remarks: e.target.value })}
@@ -5295,11 +5295,11 @@ export default function SecurityMasterView({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-gray-700 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowBillModal({ show: false, item: null })}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -5320,41 +5320,41 @@ export default function SecurityMasterView({
       {/* ── Log Payment Follow-Up Call Modal ── */}
       {showFollowUpModal.show && showFollowUpModal.item && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] backdrop-blur-md bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-hidden animate-scale-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-gray-700 overflow-hidden animate-scale-in">
             {/* Header */}
-            <div className="px-6 py-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
+            <div className="px-6 py-4 bg-purple-50 dark:bg-purple-950/50 border-b dark:border-gray-700 border-purple-100 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-purple-100 text-purple-700 rounded-lg">
+                <div className="p-2 bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 rounded-lg">
                   <PhoneCall className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-sm">Log Payment Follow Up Call</h3>
-                  <p className="text-[10px] font-bold text-purple-800">
+                  <h3 className="font-black text-slate-900 dark:text-gray-100 text-sm">Log Payment Follow Up Call</h3>
+                  <p className="text-[10px] font-bold text-purple-800 dark:text-purple-300">
                     {showFollowUpModal.item.company} | Bill: {showFollowUpModal.item.billNo || "No Bill"} (Site: {showFollowUpModal.item.location || "N/A"})
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowFollowUpModal({ show: false, item: null })} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button onClick={() => setShowFollowUpModal({ show: false, item: null })} className="text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 font-bold">
                 ✕
               </button>
             </div>
 
             {/* Financial Summary Snippet */}
-            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200/80 flex justify-between items-center text-xs">
+            <div className="bg-slate-50 dark:bg-gray-800 px-6 py-3 border-b dark:border-gray-700 border-slate-200/80 flex justify-between items-center text-xs">
               <div>
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Billed Amount</span>
-                <span className="font-black text-slate-800 font-mono">₹{Number(showFollowUpModal.item.billAmount || 0).toLocaleString("en-IN")}</span>
+                <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold block">Billed Amount</span>
+                <span className="font-black text-slate-800 dark:text-gray-100 font-mono">₹{Number(showFollowUpModal.item.billAmount || 0).toLocaleString("en-IN")}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Received Amount</span>
-                <span className="font-black text-emerald-700 font-mono">₹{Number(showFollowUpModal.item.receivedAmount || 0).toLocaleString("en-IN")}</span>
+                <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold block">Received Amount</span>
+                <span className="font-black text-emerald-700 dark:text-emerald-300 font-mono">₹{Number(showFollowUpModal.item.receivedAmount || 0).toLocaleString("en-IN")}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Outstanding Balance</span>
+                <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold block">Outstanding Balance</span>
                 {(() => {
                   const pending = Math.max(0, Number(showFollowUpModal.item.billAmount || 0) - Number(showFollowUpModal.item.receivedAmount || 0) - Number(showFollowUpModal.item.tdsAmount || 0));
                   return (
-                    <span className="font-black text-rose-700 font-mono bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    <span className="font-black text-rose-700 dark:text-rose-300 font-mono bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded border dark:border-gray-700 border-rose-200">
                       ₹{pending.toLocaleString("en-IN")}
                     </span>
                   );
@@ -5365,9 +5365,9 @@ export default function SecurityMasterView({
             {/* Body Form */}
             <form onSubmit={handleFollowUpSubmit} className="p-6 space-y-4">
               {followUpError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold flex items-center justify-between gap-2 animate-shake">
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-between gap-2 animate-shake">
                   <span>⚠️ {followUpError}</span>
-                  <button type="button" onClick={() => setFollowUpError("")} className="text-rose-500 hover:text-rose-800">✕</button>
+                  <button type="button" onClick={() => setFollowUpError("")} className="text-rose-500 hover:text-rose-800 dark:hover:text-rose-300">✕</button>
                 </div>
               )}
 
@@ -5382,11 +5382,11 @@ export default function SecurityMasterView({
 
                 {/* Call Status */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Call Status *
                   </label>
                   <select
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                     value={followUpForm.callStatus}
                     onChange={(e) => setFollowUpForm({ ...followUpForm, callStatus: e.target.value })}
                   >
@@ -5409,12 +5409,12 @@ export default function SecurityMasterView({
                   placeholder="DD/MM/YYYY"
                 />
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Follow Up Time
                   </label>
                   <input
                     type="time"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                     value={followUpForm.nextFollowUpTime}
                     onChange={(e) => setFollowUpForm({ ...followUpForm, nextFollowUpTime: e.target.value })}
                   />
@@ -5423,13 +5423,13 @@ export default function SecurityMasterView({
 
               {/* Conversation Details */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Conversation Details / Kya Baat Hui *
                 </label>
                 <textarea
                   rows={3}
                   required
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 resize-none"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-purple-600 resize-none dark:[color-scheme:dark]"
                   placeholder="Enter details of conversation with NBFC / client regarding payment..."
                   value={followUpForm.conversationDetails}
                   onChange={(e) => setFollowUpForm({ ...followUpForm, conversationDetails: e.target.value })}
@@ -5438,32 +5438,32 @@ export default function SecurityMasterView({
 
               {/* Upload Recording / Document */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Upload Call Recording / Document (Optional)
                 </label>
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 border border-slate-300 rounded-lg">
-                  <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
-                    <Upload className="w-3.5 h-3.5 text-purple-600" />
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 p-2.5 border border-slate-300 dark:border-gray-700 rounded-lg">
+                  <label className="cursor-pointer px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs">
+                    <Upload className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
                     Choose File
                     <input
                       type="file"
-                      className="hidden"
+                      className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                       accept="audio/*,video/*,image/*,application/pdf,.mp3,.wav,.mp4,.m4a,.aac,.ogg,.m4v,.mov,.avi,.mkv"
                       onChange={(e) => setFollowUpFile(e.target.files?.[0] || null)}
                     />
                   </label>
-                  <span className="text-xs text-slate-600 truncate max-w-[240px]">
+                  <span className="text-xs text-slate-600 dark:text-gray-300 truncate max-w-[240px]">
                     {followUpFile ? followUpFile.name : "No file chosen"}
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowFollowUpModal({ show: false, item: null })}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -5484,21 +5484,21 @@ export default function SecurityMasterView({
       {/* ── Dedicated Add New Billing Entry Modal ── */}
       {showAddBillingModal && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200/80 overflow-hidden animate-scale-in my-auto max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border dark:border-gray-700 border-slate-200/80 overflow-hidden animate-scale-in my-auto max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-indigo-50/70 border-b border-indigo-100 flex justify-between items-center shrink-0">
+            <div className="px-6 py-4 bg-indigo-50/70 dark:bg-indigo-950/50 border-b dark:border-gray-700 border-indigo-100 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Add New Billing Entry</h3>
+                  <h3 className="font-black text-slate-900 dark:text-gray-100 text-base">Add New Billing Entry</h3>
 
                 </div>
               </div>
               <button
                 onClick={() => setShowAddBillingModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300/80 text-slate-600 flex items-center justify-center font-bold text-sm transition-all"
+                className="w-8 h-8 rounded-full bg-slate-200/70 dark:bg-slate-950/50 hover:bg-slate-300/80 text-slate-600 dark:text-gray-300 flex items-center justify-center font-bold text-sm transition-all"
               >
                 ✕
               </button>
@@ -5509,8 +5509,8 @@ export default function SecurityMasterView({
 
               {/* 1. COMPANY & BANK/NBFC DETAILS */}
               <div>
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-[#714B67] mb-3">
-                  <Tag className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-gray-700 text-[#714B67] mb-3">
+                  <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h4 className="text-xs font-black uppercase tracking-wider font-mono">
                     1. COMPANY &amp; DETAILS
                   </h4>
@@ -5520,19 +5520,19 @@ export default function SecurityMasterView({
                   {/* Company */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider">
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">
                         Company *
                       </label>
                       <button
                         type="button"
                         onClick={() => setShowAddCompanyModal(true)}
-                        className="text-[10px] font-bold text-indigo-600 hover:underline"
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 hover:underline"
                       >
                         + Add Company
                       </button>
                     </div>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={billingForm.company}
                       onChange={(e) => setBillingForm({ ...billingForm, company: e.target.value })}
                     >
@@ -5544,11 +5544,11 @@ export default function SecurityMasterView({
 
                   {/* Bank / NBFC Master */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Bank / NBFC Name (Master)
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={billingForm.nbfcId}
                       onChange={(e) => {
                         const selId = e.target.value;
@@ -5573,12 +5573,12 @@ export default function SecurityMasterView({
 
                   {/* Branch Master */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Branch (Master)
                     </label>
                     <select
                       disabled={!billingForm.nbfcId}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] disabled:opacity-50"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 disabled:opacity-50 dark:[color-scheme:dark]"
                       value={billingForm.branchId}
                       onChange={(e) => {
                         const selBranchId = e.target.value;
@@ -5609,8 +5609,8 @@ export default function SecurityMasterView({
 
               {/* 2. SITE & WORK ORDER / BILLING DETAILS */}
               <div>
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-[#714B67] mb-3">
-                  <MapPin className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-gray-700 text-[#714B67] mb-3">
+                  <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h4 className="text-xs font-black uppercase tracking-wider font-mono">
                     2. SITE &amp; WORK ORDER DETAILS
                   </h4>
@@ -5619,13 +5619,13 @@ export default function SecurityMasterView({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   {/* Site Address */}
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Site Name / Area Address *
                     </label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="e.g. Building Plot #4, Industrial Area, Jaipur"
                       value={billingForm.location}
                       onChange={(e) => setBillingForm({ ...billingForm, location: e.target.value })}
@@ -5634,11 +5634,11 @@ export default function SecurityMasterView({
 
                   {/* Site Type */}
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Site Type
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       value={billingForm.siteType}
                       onChange={(e) => setBillingForm({ ...billingForm, siteType: e.target.value })}
                     >
@@ -5654,13 +5654,13 @@ export default function SecurityMasterView({
 
                 {billingForm.siteType === "Other" && (
                   <div className="mb-4">
-                    <label className="block text-[10px] uppercase font-bold text-rose-600 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-rose-600 dark:text-rose-300 tracking-wider mb-1">
                       Enter Custom Site Type *
                     </label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-rose-500 dark:[color-scheme:dark]"
                       placeholder="e.g. Warehouses, Mall, Mining Site, etc."
                       value={billingForm.customSiteType}
                       onChange={(e) => setBillingForm({ ...billingForm, customSiteType: e.target.value })}
@@ -5671,12 +5671,12 @@ export default function SecurityMasterView({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Bill No */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Bill No.
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="e.g. BILL-2026-089"
                       value={billingForm.billNo}
                       onChange={(e) => setBillingForm({ ...billingForm, billNo: e.target.value })}
@@ -5693,14 +5693,14 @@ export default function SecurityMasterView({
 
                   {/* Bill Amount */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Bill Amount (₹)
                     </label>
                     <input
                       type="number"
                       min="0"
                       step="any"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 dark:[color-scheme:dark]"
                       placeholder="0.00"
                       value={billingForm.billAmount}
                       onChange={(e) => setBillingForm({ ...billingForm, billAmount: e.target.value })}
@@ -5711,8 +5711,8 @@ export default function SecurityMasterView({
 
               {/* 3. PAYMENT STATUS, SOURCE & REMARKS */}
               <div>
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-[#714B67] mb-3">
-                  <FileText className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-gray-700 text-[#714B67] mb-3">
+                  <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
                   <h4 className="text-xs font-black uppercase tracking-wider font-mono">
                     3. PAYMENT STATUS, SOURCE &amp; REMARKS
                   </h4>
@@ -5721,11 +5721,11 @@ export default function SecurityMasterView({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Payment Status Dropdown */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Payment Status *
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 dark:[color-scheme:dark]"
                       value={billingForm.paymentStatus}
                       onChange={(e) => {
                         const newStatus = e.target.value;
@@ -5747,7 +5747,7 @@ export default function SecurityMasterView({
 
                   {/* Source Selection & Name Specification */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                       Source *
                     </label>
                     <div className="flex flex-col gap-2">
@@ -5766,7 +5766,7 @@ export default function SecurityMasterView({
                             className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
                               billingForm.sourceType === src
                                 ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
-                                : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+                                : "bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 border-slate-200 dark:border-gray-700 hover:bg-slate-200 dark:hover:bg-gray-800"
                             }`}
                           >
                             {src}
@@ -5777,13 +5777,13 @@ export default function SecurityMasterView({
                       {/* Dynamic Name Input based on selected Source */}
                       {billingForm.sourceType === "BDA" && (
                         <div className="animate-fadeIn">
-                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">
                             BDA Executive / Staff Name *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            className="w-full bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 dark:placeholder:text-gray-400 placeholder:font-normal dark:[color-scheme:dark]"
                             placeholder="e.g. Rahul Sharma (BDA)"
                             value={billingForm.sourceName}
                             onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
@@ -5793,13 +5793,13 @@ export default function SecurityMasterView({
 
                       {billingForm.sourceType === "Reference" && (
                         <div className="animate-fadeIn">
-                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">
                             Referred By (Name &amp; Contact) *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            className="w-full bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 dark:placeholder:text-gray-400 placeholder:font-normal dark:[color-scheme:dark]"
                             placeholder="e.g. Mr. Amit Verma (9876543210)"
                             value={billingForm.sourceName}
                             onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
@@ -5809,13 +5809,13 @@ export default function SecurityMasterView({
 
                       {billingForm.sourceType === "Agent" && (
                         <div className="animate-fadeIn">
-                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">
                             Agent / Agency Name *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            className="w-full bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 dark:placeholder:text-gray-400 placeholder:font-normal dark:[color-scheme:dark]"
                             placeholder="e.g. Apex Security Agency / Vikram"
                             value={billingForm.sourceName}
                             onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
@@ -5825,13 +5825,13 @@ export default function SecurityMasterView({
 
                       {billingForm.sourceType === "Other" && (
                         <div className="animate-fadeIn">
-                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-0.5">
                             Specify Source Name / Channel *
                           </label>
                           <input
                             type="text"
                             required
-                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            className="w-full bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 dark:placeholder:text-gray-400 placeholder:font-normal dark:[color-scheme:dark]"
                             placeholder="e.g. Online Portal / Newspaper Ad"
                             value={billingForm.sourceName}
                             onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
@@ -5844,12 +5844,12 @@ export default function SecurityMasterView({
 
                 {/* LOG RECEIVED PAYMENT DETAILS (When Payment Done or Partially Paid) */}
                 {(billingForm.paymentStatus === "Payment Done" || billingForm.paymentStatus === "Partially Paid") && (
-                  <div className="mb-4 p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 animate-fadeIn space-y-3.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
-                      <div className="flex items-center gap-2 text-emerald-800 font-black text-xs">
-                        <Banknote className="w-4 h-4 text-emerald-600" />
+                  <div className="mb-4 p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 animate-fadeIn space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b dark:border-gray-700 border-emerald-200/80">
+                      <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-black text-xs">
+                        <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
                         <span>Log Received Payment Details</span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
                           {billingForm.paymentStatus}
                         </span>
                       </div>
@@ -5871,7 +5871,7 @@ export default function SecurityMasterView({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                           {/* Received Amount */}
                           <div>
-                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                               Received Amount (₹) *
                             </label>
                             <input
@@ -5879,18 +5879,18 @@ export default function SecurityMasterView({
                               min="0"
                               step="any"
                               required
-                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                               placeholder="Enter received amount"
                               value={billingForm.receivedAmount}
                               onChange={(e) => setBillingForm({ ...billingForm, receivedAmount: e.target.value })}
                             />
                             {billingForm.billAmount && (
-                              <div className="flex items-center justify-between text-[10px] text-emerald-700 mt-1 font-semibold">
+                              <div className="flex items-center justify-between text-[10px] text-emerald-700 dark:text-emerald-300 mt-1 font-semibold">
                                 <span>Bill Amount: ₹{Number(billingForm.billAmount).toLocaleString("en-IN")}</span>
                                 <button
                                   type="button"
                                   onClick={() => setBillingForm({ ...billingForm, receivedAmount: billingForm.billAmount })}
-                                  className="text-emerald-800 underline hover:text-emerald-950 font-bold"
+                                  className="text-emerald-800 dark:text-emerald-300 underline hover:text-emerald-950 font-bold"
                                 >
                                   Set Full Amount
                                 </button>
@@ -5912,11 +5912,11 @@ export default function SecurityMasterView({
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                           {/* Payment Method */}
                           <div>
-                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                               Payment Mode / Method
                             </label>
                             <select
-                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                               value={billingForm.paymentMethod}
                               onChange={(e) => setBillingForm({ ...billingForm, paymentMethod: e.target.value })}
                             >
@@ -5931,12 +5931,12 @@ export default function SecurityMasterView({
 
                           {/* Transaction ID / Cheque No */}
                           <div>
-                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                               Transaction ID / Cheque No.
                             </label>
                             <input
                               type="text"
-                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                               placeholder="e.g. UTR / Txn ID / Cheque #"
                               value={billingForm.transactionId}
                               onChange={(e) => setBillingForm({ ...billingForm, transactionId: e.target.value })}
@@ -5945,12 +5945,12 @@ export default function SecurityMasterView({
 
                           {/* Payer / Bank Name */}
                           <div>
-                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                               Payer / Client Name
                             </label>
                             <input
                               type="text"
-                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                               placeholder="e.g. Balaji Finance / Ramesh"
                               value={billingForm.payerName}
                               onChange={(e) => setBillingForm({ ...billingForm, payerName: e.target.value })}
@@ -5960,13 +5960,13 @@ export default function SecurityMasterView({
 
                         {billingForm.paymentMethod === "Other" && (
                           <div>
-                            <label className="block text-[10px] uppercase font-bold text-emerald-800 tracking-wider mb-1">
+                            <label className="block text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 tracking-wider mb-1">
                               Specify Custom Payment Method *
                             </label>
                             <input
                               type="text"
                               required
-                              className="w-full bg-white border border-emerald-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-emerald-300 rounded-lg p-2 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                               placeholder="e.g. Wallet, POS, Crypto, etc."
                               value={billingForm.customPaymentMethod}
                               onChange={(e) => setBillingForm({ ...billingForm, customPaymentMethod: e.target.value })}
@@ -5977,22 +5977,22 @@ export default function SecurityMasterView({
                     ) : (
                       /* If Installments are Added: Show Installment Breakdowns Inside */
                       <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 p-2.5 rounded-xl text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 dark:bg-emerald-950/50 p-2.5 rounded-xl text-xs">
                           <div className="flex items-center gap-2">
-                            <ListOrdered className="w-4 h-4 text-emerald-800" />
-                            <span className="font-bold text-emerald-900">
+                            <ListOrdered className="w-4 h-4 text-emerald-800 dark:text-emerald-300" />
+                            <span className="font-bold text-emerald-900 dark:text-emerald-300">
                               Installments Schedule ({billingForm.installments.length} Part{billingForm.installments.length === 1 ? "" : "s"})
                             </span>
                           </div>
 
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] text-emerald-800 font-bold">Auto Split:</span>
+                            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">Auto Split:</span>
                             {[2, 3, 4].map((cnt) => (
                               <button
                                 key={cnt}
                                 type="button"
                                 onClick={() => handleAutoSplitInstallments(cnt)}
-                                className="px-2 py-0.5 text-[10px] font-bold bg-white text-emerald-800 rounded border border-emerald-300 hover:bg-emerald-50 transition-colors shadow-2xs"
+                                className="px-2 py-0.5 text-[10px] font-bold bg-white dark:bg-gray-900 text-emerald-800 dark:text-emerald-300 rounded border dark:border-gray-700 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors shadow-2xs"
                               >
                                 {cnt} Parts
                               </button>
@@ -6006,7 +6006,7 @@ export default function SecurityMasterView({
                                   isInstallmentPlan: false,
                                 }))
                               }
-                              className="text-[10px] text-emerald-800 underline hover:text-emerald-950 font-bold ml-1"
+                              className="text-[10px] text-emerald-800 dark:text-emerald-300 underline hover:text-emerald-950 font-bold ml-1"
                             >
                               Reset to Single
                             </button>
@@ -6024,21 +6024,21 @@ export default function SecurityMasterView({
 
                           return (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
-                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Bill Amount</span>
-                                <span className="font-black text-slate-900 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
+                              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700 border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-gray-400 block">Bill Amount</span>
+                                <span className="font-black text-slate-900 dark:text-gray-100 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
                               </div>
-                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
-                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Installments Total</span>
-                                <span className="font-black font-mono text-indigo-700">₹{instTotal.toLocaleString("en-IN")}</span>
+                              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700 border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-gray-400 block">Installments Total</span>
+                                <span className="font-black font-mono text-indigo-700 dark:text-indigo-300">₹{instTotal.toLocaleString("en-IN")}</span>
                               </div>
-                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
-                                <span className="text-[9px] uppercase font-bold text-emerald-600 block">Total Received</span>
-                                <span className="font-black font-mono text-emerald-700">₹{instReceived.toLocaleString("en-IN")}</span>
+                              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700 border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-300 block">Total Received</span>
+                                <span className="font-black font-mono text-emerald-700 dark:text-emerald-300">₹{instReceived.toLocaleString("en-IN")}</span>
                               </div>
-                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
-                                <span className="text-[9px] uppercase font-bold text-rose-600 block">Pending Balance</span>
-                                <span className="font-black font-mono text-rose-700">₹{instPending.toLocaleString("en-IN")}</span>
+                              <div className="bg-white dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700 border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-rose-600 dark:text-rose-300 block">Pending Balance</span>
+                                <span className="font-black font-mono text-rose-700 dark:text-rose-300">₹{instPending.toLocaleString("en-IN")}</span>
                               </div>
                             </div>
                           );
@@ -6053,17 +6053,17 @@ export default function SecurityMasterView({
                                 key={inst.id}
                                 className={`p-3 rounded-xl border transition-all ${
                                   isReceived
-                                    ? "bg-white border-emerald-300 ring-1 ring-emerald-200"
-                                    : "bg-white/80 border-slate-200 shadow-2xs"
+                                    ? "bg-white dark:bg-gray-900 border-emerald-300 ring-1 ring-emerald-200"
+                                    : "bg-white/80 dark:bg-gray-900 border-slate-200 dark:border-gray-700 shadow-2xs"
                                 }`}
                               >
                                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                                   {/* Number */}
                                   <div className="sm:col-span-3 flex items-center gap-1.5">
-                                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-[10px] font-black flex items-center justify-center shrink-0">
                                       {idx + 1}
                                     </span>
-                                    <span className="text-xs font-black text-slate-800">
+                                    <span className="text-xs font-black text-slate-800 dark:text-gray-100">
                                       Installment #{idx + 1}
                                     </span>
                                   </div>
@@ -6071,14 +6071,14 @@ export default function SecurityMasterView({
                                   {/* Amount */}
                                   <div className="sm:col-span-3">
                                     <div className="relative">
-                                      <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">₹</span>
+                                      <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400 dark:text-gray-400">₹</span>
                                       <input
                                         type="number"
                                         min="0"
                                         step="any"
                                         required
                                         placeholder="Amount"
-                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                         value={inst.amount}
                                         onChange={(e) => handleUpdateInstallment(inst.id, "amount", e.target.value)}
                                       />
@@ -6090,7 +6090,7 @@ export default function SecurityMasterView({
                                     <input
                                       type="date"
                                       required
-                                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 font-mono"
+                                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 font-mono dark:[color-scheme:dark]"
                                       value={inst.date}
                                       onChange={(e) => handleUpdateInstallment(inst.id, "date", e.target.value)}
                                     />
@@ -6103,10 +6103,10 @@ export default function SecurityMasterView({
                                       onClick={() =>
                                         handleUpdateInstallment(inst.id, "status", isReceived ? "Pending" : "Received")
                                       }
-                                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1 ${
+                                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border dark:border-gray-700 flex items-center justify-center gap-1 ${
                                         isReceived
                                           ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-2xs"
-                                          : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
+                                          : "bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300"
                                       }`}
                                     >
                                       {isReceived ? (
@@ -6125,7 +6125,7 @@ export default function SecurityMasterView({
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveInstallment(inst.id)}
-                                      className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                                      className="p-1.5 text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors shrink-0"
                                       title="Remove Installment"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
@@ -6135,13 +6135,13 @@ export default function SecurityMasterView({
 
                                 {/* Extra details if received */}
                                 {isReceived && (
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-emerald-100 animate-fadeIn text-[11px]">
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t dark:border-gray-700 border-emerald-100 animate-fadeIn text-[11px]">
                                     <div>
-                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                         Payment Method
                                       </label>
                                       <select
-                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        className="w-full bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                         value={inst.paymentMethod}
                                         onChange={(e) => handleUpdateInstallment(inst.id, "paymentMethod", e.target.value)}
                                       >
@@ -6155,12 +6155,12 @@ export default function SecurityMasterView({
                                     </div>
 
                                     <div>
-                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                         UTR / Txn ID / Cheque #
                                       </label>
                                       <input
                                         type="text"
-                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        className="w-full bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                         placeholder="e.g. UTR123456"
                                         value={inst.transactionId}
                                         onChange={(e) => handleUpdateInstallment(inst.id, "transactionId", e.target.value)}
@@ -6168,12 +6168,12 @@ export default function SecurityMasterView({
                                     </div>
 
                                     <div>
-                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">
                                         Payer / Notes
                                       </label>
                                       <input
                                         type="text"
-                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        className="w-full bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 dark:[color-scheme:dark]"
                                         placeholder="e.g. Payer Name"
                                         value={inst.payerName}
                                         onChange={(e) => handleUpdateInstallment(inst.id, "payerName", e.target.value)}
@@ -6189,7 +6189,7 @@ export default function SecurityMasterView({
                         <button
                           type="button"
                           onClick={handleAddInstallment}
-                          className="w-full py-2 bg-white hover:bg-emerald-100 text-emerald-800 border border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                          className="w-full py-2 bg-white dark:bg-gray-900 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>+ Add Another Installment Row</span>
@@ -6201,12 +6201,12 @@ export default function SecurityMasterView({
 
                 {/* Additional Remarks */}
                 <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                     Remarks / Notes
                   </label>
                   <textarea
                     rows={2}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67] resize-none"
+                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 resize-none dark:[color-scheme:dark]"
                     placeholder="Additional security or payment notes..."
                     value={billingForm.remarks}
                     onChange={(e) => setBillingForm({ ...billingForm, remarks: e.target.value })}
@@ -6215,11 +6215,11 @@ export default function SecurityMasterView({
               </div>
 
               {/* Fixed Modal Footer */}
-              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAddBillingModal(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>
@@ -6241,49 +6241,49 @@ export default function SecurityMasterView({
       {/* DAY-WISE GUARD DEPLOYMENT & PAYMENT BREAKDOWN MODAL */}
       {showRosterDetailsModal.show && showRosterDetailsModal.item && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200 font-sans">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200 font-sans">
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50/80 shrink-0">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-gray-700 bg-slate-50/80 dark:bg-slate-950/50 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-slate-900 leading-tight">
+                  <h2 className="text-base font-black text-slate-900 dark:text-gray-100 leading-tight">
                     Day-Wise Guard Details
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">
                     {showRosterDetailsModal.item.company} | {showRosterDetailsModal.item.location} ({showRosterDetailsModal.item.siteType || "Building"})
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowRosterDetailsModal({ show: false, item: null })}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-bold"
+                className="p-1.5 text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto space-y-4 text-slate-700">
+            <div className="p-6 overflow-y-auto space-y-4 text-slate-700 dark:text-gray-100">
               {/* Summary Badges Header */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
-                  <span className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Bill / Work Order</span>
-                  <span className="text-sm font-bold text-slate-900 mt-0.5 block font-mono">
+                <div className="bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-100 p-3 rounded-xl">
+                  <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 tracking-wider">Bill / Work Order</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-gray-100 mt-0.5 block font-mono">
                     {showRosterDetailsModal.item.billNo || "N/A"}
                   </span>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Bank / NBFC Branch</span>
-                  <span className="text-sm font-bold text-slate-900 mt-0.5 block truncate">
+                <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-3 rounded-xl">
+                  <span className="text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider">Bank / NBFC Branch</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-gray-100 mt-0.5 block truncate">
                     {showRosterDetailsModal.item.nbfcName} ({showRosterDetailsModal.item.branchName || "Branch"})
                   </span>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-                  <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Total Bill Amount</span>
-                  <span className="text-base font-black text-emerald-700 mt-0.5 block font-mono">
+                <div className="bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 p-3 rounded-xl">
+                  <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider">Total Bill Amount</span>
+                  <span className="text-base font-black text-emerald-700 dark:text-emerald-300 mt-0.5 block font-mono">
                     ₹{Number(showRosterDetailsModal.item.billAmount || 0).toLocaleString("en-IN")}
                   </span>
                 </div>
@@ -6314,7 +6314,7 @@ export default function SecurityMasterView({
 
                 if (rosterList.length === 0) {
                   return (
-                    <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
+                    <div className="p-6 text-center border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl text-slate-500 dark:text-gray-400 text-xs">
                       No detailed day-wise roster logs found for this entry.
                     </div>
                   );
@@ -6343,10 +6343,10 @@ export default function SecurityMasterView({
 
                 return (
                   <div className="space-y-3">
-                    <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                      <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                    <div className="border border-slate-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-2xs">
+                      <div className="bg-slate-50 dark:bg-gray-800 px-4 py-2.5 border-b border-slate-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-mono flex items-center gap-1.5">
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-gray-100 font-mono flex items-center gap-1.5">
                             📅 Date-Wise Guards Shift Details
                           </span>
                           {availableDates.length > 1 && rosterModalFilterDate === "ALL" && (
@@ -6363,7 +6363,7 @@ export default function SecurityMasterView({
                                   setCollapsedModalDates({});
                                 }
                               }}
-                              className="text-[10px] font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg transition-all shadow-2xs flex items-center gap-1 font-mono"
+                              className="text-[10px] font-bold bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 px-2 py-0.5 rounded-lg transition-all shadow-2xs flex items-center gap-1 font-mono"
                               title="Toggle Expand / Collapse for all date headers"
                             >
                               {allDatesCollapsed ? "📂 Expand All Dates" : "📁 Collapse All Dates"}
@@ -6374,9 +6374,9 @@ export default function SecurityMasterView({
                         <div className="flex items-center gap-2">
                           {availableDates.length > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-bold text-slate-500 font-mono uppercase">Filter Date:</span>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400 font-mono uppercase">Filter Date:</span>
                               <select
-                                className="bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none shadow-2xs cursor-pointer font-mono"
+                                className="bg-white dark:bg-gray-900 border dark:border-gray-700 border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none shadow-2xs cursor-pointer font-mono dark:[color-scheme:dark]"
                                 value={rosterModalFilterDate}
                                 onChange={(e) => setRosterModalFilterDate(e.target.value)}
                               >
@@ -6392,7 +6392,7 @@ export default function SecurityMasterView({
                               </select>
                             </div>
                           )}
-                          <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 font-mono">
+                          <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 rounded-full border dark:border-gray-700 border-indigo-100 font-mono">
                             {filteredRoster.length} {filteredRoster.length === 1 ? "Entry" : "Entries"}
                           </span>
                         </div>
@@ -6401,7 +6401,7 @@ export default function SecurityMasterView({
                       {/* Scrollable Container with Max Height */}
                       <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
                         <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-slate-100 text-[10px] uppercase font-black text-slate-600 border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
+                          <thead className="bg-slate-100 dark:bg-gray-800 text-[10px] uppercase font-black text-slate-600 dark:text-gray-300 border-b border-slate-200 dark:border-gray-700 sticky top-0 z-10 shadow-2xs">
                             <tr>
                               <th className="py-2.5 px-3">Date</th>
                               <th className="py-2.5 px-3">Guard Name</th>
@@ -6413,7 +6413,7 @@ export default function SecurityMasterView({
                               <th className="py-2.5 px-3 text-right">Day Payment Total</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 font-bold text-slate-800">
+                          <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-bold text-slate-800 dark:text-gray-100">
                             {(() => {
                               let lastRenderedDate = "";
                               return filteredRoster.map((r, i) => {
@@ -6456,13 +6456,13 @@ export default function SecurityMasterView({
                                               [currentDate]: prev[currentDate] === false ? true : false,
                                             }))
                                           }
-                                          className="bg-indigo-50/90 hover:bg-indigo-100/90 cursor-pointer select-none border-y border-indigo-200/80 transition-all font-mono group"
+                                          className="bg-indigo-50/90 dark:bg-indigo-950/50 hover:bg-indigo-100/90 dark:hover:bg-indigo-950/50 cursor-pointer select-none border-y border-indigo-200/80 transition-all font-mono group"
                                           title={isCollapsed ? "Click to Expand Guard Details" : "Click to Collapse Guard Details"}
                                         >
                                           <td colSpan={8} className="py-2 px-3">
                                             <div className="flex items-center justify-between">
                                               <div className="flex items-center gap-2">
-                                                <span className="p-1 rounded bg-white text-indigo-700 border border-indigo-200 shadow-2xs group-hover:scale-105 transition-transform">
+                                                <span className="p-1 rounded bg-white dark:bg-gray-900 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 shadow-2xs group-hover:scale-105 transition-transform">
                                                   {isCollapsed ? (
                                                     <ChevronRight className="w-3.5 h-3.5" />
                                                   ) : (
@@ -6472,13 +6472,13 @@ export default function SecurityMasterView({
                                                 <span className="text-xs font-black text-indigo-950 uppercase tracking-wider">
                                                   📅 Date: {currentDate}
                                                 </span>
-                                                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
+                                                <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-full border dark:border-gray-700 border-indigo-200">
                                                   {dateGroupEntries.length} {dateGroupEntries.length === 1 ? "Guard Shift" : "Guard Shifts"}
                                                 </span>
                                               </div>
 
-                                              <div className="text-[11px] font-bold text-indigo-900 font-mono">
-                                                <span>Day Subtotal: <strong className="text-emerald-700 font-mono font-black text-xs">₹{dateGroupTotal.toLocaleString("en-IN")}</strong></span>
+                                              <div className="text-[11px] font-bold text-indigo-900 dark:text-indigo-300 font-mono">
+                                                <span>Day Subtotal: <strong className="text-emerald-700 dark:text-emerald-300 font-mono font-black text-xs">₹{dateGroupTotal.toLocaleString("en-IN")}</strong></span>
                                               </div>
                                             </div>
                                           </td>
@@ -6488,16 +6488,16 @@ export default function SecurityMasterView({
 
                                     {/* Guard Detail Row (Hidden when Date is Collapsed) */}
                                     {!isCurrentDateCollapsed && (
-                                      <tr className="hover:bg-slate-50 transition-colors">
-                                        <td className="py-2.5 px-3 font-mono text-indigo-700 whitespace-nowrap">
+                                      <tr className="hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
+                                        <td className="py-2.5 px-3 font-mono text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
                                           {currentDate}
                                         </td>
                                         <td className="py-2.5 px-3 whitespace-nowrap">{r.guardName || r.name || "—"}</td>
-                                        <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 font-mono">{r.guardPhone || r.phone || "—"}</td>
+                                        <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 dark:text-gray-400 font-mono">{r.guardPhone || r.phone || "—"}</td>
                                         <td className="py-2.5 px-3 whitespace-nowrap">
-                                          <div className="text-slate-800 font-bold">{r.shiftType || "—"}</div>
+                                          <div className="text-slate-800 dark:text-gray-100 font-bold">{r.shiftType || "—"}</div>
                                           {r.shiftTiming && (
-                                            <div className="text-[10px] font-semibold text-indigo-600 font-mono flex items-center gap-1 mt-0.5">
+                                            <div className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-300 font-mono flex items-center gap-1 mt-0.5">
                                               <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
                                               <span>{r.shiftTiming}</span>
                                             </div>
@@ -6505,8 +6505,8 @@ export default function SecurityMasterView({
                                         </td>
                                         <td className="py-2.5 px-3 text-center font-mono">{count}</td>
                                         <td className="py-2.5 px-3 text-right font-mono">₹{rate.toLocaleString("en-IN")}</td>
-                                        <td className="py-2.5 px-3 text-right font-mono text-slate-500">₹{allowance.toLocaleString("en-IN")}</td>
-                                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700">
+                                        <td className="py-2.5 px-3 text-right font-mono text-slate-500 dark:text-gray-400">₹{allowance.toLocaleString("en-IN")}</td>
+                                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-300">
                                           ₹{daySubtotal.toLocaleString("en-IN")}
                                         </td>
                                       </tr>
@@ -6521,20 +6521,20 @@ export default function SecurityMasterView({
                     </div>
 
                     {/* Bottom Total Summary Bar */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+                    <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center gap-6">
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Active Dates</span>
-                          <span className="text-base font-bold text-slate-900 font-mono">{uniqueDates.size || 1} {uniqueDates.size === 1 ? "Date" : "Dates"}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-black block tracking-wider">Active Dates</span>
+                          <span className="text-base font-bold text-slate-900 dark:text-gray-100 font-mono">{uniqueDates.size || 1} {uniqueDates.size === 1 ? "Date" : "Dates"}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Total Guards Deployed</span>
-                          <span className="text-base font-bold text-slate-900 font-mono">{totalGuardsDeployed} Guards</span>
+                          <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-black block tracking-wider">Total Guards Deployed</span>
+                          <span className="text-base font-bold text-slate-900 dark:text-gray-100 font-mono">{totalGuardsDeployed} Guards</span>
                         </div>
                       </div>
-                      <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-right">
-                        <span className="text-[10px] text-emerald-800 uppercase font-black block tracking-wider">Grand Calculated Total</span>
-                        <span className="text-lg font-black font-mono text-emerald-700 block">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 px-4 py-2 rounded-xl text-right">
+                        <span className="text-[10px] text-emerald-800 dark:text-emerald-300 uppercase font-black block tracking-wider">Grand Calculated Total</span>
+                        <span className="text-lg font-black font-mono text-emerald-700 dark:text-emerald-300 block">
                           ₹{totalRosterCost.toLocaleString("en-IN")}
                         </span>
                       </div>
@@ -6545,7 +6545,7 @@ export default function SecurityMasterView({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-gray-800 border-t border-slate-200 dark:border-gray-700 flex justify-end shrink-0">
               <button
                 onClick={() => setShowRosterDetailsModal({ show: false, item: null })}
                 className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-black rounded-xl transition-all shadow-2xs"
@@ -6561,15 +6561,15 @@ export default function SecurityMasterView({
       {/* ADD NEW GUARD TO DB MASTER MODAL WITH PHOTO UPLOAD */}
       {showAddGuardModal && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200 font-sans">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-indigo-50/80">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200 font-sans">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-gray-700 bg-indigo-50/80 dark:bg-indigo-950/50">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-lg">
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Register New Security Guard</h3>
-                  <p className="text-[10px] text-slate-500 font-medium">Add Guard details &amp; photo directly to DB Master</p>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-gray-100">Register New Security Guard</h3>
+                  <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">Add Guard details &amp; photo directly to DB Master</p>
                 </div>
               </div>
               <button
@@ -6577,7 +6577,7 @@ export default function SecurityMasterView({
                   setShowAddGuardModal(false);
                   setAddGuardForRosterIdx(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300 font-bold"
               >
                 ✕
               </button>
@@ -6586,14 +6586,14 @@ export default function SecurityMasterView({
             <form onSubmit={handleAddNewGuard} className="p-6 space-y-4">
               {/* Guard Name */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Guard Full Name *
                 </label>
                 <input
                   type="text"
                   required
                   autoFocus
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 dark:[color-scheme:dark]"
                   placeholder="e.g. Ramesh Kumar / Vikram Singh"
                   value={newGuardForm.name}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, name: e.target.value })}
@@ -6602,26 +6602,26 @@ export default function SecurityMasterView({
 
               {/* Guard Phone Number */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Contact Phone Number
                 </label>
                 <input
                   type="text"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 font-mono"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 font-mono dark:[color-scheme:dark]"
                   placeholder="e.g. 9876543210"
                   value={newGuardForm.phone}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, phone: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Monthly Salary (₹)
                 </label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-lg p-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:border-indigo-600 dark:[color-scheme:dark]"
                   placeholder="e.g. 20000"
                   value={newGuardForm.monthlySalary}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, monthlySalary: e.target.value })}
@@ -6630,46 +6630,46 @@ export default function SecurityMasterView({
 
               {/* Guard Photo / Image Upload */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider mb-1">
                   Guard Photo / ID Card Image
                 </label>
-                <div className="flex items-center gap-3 bg-slate-50 p-3 border border-slate-300 rounded-lg">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-800 p-3 border border-slate-300 dark:border-gray-700 rounded-lg">
                   {newGuardForm.photoUrl ? (
                     <img
                       src={newGuardForm.photoUrl}
                       alt="Guard Preview"
-                      className="w-12 h-12 rounded-xl object-cover border border-indigo-300 shrink-0 shadow-2xs"
+                      className="w-12 h-12 rounded-xl object-cover border dark:border-gray-700 border-indigo-300 shrink-0 shadow-2xs"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-400 text-lg shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-gray-800 flex items-center justify-center text-slate-400 dark:text-gray-400 text-lg shrink-0">
                       👤
                     </div>
                   )}
                   <div className="flex flex-col gap-1">
-                    <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit shadow-2xs transition-all">
-                      <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                    <label className="cursor-pointer px-3 py-1.5 bg-white dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit shadow-2xs transition-all">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-300" />
                       <span>{newGuardForm.photoUrl ? "Change Photo" : "Upload Guard Photo"}</span>
                       <input
                         type="file"
-                        className="hidden"
+                        className="hidden dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]"
                         accept="image/*"
                         onChange={handleGuardPhotoUpload}
                       />
                     </label>
-                    <span className="text-[10px] text-slate-500">JPG, PNG or WEBP (Max 5MB)</span>
+                    <span className="text-[10px] text-slate-500 dark:text-gray-400">JPG, PNG or WEBP (Max 5MB)</span>
                   </div>
                 </div>
               </div>
 
               {/* Modal Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddGuardModal(false);
                     setAddGuardForRosterIdx(null);
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 rounded-xl text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -6694,25 +6694,25 @@ export default function SecurityMasterView({
           onClick={() => setShowTotalEntriesModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            className="bg-white dark:bg-gray-900 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 dark:border-gray-700 max-h-[90vh] flex flex-col font-sans text-slate-800 dark:text-gray-100"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50/90 via-white to-purple-50/50 gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50/90 via-white to-purple-50/50 gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shrink-0">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-black text-slate-900">
+                    <h2 className="text-base font-black text-slate-900 dark:text-gray-100">
                       Bank &amp; NBFC Work &amp; Billing Summary
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200">
                       {entries.length} Total Entries
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 font-medium mt-0.5">
                     Click any Bank / NBFC name to see related works, total bill, received, and pending amounts.
                   </p>
                 </div>
@@ -6720,7 +6720,7 @@ export default function SecurityMasterView({
 
               <button
                 onClick={() => setShowTotalEntriesModal(false)}
-                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 transition-colors self-end sm:self-auto"
                 title="Close Modal"
               >
                 <X className="w-5 h-5" />
@@ -6728,21 +6728,21 @@ export default function SecurityMasterView({
             </div>
 
             {/* Overview Totals & Search Bar */}
-            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-slate-50 dark:bg-gray-800 px-5 py-3 border-b border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
-                  <span className="text-slate-400 font-normal">Banks / NBFCs:</span>
-                  <span className="text-indigo-600 font-black">{bankWiseEntriesMap.length}</span>
+                <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs font-bold text-slate-700 dark:text-gray-100">
+                  <span className="text-slate-400 dark:text-gray-400 font-normal">Banks / NBFCs:</span>
+                  <span className="text-indigo-600 dark:text-indigo-300 font-black">{bankWiseEntriesMap.length}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                <div className="flex items-center gap-1.5 bg-blue-50/80 dark:bg-blue-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-blue-200 font-bold text-blue-900 dark:text-blue-300">
                   <span className="text-blue-500 font-normal">Total Bill:</span>
                   <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
+                <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-emerald-200 font-bold text-emerald-900 dark:text-emerald-300">
                   <span className="text-emerald-500 font-normal">Total Received:</span>
                   <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-rose-50/80 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
+                <div className="flex items-center gap-1.5 bg-rose-50/80 dark:bg-rose-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-rose-200 font-bold text-rose-900 dark:text-rose-300">
                   <span className="text-rose-500 font-normal">Total Pending:</span>
                   <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
                 </div>
@@ -6750,10 +6750,10 @@ export default function SecurityMasterView({
 
               {/* Modal Search Input */}
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
-                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-indigo-600 shadow-2xs dark:[color-scheme:dark]"
                   placeholder="Search Bank, Branch, Bill..."
                   value={entriesModalSearch}
                   onChange={(e) => setEntriesModalSearch(e.target.value)}
@@ -6764,7 +6764,7 @@ export default function SecurityMasterView({
             {/* Modal Body: Bank / NBFC List & Expanded Works */}
             <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
               {filteredModalBanks.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-slate-400 dark:text-gray-400">
                   <Building2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                   <p className="text-xs font-bold">No Banks / NBFCs or Works match your search.</p>
                 </div>
@@ -6783,29 +6783,29 @@ export default function SecurityMasterView({
                       key={bankGroup.nbfcName}
                       className={`border rounded-2xl transition-all overflow-hidden ${
                         isExpanded
-                          ? "border-indigo-300 bg-white shadow-md ring-1 ring-indigo-100"
-                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                          ? "border-indigo-300 bg-white dark:bg-gray-900 shadow-md ring-1 ring-indigo-100"
+                          : "border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-slate-300 dark:hover:border-gray-700 shadow-2xs"
                       }`}
                     >
                       {/* Bank Header Clickable Bar */}
                       <div
                         onClick={toggleExpand}
-                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50/80 to-white hover:bg-slate-50 transition-colors select-none"
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50/80 to-white hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors select-none"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-black shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-100 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-black shrink-0">
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors">
+                              <h3 className="text-sm font-black text-slate-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors">
                                 {bankGroup.nbfcName}
                               </h3>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-700">
                                 {bankGroup.works.length} {bankGroup.works.length === 1 ? "Work" : "Works"}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            <p className="text-[10px] text-slate-400 dark:text-gray-400 font-mono mt-0.5">
                               Click to {isExpanded ? "hide" : "view"} all work details &amp; payment breakup
                             </p>
                           </div>
@@ -6813,22 +6813,22 @@ export default function SecurityMasterView({
 
                         {/* Right Side Summary Stats for this Bank */}
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
-                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
-                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 dark:bg-blue-950/50 rounded-lg border dark:border-gray-700 border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-300 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800 dark:text-blue-300">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50/70 rounded-lg border border-emerald-100">
-                            <span className="text-[9px] uppercase font-bold text-emerald-600 font-mono block">Received</span>
-                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50/70 dark:bg-emerald-950/50 rounded-lg border dark:border-gray-700 border-emerald-100">
+                            <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-300 font-mono block">Received</span>
+                            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50/70 rounded-lg border border-rose-100">
-                            <span className="text-[9px] uppercase font-bold text-rose-600 font-mono block">Pending</span>
-                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50/70 dark:bg-rose-950/50 rounded-lg border dark:border-gray-700 border-rose-100">
+                            <span className="text-[9px] uppercase font-bold text-rose-600 dark:text-rose-300 font-mono block">Pending</span>
+                            <span className="text-xs font-black text-rose-800 dark:text-rose-300">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                          <div className="p-1 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 shrink-0 ml-1">
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </div>
                         </div>
@@ -6836,11 +6836,11 @@ export default function SecurityMasterView({
 
                       {/* Expanded Detailed Works Table */}
                       {isExpanded && (
-                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
-                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                        <div className="border-t border-slate-100 dark:border-gray-700 p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-950/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xs">
                             <table className="w-full text-left text-xs border-collapse min-w-[720px]">
                               <thead>
-                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                <tr className="bg-slate-100/90 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-black uppercase text-[10px] tracking-wider">
                                   <th className="py-2.5 px-3">#</th>
                                   <th className="py-2.5 px-3">Branch &amp; Site Area</th>
                                   <th className="py-2.5 px-3">Bill No. &amp; Date</th>
@@ -6852,18 +6852,18 @@ export default function SecurityMasterView({
                                   <th className="py-2.5 px-3 text-center">Status</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                              <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
-                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 dark:text-gray-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
-                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
-                                          <span className="text-[10px] text-slate-500 font-mono">
+                                          <span className="font-bold text-slate-900 dark:text-gray-100">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                             {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
                                           </span>
                                         </div>
@@ -6871,36 +6871,36 @@ export default function SecurityMasterView({
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
                                           <div className="flex items-center gap-1.5">
-                                            <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
+                                            <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">{work.billNo || "—"}</span>
                                             {work.billInvoiceUrl && (
                                               <button
                                                 type="button"
                                                 onClick={() => window.open(work.billInvoiceUrl, "_blank")}
-                                                className="text-[8px] font-black px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 uppercase"
+                                                className="text-[8px] font-black px-1 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 uppercase"
                                                 title="View Bill File"
                                               >
                                                 Bill
                                               </button>
                                             )}
                                           </div>
-                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                          <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{work.billDate || "—"}</span>
                                         </div>
                                       </td>
-                                      <td className="py-2.5 px-3 text-slate-600 text-[11px]">{work.company || "Force009"}</td>
+                                      <td className="py-2.5 px-3 text-slate-600 dark:text-gray-300 text-[11px]">{work.company || "Force009"}</td>
                                       <td className="py-2.5 px-3 text-[11px]">
                                         {work.totalDailyGuards ? (
-                                          <span className="text-slate-700 font-bold">{work.totalDailyGuards} Guard(s)</span>
+                                          <span className="text-slate-700 dark:text-gray-100 font-bold">{work.totalDailyGuards} Guard(s)</span>
                                         ) : (
-                                          <span className="text-slate-400 italic">None</span>
+                                          <span className="text-slate-400 dark:text-gray-400 italic">None</span>
                                         )}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900 dark:text-gray-100">
                                         ₹{bAmt.toLocaleString("en-IN")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600">
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600 dark:text-emerald-300">
                                         ₹{rAmt.toLocaleString("en-IN")}
                                         {work.receivedDate && (
-                                          <span className="block text-[9px] text-slate-400 font-mono font-normal">{work.receivedDate}</span>
+                                          <span className="block text-[9px] text-slate-400 dark:text-gray-400 font-mono font-normal">{work.receivedDate}</span>
                                         )}
                                         {(() => {
                                           let insts: any[] = [];
@@ -6910,7 +6910,7 @@ export default function SecurityMasterView({
                                           if (Array.isArray(insts) && insts.length > 0) {
                                             const paidCount = insts.filter((i) => i.status === "Received").length;
                                             return (
-                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200">
+                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-1 py-0.5 rounded border dark:border-gray-700 border-purple-200">
                                                 {paidCount}/{insts.length} Installments
                                               </span>
                                             );
@@ -6918,17 +6918,17 @@ export default function SecurityMasterView({
                                           return null;
                                         })()}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-rose-600">
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-300">
                                         ₹{pAmt.toLocaleString("en-IN")}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
                                         <span
-                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border dark:border-gray-700 ${
                                             work.paymentStatus === "Payment Done"
-                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
                                               : work.paymentStatus === "Partially Paid"
-                                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
+                                              : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
                                           }`}
                                         >
                                           {work.paymentStatus || "Due"}
@@ -6938,18 +6938,18 @@ export default function SecurityMasterView({
                                   );
                                 })}
                               </tbody>
-                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                              <tfoot className="bg-slate-50 dark:bg-gray-800 font-bold border-t border-slate-200 dark:border-gray-700 text-slate-900 dark:text-gray-100 text-xs">
                                 <tr>
-                                  <td colSpan={5} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                  <td colSpan={5} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                     Bank Total:
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900 dark:text-blue-300">
                                     ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700 dark:text-emerald-300">
                                     ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700 dark:text-rose-300">
                                     ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
                                   </td>
                                   <td></td>
@@ -6966,8 +6966,8 @@ export default function SecurityMasterView({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-              <span className="text-slate-500 font-mono text-[11px]">
+            <div className="px-5 py-3 bg-slate-50 dark:bg-gray-800 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center text-xs">
+              <span className="text-slate-500 dark:text-gray-400 font-mono text-[11px]">
                 Showing {filteredModalBanks.length} of {bankWiseEntriesMap.length} Banks / NBFCs
               </span>
               <button
@@ -6989,28 +6989,28 @@ export default function SecurityMasterView({
           onClick={() => setShowReceivedSummaryModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            className="bg-white dark:bg-gray-900 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 dark:border-gray-700 max-h-[90vh] flex flex-col font-sans text-slate-800 dark:text-gray-100"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b dark:border-gray-700 border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-md shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-black text-slate-900">
+                    <h2 className="text-base font-black text-slate-900 dark:text-gray-100">
                       Bank &amp; NBFC Received &amp; Pending Payments Summary
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200">
                       ₹{totalReceived.toLocaleString("en-IN")} Total Received
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border dark:border-gray-700 border-amber-200">
                       ₹{totalTds.toLocaleString("en-IN")} Total TDS
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 font-medium mt-0.5">
                     Click any Bank / NBFC name to view received amount, pending balance, and individual work records.
                   </p>
                 </div>
@@ -7018,7 +7018,7 @@ export default function SecurityMasterView({
 
               <button
                 onClick={() => setShowReceivedSummaryModal(false)}
-                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 transition-colors self-end sm:self-auto"
                 title="Close Modal"
               >
                 <X className="w-5 h-5" />
@@ -7026,25 +7026,25 @@ export default function SecurityMasterView({
             </div>
 
             {/* Overview Totals & Search Bar */}
-            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-slate-50 dark:bg-gray-800 px-5 py-3 border-b border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
-                  <span className="text-slate-400 font-normal">Banks / NBFCs:</span>
-                  <span className="text-emerald-700 font-black">{bankWiseReceivedMap.length}</span>
+                <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs font-bold text-slate-700 dark:text-gray-100">
+                  <span className="text-slate-400 dark:text-gray-400 font-normal">Banks / NBFCs:</span>
+                  <span className="text-emerald-700 dark:text-emerald-300 font-black">{bankWiseReceivedMap.length}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
-                  <span className="text-emerald-600 font-normal">Total Received:</span>
+                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-emerald-200 font-bold text-emerald-900 dark:text-emerald-300">
+                  <span className="text-emerald-600 dark:text-emerald-300 font-normal">Total Received:</span>
                   <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200 font-bold text-amber-900">
-                  <span className="text-amber-600 font-normal">Total TDS:</span>
+                <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-amber-200 font-bold text-amber-900 dark:text-amber-300">
+                  <span className="text-amber-600 dark:text-amber-300 font-normal">Total TDS:</span>
                   <span className="font-black">₹{totalTds.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
+                <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-rose-200 font-bold text-rose-900 dark:text-rose-300">
                   <span className="text-rose-500 font-normal">Remaining Pending:</span>
                   <span className="font-black">₹{totalPendingAmount.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-blue-200 font-bold text-blue-900 dark:text-blue-300">
                   <span className="text-blue-500 font-normal">Total Billed:</span>
                   <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
                 </div>
@@ -7052,10 +7052,10 @@ export default function SecurityMasterView({
 
               {/* Modal Search Input */}
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
-                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 shadow-2xs"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-600 shadow-2xs dark:[color-scheme:dark]"
                   placeholder="Search Bank, Branch, Bill..."
                   value={receivedModalSearch}
                   onChange={(e) => setReceivedModalSearch(e.target.value)}
@@ -7066,7 +7066,7 @@ export default function SecurityMasterView({
             {/* Modal Body: Bank / NBFC List & Expanded Works */}
             <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
               {filteredReceivedModalBanks.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-slate-400 dark:text-gray-400">
                   <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                   <p className="text-xs font-bold">No received payment records found matching your search.</p>
                 </div>
@@ -7085,29 +7085,29 @@ export default function SecurityMasterView({
                       key={bankGroup.nbfcName}
                       className={`border rounded-2xl transition-all overflow-hidden ${
                         isExpanded
-                          ? "border-emerald-300 bg-white shadow-md ring-1 ring-emerald-100"
-                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                          ? "border-emerald-300 bg-white dark:bg-gray-900 shadow-md ring-1 ring-emerald-100"
+                          : "border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-slate-300 dark:hover:border-gray-700 shadow-2xs"
                       }`}
                     >
                       {/* Bank Header Clickable Bar */}
                       <div
                         onClick={toggleExpand}
-                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-50/40 to-white hover:bg-emerald-50/70 transition-colors select-none"
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-50/40 to-white hover:bg-emerald-50/70 dark:hover:bg-emerald-950/50 transition-colors select-none"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center font-black shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-100 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black shrink-0">
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-black text-slate-900 hover:text-emerald-700 transition-colors">
+                              <h3 className="text-sm font-black text-slate-900 dark:text-gray-100 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
                                 {bankGroup.nbfcName}
                               </h3>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200">
                                 {bankGroup.works.length} {bankGroup.works.length === 1 ? "Work" : "Works"}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            <p className="text-[10px] text-slate-400 dark:text-gray-400 font-mono mt-0.5">
                               Click to {isExpanded ? "hide" : "view"} payment breakup and works
                             </p>
                           </div>
@@ -7115,27 +7115,27 @@ export default function SecurityMasterView({
 
                         {/* Right Side Summary Stats for this Bank */}
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-200">
-                            <span className="text-[9px] uppercase font-bold text-emerald-700 font-mono block">Received Amount</span>
-                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg border dark:border-gray-700 border-emerald-200">
+                            <span className="text-[9px] uppercase font-bold text-emerald-700 dark:text-emerald-300 font-mono block">Received Amount</span>
+                            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-amber-50 rounded-lg border border-amber-200">
-                            <span className="text-[9px] uppercase font-bold text-amber-700 font-mono block">TDS Deducted</span>
-                            <span className="text-xs font-black text-amber-800">₹{bankGroup.totalTdsAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-amber-50 dark:bg-amber-950/50 rounded-lg border dark:border-gray-700 border-amber-200">
+                            <span className="text-[9px] uppercase font-bold text-amber-700 dark:text-amber-300 font-mono block">TDS Deducted</span>
+                            <span className="text-xs font-black text-amber-800 dark:text-amber-300">₹{bankGroup.totalTdsAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-100">
-                            <span className="text-[9px] uppercase font-bold text-rose-600 font-mono block">Pending Balance</span>
-                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 dark:bg-rose-950/50 rounded-lg border dark:border-gray-700 border-rose-100">
+                            <span className="text-[9px] uppercase font-bold text-rose-600 dark:text-rose-300 font-mono block">Pending Balance</span>
+                            <span className="text-xs font-black text-rose-800 dark:text-rose-300">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
-                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
-                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 dark:bg-blue-950/50 rounded-lg border dark:border-gray-700 border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-300 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800 dark:text-blue-300">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                          <div className="p-1 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 shrink-0 ml-1">
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </div>
                         </div>
@@ -7143,11 +7143,11 @@ export default function SecurityMasterView({
 
                       {/* Expanded Detailed Works Table */}
                       {isExpanded && (
-                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
-                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                        <div className="border-t border-slate-100 dark:border-gray-700 p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-950/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xs">
                             <table className="w-full text-left text-xs border-collapse min-w-[900px]">
                               <thead>
-                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                <tr className="bg-slate-100/90 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-black uppercase text-[10px] tracking-wider">
                                   <th className="py-2.5 px-3">#</th>
                                   <th className="py-2.5 px-3">Branch &amp; Site Area</th>
                                   <th className="py-2.5 px-3">Bill No. &amp; Date</th>
@@ -7160,36 +7160,36 @@ export default function SecurityMasterView({
                                   <th className="py-2.5 px-3 text-center">Action</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                              <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
                                   const tdsAmt = Number(work.tdsAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
-                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 dark:text-gray-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
-                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
-                                          <span className="text-[10px] text-slate-500 font-mono">
+                                          <span className="font-bold text-slate-900 dark:text-gray-100">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                             {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
                                           </span>
                                         </div>
                                       </td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
-                                          <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
-                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                          <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">{work.billNo || "—"}</span>
+                                          <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{work.billDate || "—"}</span>
                                         </div>
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900 dark:text-gray-100">
                                         ₹{bAmt.toLocaleString("en-IN")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600 bg-emerald-50/30">
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600 dark:text-emerald-300 bg-emerald-50/30 dark:bg-emerald-950/50">
                                         ₹{rAmt.toLocaleString("en-IN")}
                                         {work.receivedDate && (
-                                          <span className="block text-[9px] text-emerald-700 font-mono font-normal">Date: {work.receivedDate}</span>
+                                          <span className="block text-[9px] text-emerald-700 dark:text-emerald-300 font-mono font-normal">Date: {work.receivedDate}</span>
                                         )}
                                         {(() => {
                                           let insts: any[] = [];
@@ -7199,7 +7199,7 @@ export default function SecurityMasterView({
                                           if (Array.isArray(insts) && insts.length > 0) {
                                             const paidCount = insts.filter((i) => i.status === "Received").length;
                                             return (
-                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200">
+                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-1 py-0.5 rounded border dark:border-gray-700 border-purple-200">
                                                 {paidCount}/{insts.length} Installments
                                               </span>
                                             );
@@ -7207,23 +7207,23 @@ export default function SecurityMasterView({
                                           return null;
                                         })()}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-amber-700 bg-amber-50/30">
+                                      <td className="py-2.5 px-3 text-right font-black text-amber-700 dark:text-amber-300 bg-amber-50/30 dark:bg-amber-950/50">
                                         ₹{tdsAmt.toLocaleString("en-IN")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-rose-600">
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-300">
                                         ₹{pAmt.toLocaleString("en-IN")}
                                       </td>
                                       <td className="py-2.5 px-3 text-[11px]">
-                                        <span className="font-bold text-slate-800 block">{work.paymentMethod || "Bank Transfer"}</span>
+                                        <span className="font-bold text-slate-800 dark:text-gray-100 block">{work.paymentMethod || "Bank Transfer"}</span>
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
                                         <span
-                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border dark:border-gray-700 ${
                                             work.paymentStatus === "Payment Done"
-                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
                                               : work.paymentStatus === "Partially Paid"
-                                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
+                                              : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
                                           }`}
                                         >
                                           {work.paymentStatus || "Due"}
@@ -7233,7 +7233,7 @@ export default function SecurityMasterView({
                                         <button
                                           type="button"
                                           onClick={() => handleOpenPaymentCorrectionModal(work)}
-                                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-black text-emerald-800 hover:bg-emerald-100 transition-colors"
+                                          className="inline-flex items-center justify-center gap-1 rounded-lg border dark:border-gray-700 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1.5 text-[10px] font-black text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
                                           title="Edit received amount / mark as due"
                                         >
                                           <Edit className="w-3.5 h-3.5" />
@@ -7244,21 +7244,21 @@ export default function SecurityMasterView({
                                   );
                                 })}
                               </tbody>
-                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                              <tfoot className="bg-slate-50 dark:bg-gray-800 font-bold border-t border-slate-200 dark:border-gray-700 text-slate-900 dark:text-gray-100 text-xs">
                                 <tr>
-                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                     Bank Total:
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900 dark:text-blue-300">
                                     ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700 dark:text-emerald-300">
                                     ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-amber-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-amber-700 dark:text-amber-300">
                                     ₹{bankGroup.totalTdsAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700 dark:text-rose-300">
                                     ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
                                   </td>
                                   <td colSpan={3}></td>
@@ -7275,8 +7275,8 @@ export default function SecurityMasterView({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-              <span className="text-slate-500 font-mono text-[11px]">
+            <div className="px-5 py-3 bg-slate-50 dark:bg-gray-800 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center text-xs">
+              <span className="text-slate-500 dark:text-gray-400 font-mono text-[11px]">
                 Showing {filteredReceivedModalBanks.length} of {bankWiseReceivedMap.length} Banks / NBFCs with received payments
               </span>
               <button
@@ -7298,25 +7298,25 @@ export default function SecurityMasterView({
           onClick={() => setShowPendingDueModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            className="bg-white dark:bg-gray-900 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 dark:border-gray-700 max-h-[90vh] flex flex-col font-sans text-slate-800 dark:text-gray-100"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-rose-200 bg-gradient-to-r from-rose-50 via-white to-amber-50 gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b dark:border-gray-700 border-rose-200 bg-gradient-to-r from-rose-50 via-white to-amber-50 gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-rose-600 text-white rounded-xl shadow-md shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-black text-slate-900">
+                    <h2 className="text-base font-black text-slate-900 dark:text-gray-100">
                       Bank &amp; NBFC Pending Due Cases Summary
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border dark:border-gray-700 border-rose-200">
                       {totalDueCount} Pending Cases
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 font-medium mt-0.5">
                     Click any Bank / NBFC name to view pending due amounts and take action on unpaid cases.
                   </p>
                 </div>
@@ -7324,7 +7324,7 @@ export default function SecurityMasterView({
 
               <button
                 onClick={() => setShowPendingDueModal(false)}
-                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 transition-colors self-end sm:self-auto"
                 title="Close Modal"
               >
                 <X className="w-5 h-5" />
@@ -7332,21 +7332,21 @@ export default function SecurityMasterView({
             </div>
 
             {/* Overview Totals & Search Bar */}
-            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-slate-50 dark:bg-gray-800 px-5 py-3 border-b border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
-                  <span className="text-slate-400 font-normal">Banks with Due:</span>
-                  <span className="text-rose-700 font-black">{bankWisePendingDueMap.length}</span>
+                <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-gray-700 shadow-2xs font-bold text-slate-700 dark:text-gray-100">
+                  <span className="text-slate-400 dark:text-gray-400 font-normal">Banks with Due:</span>
+                  <span className="text-rose-700 dark:text-rose-300 font-black">{bankWisePendingDueMap.length}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
-                  <span className="text-rose-600 font-normal">Total Pending Amount:</span>
+                <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-rose-200 font-bold text-rose-900 dark:text-rose-300">
+                  <span className="text-rose-600 dark:text-rose-300 font-normal">Total Pending Amount:</span>
                   <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
-                  <span className="text-emerald-600 font-normal">Already Received:</span>
+                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-emerald-200 font-bold text-emerald-900 dark:text-emerald-300">
+                  <span className="text-emerald-600 dark:text-emerald-300 font-normal">Already Received:</span>
                   <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1.5 rounded-lg border dark:border-gray-700 border-blue-200 font-bold text-blue-900 dark:text-blue-300">
                   <span className="text-blue-500 font-normal">Total Billed:</span>
                   <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
                 </div>
@@ -7354,10 +7354,10 @@ export default function SecurityMasterView({
 
               {/* Modal Search Input */}
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-gray-400" />
                 <input
                   type="text"
-                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-rose-600 shadow-2xs"
+                  className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-rose-600 shadow-2xs dark:[color-scheme:dark]"
                   placeholder="Search Bank, Branch, Bill..."
                   value={pendingDueModalSearch}
                   onChange={(e) => setPendingDueModalSearch(e.target.value)}
@@ -7368,7 +7368,7 @@ export default function SecurityMasterView({
             {/* Modal Body: Bank / NBFC List & Expanded Works */}
             <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
               {filteredPendingModalBanks.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-slate-400 dark:text-gray-400">
                   <Clock className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                   <p className="text-xs font-bold">No pending due records found matching your search.</p>
                 </div>
@@ -7387,29 +7387,29 @@ export default function SecurityMasterView({
                       key={bankGroup.nbfcName}
                       className={`border rounded-2xl transition-all overflow-hidden ${
                         isExpanded
-                          ? "border-rose-300 bg-white shadow-md ring-1 ring-rose-100"
-                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                          ? "border-rose-300 bg-white dark:bg-gray-900 shadow-md ring-1 ring-rose-100"
+                          : "border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-slate-300 dark:hover:border-gray-700 shadow-2xs"
                       }`}
                     >
                       {/* Bank Header Clickable Bar */}
                       <div
                         onClick={toggleExpand}
-                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-rose-50/40 to-white hover:bg-rose-50/70 transition-colors select-none"
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-rose-50/40 to-white hover:bg-rose-50/70 dark:hover:bg-rose-950/50 transition-colors select-none"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 flex items-center justify-center font-black shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-100 text-rose-700 dark:text-rose-300 flex items-center justify-center font-black shrink-0">
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-black text-slate-900 hover:text-rose-700 transition-colors">
+                              <h3 className="text-sm font-black text-slate-900 dark:text-gray-100 hover:text-rose-700 dark:hover:text-rose-300 transition-colors">
                                 {bankGroup.nbfcName}
                               </h3>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border dark:border-gray-700 border-rose-200">
                                 {bankGroup.works.length} {bankGroup.works.length === 1 ? "Pending Case" : "Pending Cases"}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            <p className="text-[10px] text-slate-400 dark:text-gray-400 font-mono mt-0.5">
                               Click to {isExpanded ? "hide" : "view"} pending cases breakup
                             </p>
                           </div>
@@ -7417,22 +7417,22 @@ export default function SecurityMasterView({
 
                         {/* Right Side Summary Stats for this Bank */}
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-200">
-                            <span className="text-[9px] uppercase font-bold text-rose-700 font-mono block">Pending Due Amount</span>
-                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 dark:bg-rose-950/50 rounded-lg border dark:border-gray-700 border-rose-200">
+                            <span className="text-[9px] uppercase font-bold text-rose-700 dark:text-rose-300 font-mono block">Pending Due Amount</span>
+                            <span className="text-xs font-black text-rose-800 dark:text-rose-300">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
-                            <span className="text-[9px] uppercase font-bold text-emerald-600 font-mono block">Received So Far</span>
-                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg border dark:border-gray-700 border-emerald-100">
+                            <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-300 font-mono block">Received So Far</span>
+                            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
-                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
-                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 dark:bg-blue-950/50 rounded-lg border dark:border-gray-700 border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-300 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800 dark:text-blue-300">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
                           </div>
 
-                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                          <div className="p-1 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 shrink-0 ml-1">
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </div>
                         </div>
@@ -7440,11 +7440,11 @@ export default function SecurityMasterView({
 
                       {/* Expanded Detailed Works Table */}
                       {isExpanded && (
-                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
-                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                        <div className="border-t border-slate-100 dark:border-gray-700 p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-950/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xs">
                             <table className="w-full text-left text-xs border-collapse min-w-[720px]">
                               <thead>
-                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                <tr className="bg-slate-100/90 dark:bg-slate-950/50 border-b border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-black uppercase text-[10px] tracking-wider">
                                   <th className="py-2.5 px-3">#</th>
                                   <th className="py-2.5 px-3">Branch &amp; Site Area</th>
                                   <th className="py-2.5 px-3">Bill No. &amp; Date</th>
@@ -7455,43 +7455,43 @@ export default function SecurityMasterView({
                                   <th className="py-2.5 px-3 text-center">Action</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                              <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
                                   const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
-                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 transition-colors">
-                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                    <tr key={work._cycleId ? `${work.id}-${work._cycleId}-${wIdx}` : (work.id || wIdx)} className="hover:bg-slate-50/70 dark:hover:bg-slate-950/50 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 dark:text-gray-400 font-mono">{wIdx + 1}</td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
-                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
-                                          <span className="text-[10px] text-slate-500 font-mono">
+                                          <span className="font-bold text-slate-900 dark:text-gray-100">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                             {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
                                           </span>
                                         </div>
                                       </td>
                                       <td className="py-2.5 px-3">
                                         <div className="flex flex-col">
-                                          <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
-                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                          <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">{work.billNo || "—"}</span>
+                                          <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">{work.billDate || "—"}</span>
                                         </div>
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900 dark:text-gray-100">
                                         ₹{bAmt.toLocaleString("en-IN")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600">
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600 dark:text-emerald-300">
                                         ₹{rAmt.toLocaleString("en-IN")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-rose-600 bg-rose-50/30">
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-300 bg-rose-50/30 dark:bg-rose-950/50">
                                         ₹{pAmt.toLocaleString("en-IN")}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
                                         <span
-                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border dark:border-gray-700 ${
                                             work.paymentStatus === "Partially Paid"
-                                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
+                                              : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
                                           }`}
                                         >
                                           {work.paymentStatus || "Due"}
@@ -7513,18 +7513,18 @@ export default function SecurityMasterView({
                                   );
                                 })}
                               </tbody>
-                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                              <tfoot className="bg-slate-50 dark:bg-gray-800 font-bold border-t border-slate-200 dark:border-gray-700 text-slate-900 dark:text-gray-100 text-xs">
                                 <tr>
-                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                                     Bank Total:
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900 dark:text-blue-300">
                                     ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700 dark:text-emerald-300">
                                     ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700 dark:text-rose-300">
                                     ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
                                   </td>
                                   <td colSpan={2}></td>
@@ -7541,8 +7541,8 @@ export default function SecurityMasterView({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-              <span className="text-slate-500 font-mono text-[11px]">
+            <div className="px-5 py-3 bg-slate-50 dark:bg-gray-800 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center text-xs">
+              <span className="text-slate-500 dark:text-gray-400 font-mono text-[11px]">
                 Showing {filteredPendingModalBanks.length} of {bankWisePendingDueMap.length} Banks / NBFCs with pending balance
               </span>
               <button

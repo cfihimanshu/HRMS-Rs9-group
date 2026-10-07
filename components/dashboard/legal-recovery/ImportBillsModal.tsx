@@ -10,9 +10,11 @@ const fieldAliases: Record<string, string> = {
   pmtrect: "paymentReceivedDate", pmtrectdate: "paymentReceivedDate", paymentreceiveddate: "paymentReceivedDate", receive: "receivedAmount",
   receiveamount: "receivedAmount", receivedamount: "receivedAmount", tds: "tds", tdspercent: "tdsPercent", due: "dueAmount",
   dueamount: "dueAmount", remark: "remark", status: "status", revenuetype: "revenueType",
-  revenueic: "revenueType", revenueicremark: "internalRemark",
-  revenueamount: "revenueAmount", internalremark: "internalRemark", khushal: "internalRemark",
-  khushalremark: "internalRemark", priyankaremark: "internalRemark", assignedto: "assignedTo",
+  revenueamount: "revenueAmount", internalremark: "internalRemark", 
+  kabclrhoga: "kabClrHoga", kyakrnapdega: "kyaKrnaPdega", category: "category", categary: "category",
+  priyankaupdation: "priyankaUpdation", vishnuupdation: "vishnuUpdation",
+  revenueic: "revenueIc", revenueicremark: "revenueIcRemark",
+  khushal: "khushal", priyankaremark: "priyankaRemark", assignedto: "assignedTo",
 };
 const keyOf = (value: unknown) => String(value ?? "").toLowerCase().replace(/%/g, "percent").replace(/[^a-z0-9]/g, "");
 

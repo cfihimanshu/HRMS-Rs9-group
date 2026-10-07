@@ -52,6 +52,14 @@ const getAttachmentUrl = (url: string) => {
   return url;
 };
 
+const hiringStatStyles: Record<string, { selected: string; idle: string; label: string; value: string; badge: string }> = {
+  fuchsia: { selected: "bg-fuchsia-500/25 border-fuchsia-500 ring-2 ring-fuchsia-500/50 scale-[1.02]", idle: "bg-fuchsia-500/10 border-fuchsia-500/20 hover:border-fuchsia-500/50", label: "text-fuchsia-600 dark:text-fuchsia-300", value: "text-fuchsia-700 dark:text-fuchsia-300", badge: "bg-fuchsia-600 text-white" },
+  amber: { selected: "bg-amber-500/25 border-amber-500 ring-2 ring-amber-500/50 scale-[1.02]", idle: "bg-amber-500/10 border-amber-500/20 hover:border-amber-500/50", label: "text-amber-600 dark:text-amber-300", value: "text-amber-700 dark:text-amber-300", badge: "bg-amber-600 text-white" },
+  orange: { selected: "bg-orange-500/25 border-orange-500 ring-2 ring-orange-500/50 scale-[1.02]", idle: "bg-orange-500/10 border-orange-500/20 hover:border-orange-500/50", label: "text-orange-600 dark:text-orange-300", value: "text-orange-700 dark:text-orange-300", badge: "bg-orange-600 text-white" },
+  violet: { selected: "bg-violet-500/25 border-violet-500 ring-2 ring-violet-500/50 scale-[1.02]", idle: "bg-violet-500/10 border-violet-500/20 hover:border-violet-500/50", label: "text-violet-600 dark:text-violet-300", value: "text-violet-700 dark:text-violet-300", badge: "bg-violet-600 text-white" },
+  emerald: { selected: "bg-emerald-500/25 border-emerald-500 ring-2 ring-emerald-500/50 scale-[1.02]", idle: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/50", label: "text-emerald-600 dark:text-emerald-300", value: "text-emerald-700 dark:text-emerald-300", badge: "bg-emerald-600 text-white" },
+};
+
 export function HiringApproval({
   requisitions,
   jobs = [],
@@ -159,21 +167,21 @@ export function HiringApproval({
   };
 
   const statusColor = (status: string) => {
-    if (status === "Job Posted") return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-    if (status === "Rejected") return "bg-rose-500/10 text-rose-600 border-rose-500/20";
-    if (status === "Hold") return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-    if (status === "Approved — Pending HR Post" || status === "Approved") return "bg-violet-500/10 text-violet-600 border-violet-500/20";
-    if (status === "Pending HR Sourcing Review") return "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 animate-pulse";
-    return "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse";
+    if (status === "Job Posted") return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+    if (status === "Rejected") return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
+    if (status === "Hold") return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+    if (status === "Approved — Pending HR Post" || status === "Approved") return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20";
+    if (status === "Pending HR Sourcing Review") return "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/20 animate-pulse";
+    return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 animate-pulse";
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">MODULE-2: Hiring Requisition Workflow</h1>
-          <p className="text-xs text-slate-500 mt-1">Dept Manager → Accounts Budget Check → Owner Approval → HR Job Posting</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">MODULE-2: Hiring Requisition Workflow</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Dept Manager → Accounts Budget Check → Owner Approval → HR Job Posting</p>
         </div>
         {isAllowedRequisition && (
           <button
@@ -210,19 +218,19 @@ export function HiringApproval({
                 }
               }}
               className={`p-4 rounded-xl shadow-xs transition-all border cursor-pointer select-none group hover:scale-[1.02] hover:shadow-md ${isSelected
-                  ? `bg-${s.color}-500/25 border-${s.color}-500 ring-2 ring-${s.color}-500/50 scale-[1.02]`
-                  : `bg-${s.color}-500/10 border-${s.color}-500/20 hover:border-${s.color}-500/50`
+                  ? hiringStatStyles[s.color].selected
+                  : hiringStatStyles[s.color].idle
                 } ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center justify-between">
-                <div className={`text-[9px] font-black uppercase text-${s.color}-600 tracking-widest font-mono`}>{s.label}</div>
+                <div className={`text-[9px] font-black uppercase ${hiringStatStyles[s.color].label} tracking-widest font-mono`}>{s.label}</div>
                 {isSelected && (
-                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded bg-${s.color}-600 text-white font-mono`}>FILTERED</span>
+                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${hiringStatStyles[s.color].badge} font-mono`}>FILTERED</span>
                 )}
               </div>
-              <div className={`text-2xl font-black text-${s.color}-700 mt-1 flex items-baseline justify-between`}>
+              <div className={`text-2xl font-black ${hiringStatStyles[s.color].value} mt-1 flex items-baseline justify-between`}>
                 <span>{s.val}</span>
-                <span className="text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
                   {isSelected ? "Clear ×" : "Filter →"}
                 </span>
               </div>
@@ -232,9 +240,9 @@ export function HiringApproval({
       </div>
 
       {/* Visual Flow */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between gap-4 overflow-x-auto shadow-sm select-none">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 flex items-center justify-between gap-4 overflow-x-auto shadow-sm select-none">
         {[
-          { step: 1, label: "Manager", desc: "Files Requisition + AI JD", color: "bg-slate-600" },
+          { step: 1, label: "Manager", desc: "Files Requisition + AI JD", color: "bg-slate-600 dark:bg-gray-800" },
           { step: 2, label: "HR Sourcing", desc: "Sourcing Budget Add", color: "bg-fuchsia-600" },
           { step: 3, label: "Accounts", desc: "Budget Review & Clear", color: "bg-amber-600" },
           { step: 4, label: "Owner", desc: "Final Approve / Reject", color: "bg-[#714B67]" },
@@ -246,17 +254,17 @@ export function HiringApproval({
                 {item.step}
               </div>
               <div>
-                <span className="block text-[10px] font-black text-slate-700 uppercase tracking-wider font-mono">{item.label}</span>
-                <span className="block text-[8px] font-bold text-slate-400 font-mono mt-0.5">{item.desc}</span>
+                <span className="block text-xs font-bold text-slate-700 dark:text-gray-100 uppercase tracking-wider font-mono">{item.label}</span>
+                <span className="block text-[10px] font-medium text-slate-500 dark:text-gray-300 font-mono mt-0.5">{item.desc}</span>
               </div>
             </div>
-            {idx < 4 && <ArrowRight className="w-4 h-4 text-slate-350 shrink-0" />}
+            {idx < 4 && <ArrowRight className="w-4 h-4 text-slate-350 dark:text-gray-300 shrink-0" />}
           </React.Fragment>
         ))}
       </div>
 
       {/* Desk Tabs */}
-      <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit flex-wrap gap-1 items-center">
+      <div className="flex bg-slate-100 dark:bg-gray-800 p-1 rounded-lg border border-slate-200 dark:border-gray-700 w-fit flex-wrap gap-1 items-center">
         {[
           { id: "Manager", label: "1. Dept Manager", available: !isHR },
           { id: "HRSourcing", label: "2. HR Sourcing", available: true },
@@ -271,8 +279,8 @@ export function HiringApproval({
               className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeTab === tab.id && !selectedStatFilter
                 ? "bg-[#714B67] text-white shadow-sm"
                 : isLocked
-                  ? "text-slate-400 bg-slate-100 cursor-not-allowed"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                  ? "text-slate-400 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 cursor-not-allowed"
+                  : "text-slate-500 dark:text-gray-300 hover:text-slate-800 dark:hover:text-gray-100 hover:bg-slate-200/50 dark:hover:bg-gray-800"
                 }`}
               onClick={() => {
                 if (!isLocked) {
@@ -298,18 +306,18 @@ export function HiringApproval({
           const duration = durationInput[req.id] || "";
 
           return (
-            <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
+            <div key={idx} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
 
               {/* Card Header */}
               <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-black text-slate-800">{req.role}</span>
-                    <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded uppercase font-mono bg-slate-100 border border-slate-200 text-slate-600">
+                    <span className="text-sm font-black text-slate-800 dark:text-gray-100">{req.role}</span>
+                    <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded uppercase font-mono bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300">
                       {req.category || "Staff"}
                     </span>
                     {isJobDeactivated(req) ? (
-                      <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded border uppercase font-mono bg-rose-500/10 text-rose-600 border-rose-500/20">
+                      <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded border uppercase font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20">
                         DEACTIVATED
                       </span>
                     ) : (
@@ -318,7 +326,7 @@ export function HiringApproval({
                       </span>
                     )}
                   </div>
-                  <div className="text-[10px] text-slate-500 font-bold font-mono flex items-center gap-1.5 flex-wrap">
+                  <div className="text-[10px] text-slate-500 dark:text-gray-300 font-bold font-mono flex items-center gap-1.5 flex-wrap">
                     <span>🏢 {req.companyName || "Acolyte Group"}</span>
                     <span>|</span>
                     <span>📂 {req.department}</span>
@@ -333,18 +341,18 @@ export function HiringApproval({
 
                 <div className="flex items-center gap-6 shrink-0 font-mono text-xs">
                   <div>
-                    <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Headcount</span>
+                    <span className="block text-[8px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider">Headcount</span>
                     <span className="block text-sm font-black text-[#714B67] mt-0.5">👤 {req.qty} Position(s)</span>
                   </div>
                   <div>
-                    <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Salary Budget</span>
+                    <span className="block text-[8px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider">Salary Budget</span>
                     <span className="block text-sm font-black text-[#714B67] mt-0.5">
                       ₹{req.salaryBudget ? req.salaryBudget.toLocaleString("en-IN") : req.salaryRange} P.A.
                     </span>
                   </div>
                   <button
                     onClick={() => setExpandedReq(isExpanded ? null : req.id)}
-                    className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3.5 py-1.5 rounded-lg text-[10px] font-black transition-all shadow-sm"
+                    className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 border border-slate-250 text-slate-700 dark:text-gray-100 px-3.5 py-1.5 rounded-lg text-[10px] font-black transition-all shadow-sm"
                   >
                     {isExpanded ? "Hide Details" : "View All Fields"}
                   </button>
@@ -353,10 +361,10 @@ export function HiringApproval({
 
               {/* Expanded Details */}
               {isExpanded && (
-                <div className="px-5 pb-5 border-t border-slate-100 pt-5 bg-slate-50/50 space-y-6 text-xs animate-fadeIn">
+                <div className="px-5 pb-5 border-t border-slate-100 dark:border-gray-700 pt-5 bg-slate-50/50 dark:bg-gray-800 space-y-6 text-xs animate-fadeIn">
 
                   {/* Fields Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-semibold text-slate-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-semibold text-slate-700 dark:text-gray-100">
                     {[
                       { label: "1. Company Name", val: req.companyName || "Acolyte Group" },
                       { label: "2. Department", val: req.department },
@@ -370,8 +378,8 @@ export function HiringApproval({
                       { label: "14. Job Location", val: req.location || "Not Specified" },
                     ].map((f, i) => (
                       <div key={i}>
-                        <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400 font-mono">{f.label}</span>
-                        <span className="block text-slate-900 mt-1">{f.val}</span>
+                        <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-300 font-mono">{f.label}</span>
+                        <span className="block text-slate-900 dark:text-gray-100 mt-1">{f.val}</span>
                       </div>
                     ))}
                   </div>
@@ -383,35 +391,35 @@ export function HiringApproval({
                       { label: "7. Key Result Areas (KRA)", val: req.kra },
                       { label: "8. Key Perf. Indicators (KPI)", val: req.kpi },
                     ].map((f, i) => (
-                      <div key={i} className="bg-white border border-slate-200 p-3.5 rounded-xl">
+                      <div key={i} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-3.5 rounded-xl">
                         <span className="block text-[9px] font-black uppercase tracking-wider text-[#714B67] font-mono">{f.label}</span>
-                        <p className="mt-2 text-slate-600 leading-relaxed font-medium whitespace-pre-line">{f.val}</p>
+                        <p className="mt-2 text-slate-600 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-line">{f.val}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Remarks Audit Trail */}
-                  <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 space-y-2">
-                    <span className="block text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono">Review Audit Trail:</span>
+                  <div className="bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 space-y-2">
+                    <span className="block text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-300 font-mono">Review Audit Trail:</span>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] mt-2">
-                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                        <span className="block font-black text-fuchsia-600 uppercase font-mono">Step 2: HR Sourcing</span>
-                        <p className="text-slate-600 mt-1 font-medium italic">{req.hrSourcingRemarks || "Pending HR review..."}</p>
+                      <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <span className="block font-black text-fuchsia-600 dark:text-fuchsia-400 uppercase font-mono">Step 2: HR Sourcing</span>
+                        <p className="text-slate-600 dark:text-gray-300 mt-1 font-medium italic">{req.hrSourcingRemarks || "Pending HR review..."}</p>
                         {(req.sourcingBudget || req.postingPlatform || req.postingDuration) && (
-                          <div className="mt-1.5 pt-1.5 border-t border-slate-100 font-bold text-slate-750 flex flex-col gap-0.5">
+                          <div className="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-gray-700 font-bold text-slate-750 dark:text-gray-100 flex flex-col gap-0.5">
                             {req.sourcingBudget && <div>Budget: ₹{req.sourcingBudget.toLocaleString("en-IN")}</div>}
                             {req.postingPlatform && <div>Platform: {req.postingPlatform}</div>}
                             {req.postingDuration && <div>Duration: {req.postingDuration} Days</div>}
                           </div>
                         )}
                       </div>
-                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                        <span className="block font-black text-amber-600 uppercase font-mono">Step 3: Accounts</span>
-                        <p className="text-slate-600 mt-1 font-medium italic">{req.accountsRemarks || "Pending Accounts review..."}</p>
+                      <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-slate-200 dark:border-gray-700">
+                        <span className="block font-black text-amber-600 dark:text-amber-400 uppercase font-mono">Step 3: Accounts</span>
+                        <p className="text-slate-600 dark:text-gray-300 mt-1 font-medium italic">{req.accountsRemarks || "Pending Accounts review..."}</p>
                       </div>
-                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                      <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-slate-200 dark:border-gray-700">
                         <span className="block font-black text-[#714B67] uppercase font-mono">Step 4: Owner</span>
-                        <p className="text-slate-600 mt-1 font-medium italic">{req.ownerRemarks || "Pending Owner approval..."}</p>
+                        <p className="text-slate-600 dark:text-gray-300 mt-1 font-medium italic">{req.ownerRemarks || "Pending Owner approval..."}</p>
                       </div>
                     </div>
                   </div>
@@ -422,27 +430,27 @@ export function HiringApproval({
                     {/* HR SOURCING DESK */}
                     {activeTab === "HRSourcing" && req.status === "Pending HR Sourcing Review" && (
                       <div className="bg-gradient-to-r from-fuchsia-500/5 to-pink-500/5 border border-fuchsia-500/20 rounded-xl p-4 space-y-3">
-                        <span className="block text-[10px] font-black text-fuchsia-600 uppercase tracking-wider font-mono">🎯 HR Sourcing Desk — Validate & Add Budget</span>
+                        <span className="block text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider font-mono">🎯 HR Sourcing Desk — Validate & Add Budget</span>
                         {!userRole?.includes("HR") && userRole !== "Owner" && userRole !== "Director" ? (
-                          <div className="p-3 bg-fuchsia-50/50 text-fuchsia-800 rounded-lg text-xs font-medium border border-fuchsia-200/50 flex items-center gap-2">
+                          <div className="p-3 bg-fuchsia-50/50 dark:bg-fuchsia-950/40 text-fuchsia-800 dark:text-fuchsia-400 rounded-lg text-xs font-medium border border-fuchsia-200/50 dark:border-gray-700 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an HR to take action here.
                           </div>
                         ) : (
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="w-1/5">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Sourcing Budget (₹)</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">Sourcing Budget (₹)</label>
                               <input
                                 type="number"
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 placeholder="e.g. 5000"
                                 value={budget}
                                 onChange={e => handleBudgetChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="w-1/4">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Posting Platform</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">Posting Platform</label>
                               <select
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 value={platform}
                                 onChange={e => handlePlatformChange(req.id, e.target.value)}
                               >
@@ -454,19 +462,19 @@ export function HiringApproval({
                               </select>
                             </div>
                             <div className="w-1/5">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Posting Duration (Days)</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">Posting Duration (Days)</label>
                               <input
                                 type="number"
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 placeholder="e.g. 30"
                                 value={duration}
                                 onChange={e => handleDurationChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="flex-1">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">HR Remarks / Other Details</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">HR Remarks / Other Details</label>
                               <input
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 placeholder="Enter sourcing strategy or notes..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req.id, e.target.value)}
@@ -500,17 +508,17 @@ export function HiringApproval({
                     {/* ACCOUNTS DESK */}
                     {activeTab === "Accounts" && req.status === "Pending Accounts Review" && (
                       <div className="bg-gradient-to-r from-amber-500/5 to-yellow-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
-                        <span className="block text-[10px] font-black text-amber-600 uppercase tracking-wider font-mono">💰 Accounts Budget Desk — Review & Recommend</span>
+                        <span className="block text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider font-mono">💰 Accounts Budget Desk — Review & Recommend</span>
                         {userRole !== "Accounts" && userRole !== "Owner" && userRole !== "Director" ? (
-                          <div className="p-3 bg-amber-50/50 text-amber-800 rounded-lg text-xs font-medium border border-amber-200/50 flex items-center gap-2">
+                          <div className="p-3 bg-amber-50/50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 rounded-lg text-xs font-medium border border-amber-200/50 dark:border-gray-700 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an Accounts representative to take action here.
                           </div>
                         ) : (
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="flex-1">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Budget Vetting Remarks</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">Budget Vetting Remarks</label>
                               <input
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 placeholder="Enter budget review remarks..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req.id, e.target.value)}
@@ -552,9 +560,9 @@ export function HiringApproval({
                         ) : (
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="flex-1">
-                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Owner Remarks</label>
+                              <label className="text-[8px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest">Owner Remarks</label>
                               <input
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900 dark:text-gray-100"
                                 placeholder="Enter owner decision remarks..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req.id, e.target.value)}
@@ -588,17 +596,17 @@ export function HiringApproval({
                     {/* HR POSTING DESK */}
                     {activeTab === "HRPosting" && req.status === "Approved — Pending HR Post" && (
                       <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-3">
-                        <span className="block text-[10px] font-black text-emerald-600 uppercase tracking-wider font-mono">📋 HR Posting Desk — Post Job Vacancy</span>
+                        <span className="block text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono">📋 HR Posting Desk — Post Job Vacancy</span>
                         {!userRole?.includes("HR") && userRole !== "Owner" && userRole !== "Director" ? (
-                          <div className="p-3 bg-emerald-50/50 text-emerald-800 rounded-lg text-xs font-medium border border-emerald-200/50 flex items-center gap-2">
+                          <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 rounded-lg text-xs font-medium border border-emerald-200/50 dark:border-gray-700 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an HR to post jobs.
                           </div>
                         ) : (
                           <>
-                            <p className="text-xs text-slate-600 font-medium">
+                            <p className="text-xs text-slate-600 dark:text-gray-300 font-medium">
                               ✅ This requisition has been approved by the Owner. Click below to publish the job vacancy and generate a shareable application link.
                             </p>
-                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs font-semibold text-emerald-700">
+                            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-gray-700 rounded-lg p-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                               📌 Job will be posted as: <strong>{req.role}</strong> | Dept: <strong>{req.department}</strong> | Budget: <strong>₹{req.salaryBudget?.toLocaleString("en-IN")} P.A.</strong>
                               {req.sourcingBudget && <span> | Sourcing: <strong>₹{req.sourcingBudget?.toLocaleString("en-IN")}</strong></span>}
                             </div>
@@ -616,44 +624,44 @@ export function HiringApproval({
                     {/* Status Badges */}
                     {req.status === "Job Posted" && (
                       isJobDeactivated(req) ? (
-                        <div className="text-xs font-bold text-rose-600 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg flex items-center gap-2">
+                        <div className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 shrink-0" />
                           Job vacancy is DEACTIVATED (expired or inactive).
                         </div>
                       ) : (
-                        <div className="text-xs font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
+                        <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           Job vacancy is LIVE! Application link has been generated and posted.
                         </div>
                       )
                     )}
                     {req.status === "Rejected" && (
-                      <div className="text-xs font-bold text-rose-600 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg">
+                      <div className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg">
                         ⚠️ Requisition REJECTED during evaluation.
                       </div>
                     )}
                     {req.status === "Hold" && (
-                      <div className="text-xs font-bold text-blue-600 bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
+                      <div className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
                         ℹ️ Requisition is on HOLD.
                       </div>
                     )}
                     {req.status === "Pending HR Sourcing Review" && activeTab !== "HRSourcing" && (
-                      <div className="text-xs font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 p-3 rounded-lg">
+                      <div className="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/40 border border-fuchsia-200 dark:border-gray-700 p-3 rounded-lg">
                         ⏳ Awaiting HR Sourcing review and budget addition. Switch to "HR Sourcing" tab.
                       </div>
                     )}
                     {req.status === "Pending Accounts Review" && activeTab !== "Accounts" && (
-                      <div className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                      <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-gray-700 p-3 rounded-lg">
                         ⏳ Awaiting Accounts desk review. Switch to "Accounts" tab to take action.
                       </div>
                     )}
                     {req.status === "Pending Owner Approval" && activeTab !== "Owner" && (
-                      <div className="text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 p-3 rounded-lg">
+                      <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-gray-700 p-3 rounded-lg">
                         ⏳ Awaiting Owner approval. Switch to "Owner" tab to take action.
                       </div>
                     )}
                     {req.status === "Approved — Pending HR Post" && activeTab !== "HRPosting" && (
-                      <div className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 p-3 rounded-lg">
+                      <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-gray-700 p-3 rounded-lg">
                         ✅ Owner approved! Awaiting HR to post the job. Switch to "HR Posting" tab.
                       </div>
                     )}
@@ -664,7 +672,7 @@ export function HiringApproval({
           );
         })}
         {filteredRequisitions.length === 0 && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 font-bold">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-8 text-center text-slate-400 dark:text-gray-300 font-bold">
             {isHR
               ? activeTab === "HRSourcing"
                 ? "No HR Sourcing requisitions are available right now."
@@ -764,12 +772,12 @@ export function JobPostings({
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">MODULE-3: Vacancy Postings</h1>
-          <p className="text-xs text-slate-500 mt-1">Configure live recruitment links and view active job postings</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">MODULE-3: Vacancy Postings</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Configure live recruitment links and view active job postings</p>
         </div>
         <button
           className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
@@ -780,23 +788,23 @@ export function JobPostings({
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
           <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono">Active Vacancy Postings ({filteredJobs.length})</h2>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="bg-slate-50 dark:bg-gray-800 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 mb-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
             {/* Search Job Title */}
             <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-slate-400 dark:text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="🔍 Filter by Job Title..."
                 value={filterTitle}
                 onChange={(e) => setFilterTitle(e.target.value)}
-                className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-2xs"
+                className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-2xs"
               />
             </div>
 
@@ -805,7 +813,7 @@ export function JobPostings({
               <select
                 value={filterCompany}
                 onChange={(e) => setFilterCompany(e.target.value)}
-                className="w-full text-xs px-3 py-2 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 focus:outline-none transition-all shadow-2xs cursor-pointer"
+                className="w-full text-xs px-3 py-2 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all shadow-2xs cursor-pointer"
               >
                 <option value="All">🏢 All Companies</option>
                 {companyOptions.filter(c => c !== "All").map((c, i) => (
@@ -816,12 +824,12 @@ export function JobPostings({
 
             {/* Filter Posted Date */}
             <div className="w-full sm:w-48 shrink-0 flex items-center gap-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-400 shrink-0">Posted:</label>
+              <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-300 shrink-0">Posted:</label>
               <input
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="w-full text-xs px-2.5 py-1.5 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 focus:outline-none transition-all shadow-2xs cursor-pointer"
+                className="w-full text-xs px-2.5 py-1.5 border border-slate-200 dark:border-gray-700 focus:border-[#714B67] rounded-xl bg-white dark:bg-gray-900 font-bold text-slate-800 dark:text-gray-100 focus:outline-none transition-all shadow-2xs cursor-pointer"
                 title="Filter by Post Date"
               />
             </div>
@@ -834,7 +842,7 @@ export function JobPostings({
                 setFilterCompany("All");
                 setFilterDate("");
               }}
-              className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 transition-all shrink-0 self-end md:self-auto"
+              className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/40 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-gray-700 transition-all shrink-0 self-end md:self-auto"
             >
               Clear Filters ✕
             </button>
@@ -844,7 +852,7 @@ export function JobPostings({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-300 font-black uppercase font-mono tracking-wider">
                 <th className="pb-3 pr-2">1. Job Title & Company details</th>
                 <th className="pb-3 px-2">3. Dept & 5. Category</th>
                 <th className="pb-3 px-2">6. Qual. & 7. Experience</th>
@@ -854,7 +862,7 @@ export function JobPostings({
                 <th className="pb-3 pl-2 text-right">System Job Link</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
               {filteredJobs.map((jb, idx) => {
                 const companyName = jb.company?.name || "Acolyte Group";
                 const deptName = jb.department?.name || "Sales";
@@ -862,15 +870,15 @@ export function JobPostings({
                 const postedDateStr = jb.createdAt ? new Date(jb.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A";
 
                 return (
-                  <tr key={idx} className={`hover:bg-slate-50/50 transition-all ${isExpired ? "bg-white opacity-40 select-none pointer-events-none" : ""}`}>
+                  <tr key={idx} className={`hover:bg-slate-50/50 dark:hover:bg-gray-800 transition-all ${isExpired ? "bg-white dark:bg-gray-900 opacity-40 select-none pointer-events-none" : ""}`}>
                     {/* 1. Title, 2. Company, 4. Location & Posted Date */}
                     <td className="py-4 pr-2 max-w-[300px]">
-                      <div className="font-bold text-slate-800 text-sm">{jb.title}</div>
-                      <div className="text-[10px] text-slate-500 font-bold mt-1 font-mono">
+                      <div className="font-bold text-slate-800 dark:text-gray-100 text-sm">{jb.title}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-gray-300 font-bold mt-1 font-mono">
                         🏢 {companyName} | 📍 {jb.location || "Jaipur Office"}
                       </div>
                       <div className="mt-1.5">
-                        <span className="text-[10px] text-indigo-700 font-extrabold font-mono bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
+                        <span className="text-[10px] text-indigo-700 dark:text-indigo-400 font-extrabold font-mono bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-gray-700 px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
                           📅 Posted: {postedDateStr}
                         </span>
                       </div>
@@ -878,15 +886,15 @@ export function JobPostings({
 
                     {/* 3. Dept, 5. Category */}
                     <td className="py-4 px-2">
-                      <div className="text-slate-800">{deptName}</div>
-                      <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] rounded font-black font-mono border border-slate-200 uppercase mt-1">
+                      <div className="text-slate-800 dark:text-gray-100">{deptName}</div>
+                      <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 text-[9px] rounded font-black font-mono border border-slate-200 dark:border-gray-700 uppercase mt-1">
                         {jb.category || "Staff"}
                       </span>
                     </td>
 
                     {/* 6. Qualification, 7. Experience */}
                     <td className="py-4 px-2">
-                      <div className="text-slate-850 font-bold">{jb.qualification || "Graduate"}</div>
+                      <div className="text-slate-850 dark:text-gray-100 font-bold">{jb.qualification || "Graduate"}</div>
                       <div className="text-[10px] text-[#714B67] mt-0.5 font-bold font-mono">⌛ {jb.experience || "1-3 Years"}</div>
                     </td>
 
@@ -897,17 +905,17 @@ export function JobPostings({
 
                     {/* 11. Source & Status */}
                     <td className="py-4 px-2">
-                      <span className="inline-block px-2 py-0.5 bg-indigo-500/10 text-indigo-700 text-[9px] rounded font-black font-mono border border-indigo-500/15 uppercase">
+                      <span className="inline-block px-2 py-0.5 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 text-[9px] rounded font-black font-mono border border-indigo-500/15 uppercase">
                         {jb.source || "Indeed"}
                       </span>
                       <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? "bg-rose-500" : (jb.status === "active" ? "bg-emerald-500" : "bg-slate-400")}`}></span>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider font-mono ${isExpired ? "text-rose-500" : "text-slate-400"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? "bg-rose-500" : (jb.status === "active" ? "bg-emerald-500" : "bg-slate-400 dark:bg-gray-800")}`}></span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider font-mono ${isExpired ? "text-rose-500" : "text-slate-400 dark:text-gray-300"}`}>
                           {isExpired ? "DEACTIVATED" : (jb.status || "active")}
                         </span>
                       </div>
                       {jb.postingDuration && (
-                        <div className="text-[8px] font-bold font-mono text-slate-500 mt-0.5 uppercase tracking-wide">
+                        <div className="text-[8px] font-bold font-mono text-slate-500 dark:text-gray-300 mt-0.5 uppercase tracking-wide">
                           {isExpired
                             ? "Duration: Over"
                             : `Ends in: ${Math.max(0, Math.ceil(jb.postingDuration - (new Date().getTime() - new Date(jb.createdAt).getTime()) / (24 * 60 * 60 * 1000)))} days`
@@ -931,7 +939,7 @@ export function JobPostings({
                     {/* Copy Shareable Link */}
                     <td className="py-4 pl-2 text-right">
                       <button
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3 py-2 rounded-lg text-[10px] font-black flex items-center gap-1.5 ml-auto shadow-sm transition-all"
+                        className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 border border-slate-250 text-slate-700 dark:text-gray-100 px-3 py-2 rounded-lg text-[10px] font-black flex items-center gap-1.5 ml-auto shadow-sm transition-all"
                         onClick={() => {
                           const link = jb.shareableLink || `http://localhost:3001/jobs/apply/${jb.id}`;
                           navigator.clipboard.writeText(link);
@@ -946,7 +954,7 @@ export function JobPostings({
               })}
               {filteredJobs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-slate-400 font-bold">
+                  <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-gray-300 font-bold">
                     No active vacancy postings match your filter criteria.
                   </td>
                 </tr>
@@ -970,21 +978,21 @@ export function CandidatesPipeline({
   const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Candidate Pipeline</h1>
-          <p className="text-xs text-slate-500 mt-1">Sourcing applications tracking roster</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">Candidate Pipeline</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Sourcing applications tracking roster</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className={selectedCandidate ? "lg:col-span-2" : "lg:col-span-3"}>
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+                  <tr className="border-b border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-300 font-black uppercase font-mono tracking-wider">
                     <th className="pb-3 pr-2">ID</th>
                     <th className="pb-3 px-2">Applicant Name</th>
                     <th className="pb-3 px-2">Role Applied</th>
@@ -992,49 +1000,49 @@ export function CandidatesPipeline({
                     <th className="pb-3 pl-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                   {candidates.map((c, idx) => {
                     const matchingReq = requisitions.find(r => r.role === c.job?.title);
                     let vettingStatusText = c.status;
-                    let statusColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
+                    let statusColorClass = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
 
                     if (matchingReq) {
                       if (matchingReq.status === "Pending Accounts Review") {
                         vettingStatusText = "Waiting for Accounts";
-                        statusColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse";
+                        statusColorClass = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 animate-pulse";
                       } else if (matchingReq.status === "Pending Owner Approval") {
                         vettingStatusText = "Waiting for Owner";
                         statusColorClass = "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20 animate-pulse";
                       } else if (matchingReq.status === "Approved — Pending HR Post") {
                         vettingStatusText = "Waiting for HR Posting";
-                        statusColorClass = "bg-violet-500/10 text-violet-600 border-violet-500/20 animate-pulse";
+                        statusColorClass = "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 animate-pulse";
                       }
                     }
 
                     if (c.status === "Selected") {
                       vettingStatusText = "Selected";
-                      statusColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+                      statusColorClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
                     } else if (c.status === "Rejected") {
                       vettingStatusText = "Rejected";
-                      statusColorClass = "bg-rose-500/10 text-rose-600 border-rose-500/20";
+                      statusColorClass = "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
                     } else if (c.status === "High Risk") {
                       vettingStatusText = "High Risk";
-                      statusColorClass = "bg-red-500/10 text-red-600 border-red-500/20";
+                      statusColorClass = "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
                     } else if (c.status === "Hold") {
                       vettingStatusText = "Hold";
-                      statusColorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
+                      statusColorClass = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
                     }
 
                     return (
                       <tr
                         key={idx}
-                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?.id === c.id ? "bg-fuchsia-50/40" : ""}`}
+                        className={`hover:bg-slate-50/50 dark:hover:bg-gray-800 cursor-pointer transition-all ${selectedCandidate?.id === c.id ? "bg-fuchsia-50/40 dark:bg-fuchsia-950/40" : ""}`}
                         onClick={() => setSelectedCandidate(c)}
                       >
-                        <td className="py-3.5 text-slate-500 font-mono">{c.id.slice(-6).toUpperCase()}</td>
+                        <td className="py-3.5 text-slate-500 dark:text-gray-300 font-mono">{c.id.slice(-6).toUpperCase()}</td>
                         <td className="py-3.5 px-2">
-                          <div className="font-bold text-slate-800">{c.name}</div>
-                          <div className="text-[10px] text-slate-450 mt-0.5">{c.email} · {c.mobile}</div>
+                          <div className="font-bold text-slate-800 dark:text-gray-100">{c.name}</div>
+                          <div className="text-[10px] text-slate-450 dark:text-gray-300 mt-0.5">{c.email} · {c.mobile}</div>
                         </td>
                         <td className="py-3.5 px-2">{c.job?.title || "General Inquiry"}</td>
                         <td className="py-3.5 px-2">
@@ -1064,18 +1072,18 @@ export function CandidatesPipeline({
 
         {/* Selected Candidate Details Panel */}
         {selectedCandidate && (
-          <div className="lg:col-span-1 bg-white border border-slate-200 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn relative">
+          <div className="lg:col-span-1 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn relative">
             <button
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-base"
+              className="absolute top-4 right-4 text-slate-400 dark:text-gray-300 hover:text-slate-600 dark:hover:text-gray-300 font-black text-base"
               onClick={() => setSelectedCandidate(null)}
             >
               ✕
             </button>
-            <div className="pb-3 border-b border-slate-100 flex items-start justify-between">
+            <div className="pb-3 border-b border-slate-100 dark:border-gray-700 flex items-start justify-between">
               <div>
-                <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
-                <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
+                <h3 className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Candidate Profile Details</h3>
+                <h2 className="text-base font-black text-slate-850 dark:text-gray-100 mt-1">{selectedCandidate.name}</h2>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
                   }`}>
                   Status: {selectedCandidate.status}
                 </span>
@@ -1091,51 +1099,51 @@ export function CandidatesPipeline({
             </div>
 
             {/* Profile Info */}
-            <div className="space-y-4 text-[11px] leading-relaxed text-slate-650">
+            <div className="space-y-4 text-[11px] leading-relaxed text-slate-650 dark:text-gray-300">
               <div>
                 <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Contact Details</span>
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-800 p-2.5 rounded-lg border border-slate-150">
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Mobile</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.mobile}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Mobile</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.mobile}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Email</span>
-                    <strong className="text-slate-800 font-bold break-all">{selectedCandidate.email}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Email</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold break-all">{selectedCandidate.email}</strong>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Address</span>
-                    <strong className="text-slate-800 font-semibold">{selectedCandidate.address}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Address</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-semibold">{selectedCandidate.address}</strong>
                   </div>
                 </div>
               </div>
 
               <div>
                 <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Application Info</span>
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-800 p-2.5 rounded-lg border border-slate-150">
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Role Applied</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.job?.title || "General Inquiry"}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Role Applied</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.job?.title || "General Inquiry"}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Experience</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.experience}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Experience</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.experience}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Qualification</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.qualification}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Qualification</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.qualification}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Notice Period</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.noticePeriod}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Notice Period</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.noticePeriod}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Current Salary</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.currentSalary}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Current Salary</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.currentSalary}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Expected Salary</span>
-                    <strong className="text-slate-800 font-bold">{selectedCandidate.expectedSalary}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Expected Salary</span>
+                    <strong className="text-slate-800 dark:text-gray-100 font-bold">{selectedCandidate.expectedSalary}</strong>
                   </div>
                 </div>
               </div>
@@ -1152,7 +1160,7 @@ export function CandidatesPipeline({
                           url: getAttachmentUrl(selectedCandidate.uploads.resume),
                           title: `Resume - ${selectedCandidate.name}`
                         })}
-                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold text-left w-full"
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-bold text-left w-full"
                       >
                         <span>📄 Resume Document</span>
                         <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
@@ -1165,7 +1173,7 @@ export function CandidatesPipeline({
                           url: getAttachmentUrl(selectedCandidate.uploads.photo),
                           title: `Profile Photo - ${selectedCandidate.name}`
                         })}
-                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold text-left w-full"
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-bold text-left w-full"
                       >
                         <span>🖼️ Profile Photo</span>
                         <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
@@ -1316,22 +1324,22 @@ export function AiScreening({
 
   if (!candidate) {
     return (
-      <div className="space-y-8 animate-fadeIn text-slate-800">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-4">
           <div>
-            <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
-            <p className="text-xs text-slate-500 mt-1">Cross-referencing candidate declarations vs job description</p>
+            <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">AI Screening Module</h1>
+            <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Cross-referencing candidate declarations vs job description</p>
           </div>
 
           <div className="flex flex-col gap-1.5 max-w-sm">
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Select Candidate to Screen</label>
             <select
               value=""
               onChange={(e) => {
                 const selected = candidates.find((c) => c.id === e.target.value);
                 if (selected) setCandidate(selected);
               }}
-              className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
+              className="rounded border border-slate-250 p-2 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67] bg-white dark:bg-gray-900 font-semibold"
             >
               <option value="">-- Choose Candidate --</option>
               {candidates.map((c) => {
@@ -1346,10 +1354,10 @@ export function AiScreening({
           </div>
         </div>
 
-        <div className="text-center py-20 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-6">
+        <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center p-6">
           <Brain className="w-16 h-16 text-[#714B67]/30 mb-4 animate-pulse" />
-          <p className="text-sm font-bold text-slate-700">Please select a candidate above to view or run AI screening</p>
-          <p className="text-xs text-slate-400 mt-1.5 max-w-[280px]">AI Screening reviews credentials, matches experiences, calculates stability scores and parses risk profiles.</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-gray-100">Please select a candidate above to view or run AI screening</p>
+          <p className="text-xs text-slate-400 dark:text-gray-300 mt-1.5 max-w-[280px]">AI Screening reviews credentials, matches experiences, calculates stability scores and parses risk profiles.</p>
         </div>
       </div>
     );
@@ -1368,22 +1376,22 @@ export function AiScreening({
   ];
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
         <div className="space-y-2 flex-1">
-          <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
-          <p className="text-xs text-slate-500">Automatic vetting & customized assessment question sets</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">AI Screening Module</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300">Automatic vetting & customized assessment question sets</p>
 
           <div className="flex flex-col gap-1.5 max-w-sm pt-2">
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Select Candidate to Screen</label>
             <select
               value={candidate?.id || ""}
               onChange={(e) => {
                 const selected = candidates.find((c) => c.id === e.target.value);
                 if (selected) setCandidate(selected);
               }}
-              className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
+              className="rounded border border-slate-250 p-2 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67] bg-white dark:bg-gray-900 font-semibold"
             >
               <option value="">-- Choose Candidate --</option>
               {candidates.map((c) => {
@@ -1410,7 +1418,7 @@ export function AiScreening({
           {hasScreened && !loading && (
             <button
               onClick={runAiScreening}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-750 px-4 py-2.5 rounded-lg text-xs font-bold border border-slate-300 flex items-center gap-1.5 transition-all"
+              className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-750 dark:text-gray-100 px-4 py-2.5 rounded-lg text-xs font-bold border border-slate-300 dark:border-gray-700 flex items-center gap-1.5 transition-all"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Re-Screen candidate
             </button>
@@ -1420,7 +1428,7 @@ export function AiScreening({
 
       {/* Light Theme AI Processing Screen Vetting State (Matching HRMS Odoo Theme) */}
       {loading && (
-        <div className="relative bg-white border border-[#714B67]/20 rounded-2xl p-8 sm:p-10 text-slate-800 shadow-lg overflow-hidden animate-fadeIn">
+        <div className="relative bg-white dark:bg-gray-900 border border-[#714B67]/20 rounded-2xl p-8 sm:p-10 text-slate-800 dark:text-gray-100 shadow-lg overflow-hidden animate-fadeIn">
           {/* Subtle Ambient Brand Color Glow */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#714B67]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#714B67]/5 rounded-full blur-3xl pointer-events-none" />
@@ -1439,12 +1447,12 @@ export function AiScreening({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-slate-850 tracking-tight">AI Screening Core Active</h3>
+                  <h3 className="text-base font-black text-slate-850 dark:text-gray-100 tracking-tight">AI Screening Core Active</h3>
                   <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#714B67]/10 text-[#714B67] border border-[#714B67]/20 animate-pulse">
                     Live Engine
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-gray-300 font-medium mt-0.5">
                   Screening Candidate: <strong className="text-[#714B67]">{candidate.name}</strong> ({candidate.id.toUpperCase()})
                 </p>
               </div>
@@ -1452,7 +1460,7 @@ export function AiScreening({
 
             <div className="flex items-center gap-3 bg-[#714B67]/5 border border-[#714B67]/15 px-4 py-2 rounded-xl text-right">
               <div>
-                <span className="text-[10px] font-mono text-slate-400 uppercase block tracking-wider font-bold">Overall Progress</span>
+                <span className="text-[10px] font-mono text-slate-400 dark:text-gray-300 uppercase block tracking-wider font-bold">Overall Progress</span>
                 <span className="text-lg font-black font-mono text-[#714B67]">{progressPercent}%</span>
               </div>
             </div>
@@ -1468,10 +1476,10 @@ export function AiScreening({
                   key={idx}
                   className={`flex items-start gap-4 p-3.5 rounded-xl border transition-all duration-300 ${
                     isCurrent
-                      ? "bg-[#714B67]/10 border-[#714B67]/30 text-slate-900 shadow-sm scale-[1.01]"
+                      ? "bg-[#714B67]/10 border-[#714B67]/30 text-slate-900 dark:text-gray-100 shadow-sm scale-[1.01]"
                       : isDone
-                      ? "bg-emerald-50/70 border-emerald-200/80 text-slate-800"
-                      : "bg-slate-50 border-slate-200/60 text-slate-400 opacity-60"
+                      ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-gray-700 text-slate-800 dark:text-gray-100"
+                      : "bg-slate-50 dark:bg-gray-800 border-slate-200/60 dark:border-gray-700 text-slate-400 dark:text-gray-300 opacity-60"
                   }`}
                 >
                   <div className="mt-0.5 shrink-0">
@@ -1484,7 +1492,7 @@ export function AiScreening({
                         {idx + 1}
                       </div>
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-mono font-bold">
+                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-gray-800 text-slate-500 dark:text-gray-300 flex items-center justify-center text-xs font-mono font-bold">
                         {idx + 1}
                       </div>
                     )}
@@ -1492,19 +1500,19 @@ export function AiScreening({
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className={`text-xs font-black ${isCurrent ? "text-[#714B67]" : isDone ? "text-slate-800" : "text-slate-500"}`}>
+                      <h4 className={`text-xs font-black ${isCurrent ? "text-[#714B67]" : isDone ? "text-slate-800 dark:text-gray-100" : "text-slate-500 dark:text-gray-300"}`}>
                         {st.title}
                       </h4>
                       {isCurrent && (
-                        <span className="text-[10px] font-mono font-bold text-[#714B67] animate-pulse shrink-0 bg-white px-2 py-0.5 rounded border border-[#714B67]/20">
+                        <span className="text-[10px] font-mono font-bold text-[#714B67] animate-pulse shrink-0 bg-white dark:bg-gray-900 px-2 py-0.5 rounded border border-[#714B67]/20">
                           Processing...
                         </span>
                       )}
                       {isDone && (
-                        <span className="text-[10px] font-mono font-bold text-emerald-600 shrink-0">Completed</span>
+                        <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">Completed</span>
                       )}
                     </div>
-                    <p className={`text-[11px] mt-0.5 ${isCurrent ? "text-slate-700 font-medium" : isDone ? "text-slate-600" : "text-slate-400"}`}>
+                    <p className={`text-[11px] mt-0.5 ${isCurrent ? "text-slate-700 dark:text-gray-100 font-medium" : isDone ? "text-slate-600 dark:text-gray-300" : "text-slate-400 dark:text-gray-300"}`}>
                       {st.desc}
                     </p>
                   </div>
@@ -1515,13 +1523,13 @@ export function AiScreening({
 
           {/* Progress Bar Container */}
           <div className="mt-8 max-w-2xl mx-auto space-y-2 relative z-10">
-            <div className="w-full bg-slate-100 border border-slate-200 h-2.5 rounded-full overflow-hidden p-0.5">
+            <div className="w-full bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 h-2.5 rounded-full overflow-hidden p-0.5">
               <div
                 className="h-full bg-gradient-to-r from-[#714B67] via-[#9D688E] to-emerald-500 rounded-full transition-all duration-700 shadow-sm"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 dark:text-gray-300">
               <span className="flex items-center gap-1.5 font-bold text-[#714B67]">
                 <Sparkles className="w-3 h-3 text-[#714B67] animate-spin" />
                 Gemini AI Neural Engine Vetting Active
@@ -1538,97 +1546,97 @@ export function AiScreening({
 
           {/* LEFT: Candidate Application Details */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-6">
-              <div className="pb-3 border-b border-slate-100">
-                <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
-                <h2 className="text-base font-black text-slate-850 mt-1">{candidate.name}</h2>
-                <span className="text-[10px] bg-slate-100 px-2 py-0.5 border border-slate-250 rounded font-semibold text-slate-650 mt-1 inline-block">
-                  Status: <strong className="text-slate-800">{candidate.status}</strong>
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-6">
+              <div className="pb-3 border-b border-slate-100 dark:border-gray-700">
+                <h3 className="text-xs font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Candidate Profile Details</h3>
+                <h2 className="text-base font-black text-slate-850 dark:text-gray-100 mt-1">{candidate.name}</h2>
+                <span className="text-[10px] bg-slate-100 dark:bg-gray-800 px-2 py-0.5 border border-slate-250 rounded font-semibold text-slate-650 dark:text-gray-300 mt-1 inline-block">
+                  Status: <strong className="text-slate-800 dark:text-gray-100">{candidate.status}</strong>
                 </span>
               </div>
 
               {/* Step 1 Basic Details */}
               <div className="space-y-3">
                 <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">1. Basic Information</h4>
-                <div className="grid grid-cols-2 gap-3 text-[11px] leading-relaxed text-slate-600">
+                <div className="grid grid-cols-2 gap-3 text-[11px] leading-relaxed text-slate-600 dark:text-gray-300">
                   <div>
-                    <span className="text-slate-400 block">Mobile:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.mobile}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Mobile:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.mobile}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Email:</span>
-                    <strong className="text-slate-750 font-bold break-all">{candidate.email}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Email:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold break-all">{candidate.email}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Highest Qualification:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.qualification}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Highest Qualification:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.qualification}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Total Experience:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.experience}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Total Experience:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.experience}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Current Salary:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.currentSalary}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Current Salary:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.currentSalary}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Expected Salary:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.expectedSalary}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Expected Salary:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.expectedSalary}</strong>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-400 block">Notice Period:</span>
-                    <strong className="text-slate-750 font-bold">{candidate.noticePeriod}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Notice Period:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-bold">{candidate.noticePeriod}</strong>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-400 block">Address:</span>
-                    <strong className="text-slate-750 font-semibold">{candidate.address}</strong>
+                    <span className="text-slate-400 dark:text-gray-300 block">Address:</span>
+                    <strong className="text-slate-750 dark:text-gray-100 font-semibold">{candidate.address}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Step 2 Screening Declarations */}
-              <div className="space-y-2.5 pt-3 border-t border-slate-100">
+              <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">2. Risk screening declarations</h4>
                 <div className="space-y-2 text-[10.5px]">
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Side business profile</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.sideBusiness === "Yes" ? "bg-rose-55 border-rose-200 text-rose-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Side business profile</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.sideBusiness === "Yes" ? "bg-rose-55 border-rose-200 dark:border-gray-700 text-rose-600 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.sideBusiness || "No"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Personal Loan / EMI Pressure</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.loanPressure === "Yes" ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Personal Loan / EMI Pressure</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.loanPressure === "Yes" ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-gray-700 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.loanPressure || "No"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Police Case / Court Matter</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.courtCase === "Yes" ? "bg-rose-100 border-rose-300 text-rose-700 font-bold" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Police Case / Court Matter</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.courtCase === "Yes" ? "bg-rose-100 dark:bg-rose-950/40 border-rose-300 dark:border-gray-700 text-rose-700 dark:text-rose-400 font-bold" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.courtCase || "No"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Target-based workload comfort</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.targetWork === "No" ? "bg-rose-55 border-rose-200 text-rose-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Target-based workload comfort</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.targetWork === "No" ? "bg-rose-55 border-rose-200 dark:border-gray-700 text-rose-600 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.targetWork || "Yes"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Outdoor touring / Field visits comfort</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.fieldWork === "No" ? "bg-rose-55 border-rose-200 text-rose-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Outdoor touring / Field visits comfort</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.fieldWork === "No" ? "bg-rose-55 border-rose-200 dark:border-gray-700 text-rose-600 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.fieldWork || "Yes"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Background Check Consent</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.backgroundVerification === "No" ? "bg-rose-100 border-rose-200 text-rose-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Background Check Consent</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.backgroundVerification === "No" ? "bg-rose-100 dark:bg-rose-950/40 border-rose-200 dark:border-gray-700 text-rose-700 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.backgroundVerification || "Yes"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center gap-4 bg-slate-50 p-2 rounded border border-slate-150">
-                    <span className="font-semibold text-slate-650">Confidentiality NDA Acceptance</span>
-                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.confidentialityAgreement === "No" ? "bg-rose-100 border-rose-200 text-rose-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
+                  <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-gray-800 p-2 rounded border border-slate-150">
+                    <span className="font-semibold text-slate-650 dark:text-gray-300">Confidentiality NDA Acceptance</span>
+                    <span className={`px-2 py-0.5 rounded font-black text-[9px] border ${candidate.riskAnswers?.confidentialityAgreement === "No" ? "bg-rose-100 dark:bg-rose-950/40 border-rose-200 dark:border-gray-700 text-rose-700 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"}`}>
                       {candidate.riskAnswers?.confidentialityAgreement || "Yes"}
                     </span>
                   </div>
@@ -1636,7 +1644,7 @@ export function AiScreening({
               </div>
 
               {/* Step 3 Documents Submitted */}
-              <div className="space-y-2 pt-3 border-t border-slate-100">
+              <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-gray-700">
                 <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">3. Document Upload Links</h4>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   {Object.entries(candidate.uploads || {}).map(([key, val]) => (
@@ -1647,7 +1655,7 @@ export function AiScreening({
                         url: getAttachmentUrl(val as string),
                         title: `${key} - ${candidate.name}`
                       })}
-                      className="flex items-center gap-1.5 p-2 bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100 text-indigo-700 rounded transition-all font-semibold text-left w-full"
+                      className="flex items-center gap-1.5 p-2 bg-indigo-50/50 dark:bg-indigo-950/40 hover:bg-indigo-100/50 dark:hover:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 text-indigo-700 dark:text-indigo-400 rounded transition-all font-semibold text-left w-full"
                     >
                       <FileText className="w-3.5 h-3.5 shrink-0" />
                       <span className="capitalize break-all truncate">{key}</span>
@@ -1655,7 +1663,7 @@ export function AiScreening({
                     </button>
                   ))}
                   {Object.keys(candidate.uploads || {}).length === 0 && (
-                    <span className="text-slate-400 italic font-medium col-span-2">No documents submitted.</span>
+                    <span className="text-slate-400 dark:text-gray-300 italic font-medium col-span-2">No documents submitted.</span>
                   )}
                 </div>
               </div>
@@ -1665,10 +1673,10 @@ export function AiScreening({
           {/* RIGHT: AI Assessment Insights & Questions Checklist */}
           <div className="lg:col-span-7 space-y-6">
             {!hasScreened ? (
-              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-10 text-center flex flex-col items-center justify-center h-full min-h-[350px]">
+              <div className="bg-slate-50 dark:bg-gray-800 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl p-10 text-center flex flex-col items-center justify-center h-full min-h-[350px]">
                 <Cpu className="w-12 h-12 text-[#714B67]/40 mb-3 animate-pulse" />
-                <h3 className="text-sm font-bold text-slate-800">Candidate Screening Pending</h3>
-                <p className="text-xs text-slate-500 mt-2 max-w-sm">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">Candidate Screening Pending</h3>
+                <p className="text-xs text-slate-500 dark:text-gray-300 mt-2 max-w-sm">
                   This profile has not undergone AI screening assessment. Run models now to inspect skill matches, stability ratios, fraud indicators and tailored questions.
                 </p>
                 <button
@@ -1679,72 +1687,72 @@ export function AiScreening({
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 space-y-6 shadow-sm">
 
                 {/* AI Scores Summary Grid */}
                 <div>
                   <h3 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono mb-4">AI Score Analytics Vetting</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                      <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Skill Match</span>
+                    <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center">
+                      <span className="text-[9px] uppercase font-black text-slate-450 dark:text-gray-300 tracking-wider block font-mono">Skill Match</span>
                       <strong className="text-xl font-mono text-[#714B67] block mt-1">{result.skillMatchScore}%</strong>
-                      <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
+                      <div className="w-full bg-slate-200 dark:bg-gray-800 h-1 rounded-full mt-2 overflow-hidden">
                         <div className="bg-[#714B67] h-full" style={{ width: `${result.skillMatchScore}%` }} />
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                      <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Stability</span>
-                      <strong className="text-xl font-mono text-emerald-600 block mt-1">{result.stabilityScore}%</strong>
-                      <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
+                    <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center">
+                      <span className="text-[9px] uppercase font-black text-slate-450 dark:text-gray-300 tracking-wider block font-mono">Stability</span>
+                      <strong className="text-xl font-mono text-emerald-600 dark:text-emerald-400 block mt-1">{result.stabilityScore}%</strong>
+                      <div className="w-full bg-slate-200 dark:bg-gray-800 h-1 rounded-full mt-2 overflow-hidden">
                         <div className="bg-emerald-500 h-full" style={{ width: `${result.stabilityScore}%` }} />
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                      <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Risk Factor</span>
-                      <strong className={`text-xl font-mono block mt-1 ${result.riskScore > 50 ? "text-rose-600" : "text-amber-500"}`}>{result.riskScore}%</strong>
-                      <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
+                    <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center">
+                      <span className="text-[9px] uppercase font-black text-slate-450 dark:text-gray-300 tracking-wider block font-mono">Risk Factor</span>
+                      <strong className={`text-xl font-mono block mt-1 ${result.riskScore > 50 ? "text-rose-600 dark:text-rose-400" : "text-amber-500"}`}>{result.riskScore}%</strong>
+                      <div className="w-full bg-slate-200 dark:bg-gray-800 h-1 rounded-full mt-2 overflow-hidden">
                         <div className={`h-full ${result.riskScore > 50 ? "bg-rose-500" : "bg-amber-400"}`} style={{ width: `${result.riskScore}%` }} />
                       </div>
                     </div>
 
                     {result.loyaltyPossibility !== undefined && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                        <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Predicted Loyalty</span>
-                        <strong className="text-xl font-mono text-indigo-600 block mt-1">{result.loyaltyPossibility}%</strong>
-                        <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center">
+                        <span className="text-[9px] uppercase font-black text-slate-450 dark:text-gray-300 tracking-wider block font-mono">Predicted Loyalty</span>
+                        <strong className="text-xl font-mono text-indigo-600 dark:text-indigo-400 block mt-1">{result.loyaltyPossibility}%</strong>
+                        <div className="w-full bg-slate-200 dark:bg-gray-800 h-1 rounded-full mt-2 overflow-hidden">
                           <div className="bg-indigo-500 h-full" style={{ width: `${result.loyaltyPossibility}%` }} />
                         </div>
                       </div>
                     )}
 
                     {result.fraudRisk && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center col-span-2 sm:col-span-1">
-                        <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Fraud Risk</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center col-span-2 sm:col-span-1">
+                        <span className="text-[9px] uppercase font-black text-slate-450 dark:text-gray-300 tracking-wider block font-mono">Fraud Risk</span>
                         <strong className={`text-base font-bold block mt-1 ${
-                          result.fraudRisk === "High" ? "text-rose-600" : result.fraudRisk === "Medium" ? "text-amber-600" : "text-emerald-600"
+                          result.fraudRisk === "High" ? "text-rose-600 dark:text-rose-400" : result.fraudRisk === "Medium" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                         }`}>
                           {result.fraudRisk}
                         </strong>
-                        <span className="text-[9px] text-slate-400 font-mono block mt-1">Verification Status</span>
+                        <span className="text-[9px] text-slate-400 dark:text-gray-300 font-mono block mt-1">Verification Status</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* AI Rationale Summary Block */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
+                <div className="p-4 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg space-y-1.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
                     <Brain className="w-3.5 h-3.5 text-[#714B67]" />
                     AI Vetting Rationale Summary
                   </div>
-                  <p className="text-[11.5px] leading-relaxed text-slate-650 font-semibold italic">
+                  <p className="text-[11.5px] leading-relaxed text-slate-650 dark:text-gray-300 font-semibold italic">
                     "{result.candidateSummary}"
                   </p>
                   <div className="pt-2 flex justify-between items-center text-[10px]">
-                    <span className="text-slate-400">Score Engine: Gemini 2.5 Neural Model</span>
-                    <span className="font-bold text-slate-500">
+                    <span className="text-slate-400 dark:text-gray-300">Score Engine: Gemini 2.5 Neural Model</span>
+                    <span className="font-bold text-slate-500 dark:text-gray-300">
                       Screened: {result.screenedAt ? new Date(result.screenedAt).toLocaleDateString() : "Just now"}
                     </span>
                   </div>
@@ -1752,35 +1760,35 @@ export function AiScreening({
 
                 {/* Tailored Situational Interview Questions */}
                 {Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0 && (
-                  <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-xl space-y-3">
+                  <div className="p-4 bg-purple-50/40 dark:bg-purple-950/40 border border-purple-100 dark:border-gray-700 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[10.5px] font-black uppercase text-[#714B67] tracking-wider font-mono">
                         <Sparkles className="w-3.5 h-3.5 text-[#714B67]" />
                         Tailored Interview Questions ({result.suggestedQuestions.length})
                       </div>
-                      <span className="text-[9px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-bold">Generated for HR</span>
+                      <span className="text-[9px] bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-400 px-2 py-0.5 rounded font-bold">Generated for HR</span>
                     </div>
 
                     <div className="space-y-2">
                       {result.suggestedQuestions.map((q: string, qIdx: number) => (
                         <div
                           key={qIdx}
-                          className="flex items-start justify-between gap-3 bg-white p-2.5 rounded-lg border border-purple-150/70 text-xs shadow-2xs group hover:border-purple-300 transition-all"
+                          className="flex items-start justify-between gap-3 bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-purple-150/70 text-xs shadow-2xs group hover:border-purple-300 dark:hover:border-gray-700 transition-all"
                         >
                           <div className="flex items-start gap-2">
-                            <span className="font-mono text-[10px] font-black text-purple-600 bg-purple-50 w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="font-mono text-[10px] font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
                               {qIdx + 1}
                             </span>
-                            <p className="text-slate-750 font-semibold leading-snug">{q}</p>
+                            <p className="text-slate-750 dark:text-gray-100 font-semibold leading-snug">{q}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => copyQuestion(q, qIdx)}
-                            className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded shrink-0 transition-colors"
+                            className="p-1 text-slate-400 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded shrink-0 transition-colors"
                             title="Copy question text"
                           >
                             {copiedIdx === qIdx ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
@@ -1794,20 +1802,20 @@ export function AiScreening({
                 {/* AI recommendation selection */}
                 <div className="pt-4 border-t border-slate-150 flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">AI Suggestion:</span>
+                    <span className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">AI Suggestion:</span>
                     <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded border tracking-wide ${result.recommendation === "Shortlist"
-                      ? "bg-emerald-50 border-emerald-250 text-emerald-600 animate-pulse"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-250 text-emerald-600 dark:text-emerald-400 animate-pulse"
                       : result.recommendation === "Hold"
-                        ? "bg-amber-50 border-amber-200 text-amber-600"
-                        : "bg-rose-100 border-rose-300 text-rose-700"
+                        ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-gray-700 text-amber-600 dark:text-amber-400"
+                        : "bg-rose-100 dark:bg-rose-950/40 border-rose-300 dark:border-gray-700 text-rose-700 dark:text-rose-400"
                       }`}>
                       {result.recommendation}
                     </span>
                   </div>
 
                   {/* CRITICAL AI DISCLAIMER VETO badge */}
-                  <div className="bg-amber-50 border border-amber-250 text-amber-700 text-[10px] font-bold p-3 rounded-lg flex items-start gap-2 max-w-md">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-250 text-amber-700 dark:text-amber-400 text-[10px] font-bold p-3 rounded-lg flex items-start gap-2 max-w-md">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                     <div>
                       <strong>Important Notice:</strong> AI screening is only a support system. The final hiring veto and decision remains with the HR Team + Management.
                     </div>
@@ -1829,7 +1837,7 @@ export function AiScreening({
                       onClick={() => handleStatusOverride("Selected")}
                       className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Selected"
                         ? "bg-emerald-600 border-emerald-600 text-white"
-                        : "bg-white border-slate-250 hover:bg-emerald-50 text-emerald-600"
+                        : "bg-white dark:bg-gray-900 border-slate-250 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
                         }`}
                     >
                       <ThumbsUp className="w-3.5 h-3.5" /> Shortlist & Schedule
@@ -1840,7 +1848,7 @@ export function AiScreening({
                       onClick={() => handleStatusOverride("Hold")}
                       className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Hold"
                         ? "bg-amber-500 border-amber-500 text-white"
-                        : "bg-white border-slate-250 hover:bg-amber-50 text-amber-600"
+                        : "bg-white dark:bg-gray-900 border-slate-250 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 dark:text-amber-400"
                         }`}
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Put on Hold
@@ -1850,8 +1858,8 @@ export function AiScreening({
                       disabled={overrideLoading}
                       onClick={() => handleStatusOverride("Rejected")}
                       className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Rejected"
-                        ? "bg-slate-700 border-slate-700 text-white"
-                        : "bg-white border-slate-250 hover:bg-slate-100 text-slate-650"
+                        ? "bg-slate-700 dark:bg-gray-800 border-slate-700 text-white"
+                        : "bg-white dark:bg-gray-900 border-slate-250 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-650 dark:text-gray-300"
                         }`}
                     >
                       <ThumbsDown className="w-3.5 h-3.5" /> Reject Profile
@@ -1862,7 +1870,7 @@ export function AiScreening({
                       onClick={() => handleStatusOverride("High Risk")}
                       className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "High Risk"
                         ? "bg-rose-600 border-rose-600 text-white animate-pulse"
-                        : "bg-white border-slate-250 hover:bg-rose-50 text-rose-600"
+                        : "bg-white dark:bg-gray-900 border-slate-250 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400"
                         }`}
                     >
                       <ShieldAlert className="w-3.5 h-3.5" /> Mark High Risk
@@ -2162,43 +2170,43 @@ export function VerificationChecklist({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Verified":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+        return "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-gray-700";
       case "Hold":
-        return "bg-purple-50 text-purple-700 border-purple-200";
+        return "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-gray-700";
       case "Rejected":
-        return "bg-rose-50 text-rose-700 border-rose-200";
+        return "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-gray-700";
       case "High Risk":
-        return "bg-red-50 text-red-700 border-red-200 animate-pulse";
+        return "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-gray-700 animate-pulse";
       default:
-        return "bg-amber-50 text-amber-700 border-amber-200";
+        return "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-gray-700";
     }
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Top Header Card */}
       <div>
-        <h1 className="text-xl font-black text-slate-800">Vetting Checks Registry</h1>
-        <p className="text-xs text-slate-500 mt-1">Compliance & background verification command center for shortlists</p>
+        <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">Vetting Checks Registry</h1>
+        <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Compliance & background verification command center for shortlists</p>
       </div>
 
       {loading && candidates.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm font-mono text-xs font-bold text-slate-400">
+        <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm font-mono text-xs font-bold text-slate-400 dark:text-gray-300">
           Loading vetting metrics registry...
         </div>
       ) : candidates.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-sm font-bold text-slate-650">No candidates available for verification.</p>
-          <p className="text-[10px] text-slate-400 mt-1">Shortlist candidates in candidate application stages first.</p>
+        <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+          <ShieldCheck className="w-12 h-12 text-slate-300 dark:text-gray-300 mx-auto mb-4" />
+          <p className="text-sm font-bold text-slate-650 dark:text-gray-300">No candidates available for verification.</p>
+          <p className="text-[10px] text-slate-400 dark:text-gray-300 mt-1">Shortlist candidates in candidate application stages first.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
           {/* LEFT: CANDIDATES DIRECTORY */}
-          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 max-h-[640px] overflow-y-auto custom-scrollbar">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Select Profile</h3>
+          <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-4 max-h-[640px] overflow-y-auto custom-scrollbar">
+            <h3 className="text-xs font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Select Profile</h3>
 
             <div className="space-y-2">
               {candidates.map((c) => {
@@ -2212,13 +2220,13 @@ export function VerificationChecklist({
                     onClick={() => handleSelectCandidate(c)}
                     className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.01] ${isSelected
                       ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
-                      : "bg-slate-50/50 border-slate-200 hover:bg-slate-50"
+                      : "bg-slate-50/50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800"
                       }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div>
-                        <h4 className="text-xs font-black text-slate-800 leading-snug">{c.name}</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{c.job?.title || "Direct Applicant"}</p>
+                        <h4 className="text-xs font-black text-slate-800 dark:text-gray-100 leading-snug">{c.name}</h4>
+                        <p className="text-[10px] text-slate-400 dark:text-gray-300 mt-0.5">{c.job?.title || "Direct Applicant"}</p>
                       </div>
                       <span className={`text-[8.5px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded border shrink-0 ${getStatusColor(currentOverallStatus)
                         }`}>
@@ -2234,14 +2242,14 @@ export function VerificationChecklist({
           {/* RIGHT: VETTING ASSESSMENT MATRIX */}
           {selectedCand && (
             <div className="lg:col-span-8 space-y-4">
-              <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6 animate-fadeIn">
+              <form onSubmit={handleSave} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-6 animate-fadeIn">
                 {/* Profile header bar */}
-                <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="pb-4 border-b border-slate-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <span className="text-[9px] font-black tracking-widest text-[#714B67] uppercase font-mono">Verification Matrix Portal</span>
-                    <h2 className="text-base font-black text-slate-800 mt-1">{selectedCand.name}</h2>
-                    <p className="text-[10.5px] text-slate-500 mt-0.5">
-                      Email: <strong className="text-slate-700 font-mono pr-2">{selectedCand.email}</strong> | Mobile: <strong className="text-slate-700 font-mono">{selectedCand.mobile}</strong>
+                    <h2 className="text-base font-black text-slate-800 dark:text-gray-100 mt-1">{selectedCand.name}</h2>
+                    <p className="text-[10.5px] text-slate-500 dark:text-gray-300 mt-0.5">
+                      Email: <strong className="text-slate-700 dark:text-gray-100 font-mono pr-2">{selectedCand.email}</strong> | Mobile: <strong className="text-slate-700 dark:text-gray-100 font-mono">{selectedCand.mobile}</strong>
                     </p>
                   </div>
 
@@ -2264,12 +2272,12 @@ export function VerificationChecklist({
                           applyVerificationData(matchVer);
                           setIsEditing(!matchVer);
                         }}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded text-xs font-bold transition-all"
+                        className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 border border-slate-300 dark:border-gray-700 px-3 py-1.5 rounded text-xs font-bold transition-all"
                       >
                         Cancel
                       </button>
                     )}
-                    <span className="text-[9.5px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded font-mono uppercase">
+                    <span className="text-[9.5px] font-bold text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-2.5 py-1 rounded font-mono uppercase">
                       Workflow status: <strong>{selectedCand.status}</strong>
                     </span>
                   </div>
@@ -2285,9 +2293,9 @@ export function VerificationChecklist({
 
                     {/* 1. Aadhaar Check */}
                     {(isEditing || !!selectedCand.uploads?.aadhaar) && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-800">1. Aadhaar Check</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-gray-100">1. Aadhaar Check</span>
                           <div className="flex items-center gap-2">
                             {selectedCand.uploads?.aadhaar && (
                               <button
@@ -2296,7 +2304,7 @@ export function VerificationChecklist({
                                   url: getAttachmentUrl(selectedCand.uploads.aadhaar),
                                   title: `Aadhaar Card - ${selectedCand.name}`
                                 })}
-                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                                className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" /> View Aadhaar
                               </button>
@@ -2323,7 +2331,7 @@ export function VerificationChecklist({
                           <select
                             value={aadhaarStatus}
                             onChange={(e) => setAadhaarStatus(e.target.value)}
-                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Verified">Verified</option>
@@ -2343,9 +2351,9 @@ export function VerificationChecklist({
 
                     {/* 2. PAN Check */}
                     {(isEditing || !!selectedCand.uploads?.pan) && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-800">2. PAN Check</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-gray-100">2. PAN Check</span>
                           <div className="flex items-center gap-2">
                             {selectedCand.uploads?.pan && (
                               <button
@@ -2354,7 +2362,7 @@ export function VerificationChecklist({
                                   url: getAttachmentUrl(selectedCand.uploads.pan),
                                   title: `PAN Card - ${selectedCand.name}`
                                 })}
-                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                                className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" /> View PAN
                               </button>
@@ -2381,7 +2389,7 @@ export function VerificationChecklist({
                           <select
                             value={panStatus}
                             onChange={(e) => setPanStatus(e.target.value)}
-                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Verified">Verified</option>
@@ -2401,12 +2409,12 @@ export function VerificationChecklist({
 
                     {/* 3. Address Check */}
                     {isEditing && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                        <span className="text-xs font-bold text-slate-800">3. Address Vetting</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-gray-100">3. Address Vetting</span>
                         <select
                           value={addressStatus}
                           onChange={(e) => setAddressStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Verified">Verified</option>
@@ -2419,9 +2427,9 @@ export function VerificationChecklist({
 
                     {/* 4. Previous Employer Check */}
                     {(isEditing || !!selectedCand.uploads?.salarySlip) && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-800">4. Previous Employer</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-gray-100">4. Previous Employer</span>
                           <div className="flex items-center gap-2">
                             {selectedCand.uploads?.salarySlip && (
                               <button
@@ -2430,7 +2438,7 @@ export function VerificationChecklist({
                                   url: getAttachmentUrl(selectedCand.uploads.salarySlip),
                                   title: `Salary Slip - ${selectedCand.name}`
                                 })}
-                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                                className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" /> Salary Slip
                               </button>
@@ -2457,7 +2465,7 @@ export function VerificationChecklist({
                           <select
                             value={employerStatus}
                             onChange={(e) => setEmployerStatus(e.target.value)}
-                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Verified">Verified</option>
@@ -2477,12 +2485,12 @@ export function VerificationChecklist({
 
                     {/* 5. References Check */}
                     {isEditing && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                        <span className="text-xs font-bold text-slate-800">5. References Vetting</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-gray-100">5. References Vetting</span>
                         <select
                           value={referencesStatus}
                           onChange={(e) => setReferencesStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Verified">Verified</option>
@@ -2495,12 +2503,12 @@ export function VerificationChecklist({
 
                     {/* 6. CIBIL Score Check */}
                     {isEditing && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                        <span className="text-xs font-bold text-slate-800">6. CIBIL Verification</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-gray-100">6. CIBIL Verification</span>
                         <select
                           value={cibilStatus}
                           onChange={(e) => setCibilStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Verified">Verified</option>
@@ -2513,9 +2521,9 @@ export function VerificationChecklist({
 
                     {/* 7. Bank Statement Check */}
                     {(isEditing || !!selectedCand.uploads?.bankStatement) && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-800">7. Bank Statement Vetting</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-gray-100">7. Bank Statement Vetting</span>
                           <div className="flex items-center gap-2">
                             {selectedCand.uploads?.bankStatement && (
                               <button
@@ -2524,7 +2532,7 @@ export function VerificationChecklist({
                                   url: getAttachmentUrl(selectedCand.uploads.bankStatement),
                                   title: `Bank Statement - ${selectedCand.name}`
                                 })}
-                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                                className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" /> Bank Statement
                               </button>
@@ -2551,7 +2559,7 @@ export function VerificationChecklist({
                           <select
                             value={bankStatus}
                             onChange={(e) => setBankStatus(e.target.value)}
-                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Verified">Verified</option>
@@ -2571,12 +2579,12 @@ export function VerificationChecklist({
 
                     {/* 8. Police Verification Check */}
                     {isEditing && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                        <span className="text-xs font-bold text-slate-800">8. Police Verification</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-gray-100">8. Police Verification</span>
                         <select
                           value={policeStatus}
                           onChange={(e) => setPoliceStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Verified">Verified</option>
@@ -2589,12 +2597,12 @@ export function VerificationChecklist({
 
                     {/* 9. Social Media Review Check */}
                     {isEditing && (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between md:col-span-2">
-                        <span className="text-xs font-bold text-slate-800">9. Social Media Compliance Audit</span>
+                      <div className="p-3 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg flex flex-col gap-1.5 justify-between md:col-span-2">
+                        <span className="text-xs font-bold text-slate-800 dark:text-gray-100">9. Social Media Compliance Audit</span>
                         <select
                           value={socialMediaStatus}
                           onChange={(e) => setSocialMediaStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Verified">Verified</option>
@@ -2611,17 +2619,17 @@ export function VerificationChecklist({
                 {/* Remarks & Notes */}
                 <div className="space-y-4 pt-2">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-650">Compliance Remarks & Assessment Notes:</label>
+                    <label className="text-xs font-semibold text-slate-650 dark:text-gray-300">Compliance Remarks & Assessment Notes:</label>
                     {isEditing ? (
                       <textarea
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
                         placeholder="Input references log, audit markers, CIBIL score flags, and address verification notes..."
-                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs font-semibold"
+                        className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs font-semibold"
                         required
                       />
                     ) : (
-                      <div className="w-full bg-slate-50 border border-slate-200 rounded p-3 text-xs text-slate-700 min-h-[60px] font-semibold whitespace-pre-wrap">
+                      <div className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-3 text-xs text-slate-700 dark:text-gray-100 min-h-[60px] font-semibold whitespace-pre-wrap">
                         {remarks || "No remarks entered."}
                       </div>
                     )}
@@ -2630,11 +2638,11 @@ export function VerificationChecklist({
                   {isEditing ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-slate-650">Final Background Vetting Status:</label>
+                        <label className="text-xs font-semibold text-slate-650 dark:text-gray-300">Final Background Vetting Status:</label>
                         <select
                           value={overallStatus}
                           onChange={(e) => setOverallStatus(e.target.value)}
-                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] font-bold text-xs"
+                          className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] font-bold text-xs"
                         >
                           <option value="Pending">Pending Audit</option>
                           <option value="Verified">Verified & Cleared</option>
@@ -2655,7 +2663,7 @@ export function VerificationChecklist({
                       </div>
                     </div>
                   ) : (
-                    <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">Final Vetting Status:</span>
                         <span className={`text-xs font-black uppercase px-2.5 py-1 rounded border tracking-wide ${getStatusColor(overallStatus)}`}>
@@ -2668,8 +2676,8 @@ export function VerificationChecklist({
 
                 {/* Police high risk trigger notice */}
                 {(overallStatus === "High Risk" || policeStatus === "High Risk") && (
-                  <div className="bg-red-50 border border-red-250 rounded-lg p-3 text-[10px] text-red-700 font-bold flex items-start gap-2 animate-bounce">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-600 mt-0.5" />
+                  <div className="bg-red-50 dark:bg-red-950/40 border border-red-250 rounded-lg p-3 text-[10px] text-red-700 dark:text-red-400 font-bold flex items-start gap-2 animate-bounce">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
                     <div>
                       <strong>Critical Action Flagged:</strong> Saving this vetting record with "High Risk" status will automatically transition the candidate's core profile status to **High Risk** and trigger warning indicators on the Owner & Director command panels!
                     </div>
@@ -3193,13 +3201,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Upper header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Interviews Queue Tab</h1>
-          <p className="text-xs text-slate-500 mt-1">Schedules, Google Meet URLs, and AI custom interview question desks</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">Interviews Queue Tab</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Schedules, Google Meet URLs, and AI custom interview question desks</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -3231,15 +3239,15 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
       {/* SCHEDULE FORM MODULE */}
       {showScheduleForm && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 animate-fadeIn">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-4 animate-fadeIn">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-gray-700">
             <Video className="w-4 h-4 text-[#714B67]" />
-            <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider font-mono">
+            <h3 className="text-xs font-black uppercase text-slate-700 dark:text-gray-100 tracking-wider font-mono">
               {editingInterviewId ? "Edit Scheduled Interview" : "Schedule New Virtual Interview"}
             </h3>
           </div>
 
-          <form onSubmit={handleScheduleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-650">
+          <form onSubmit={handleScheduleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-650 dark:text-gray-300">
 
             {/* Candidate selection */}
             <div className="flex flex-col gap-1.5">
@@ -3248,7 +3256,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 value={schedCandidateId}
                 onChange={(e) => setSchedCandidateId(e.target.value)}
                 disabled={!!editingInterviewId}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-500"
+                className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-500"
                 required
               >
                 <option value="">-- Choose Candidate --</option>
@@ -3266,7 +3274,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               <select
                 value={schedRound}
                 onChange={(e) => setSchedRound(e.target.value)}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67]"
               >
                 <option value="1">Round-1: HR Assessment</option>
                 <option value="2">Round-2: Department Manager</option>
@@ -3281,7 +3289,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 type="date"
                 value={schedDate}
                 onChange={(e) => setSchedDate(e.target.value)}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67]"
+                className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                 required
               />
             </div>
@@ -3292,7 +3300,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 type="time"
                 value={schedTime}
                 onChange={(e) => setSchedTime(e.target.value)}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67]"
+                className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                 required
               />
             </div>
@@ -3303,7 +3311,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               <select
                 value={schedInterviewMode}
                 onChange={(e) => setSchedInterviewMode(e.target.value as "online" | "offline")}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67]"
               >
                 <option value="online">Online</option>
                 <option value="offline">Offline</option>
@@ -3319,7 +3327,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                   value={schedVideoLink}
                   onChange={(e) => setSchedVideoLink(e.target.value)}
                   placeholder="Google Meet or Zoom Video url"
-                  className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67]"
+                  className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67]"
                 />
               </div>
             ) : (
@@ -3340,7 +3348,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     setSchedVideoLink("");
                     setSchedInterviewMode("online");
                   }}
-                  className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 p-2 rounded font-bold shadow text-center transition-all"
+                  className="flex-1 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 p-2 rounded font-bold shadow text-center transition-all"
                 >
                   Cancel
                 </button>
@@ -3355,8 +3363,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           </form>
 
           {/* Round 3 warning message */}
-          <div className="bg-amber-50 border border-amber-250 rounded-lg p-3 text-[10px] text-amber-700 font-bold flex items-start gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-250 rounded-lg p-3 text-[10px] text-amber-700 dark:text-amber-400 font-bold flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
             <div>
               <strong>Process Notice:</strong> Round-3: HR + DSM + Management is strictly mandatory for ultimate recruitment finalization. Ensure previous assessment scores are documented.
             </div>
@@ -3369,10 +3377,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
         {/* PANEL: LIST OF SCHEDULED INTERVIEWS */}
         <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <div className="flex flex-col gap-4 pb-2 border-b border-slate-100">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 pb-2 border-b border-slate-100 dark:border-gray-700">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Scheduled Assessment Feed</h3>
+                <h3 className="text-xs font-black uppercase text-slate-400 dark:text-gray-300 tracking-wider font-mono">Scheduled Assessment Feed</h3>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Reset Filters Action */}
@@ -3384,7 +3392,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                         setStartDateFilter("");
                         setEndDateFilter("");
                       }}
-                      className="text-[10.5px] text-[#714B67] hover:text-[#5F3F56] font-black flex items-center gap-1 transition-all active:scale-95 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg shadow-sm"
+                      className="text-[10.5px] text-[#714B67] hover:text-[#5F3F56] font-black flex items-center gap-1 transition-all active:scale-95 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 rounded-lg shadow-sm"
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
                     </button>
@@ -3397,7 +3405,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                       onClick={() => setShowDropdown(!showDropdown)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${showDropdown || (statusFilter !== "All")
                           ? "bg-[#714B67] text-white border-[#714B67]"
-                          : "bg-white text-slate-700 border-slate-250 hover:bg-slate-50"
+                          : "bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-100 border-slate-250 hover:bg-slate-50 dark:hover:bg-gray-800"
                         }`}
                     >
                       <Filter className="w-3.5 h-3.5" /> Filter{statusFilter !== "All" ? `: ${statusFilter === "CustomDate" ? "Custom Date" : statusFilter}` : ""}
@@ -3406,7 +3414,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     {showDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
-                        <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 max-w-[calc(100vw-2.5rem)] bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-semibold text-slate-750 animate-fadeIn">
+                        <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 max-w-[calc(100vw-2.5rem)] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-lg z-50 py-1.5 text-xs font-semibold text-slate-750 dark:text-gray-100 animate-fadeIn">
                           {[
                             { label: `All Statuses (${countAll})`, value: "All" },
                             { label: `Selected (${countSelected})`, value: "Selected" },
@@ -3427,7 +3435,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                   setEndDateFilter("");
                                 }
                               }}
-                              className={`w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors ${statusFilter === opt.value ? "text-[#714B67] bg-[#714B67]/5 font-black" : ""
+                              className={`w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors ${statusFilter === opt.value ? "text-[#714B67] bg-[#714B67]/5 font-black" : ""
                                 }`}
                             >
                               {opt.label}
@@ -3443,26 +3451,26 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               {/* Conditional Custom Date Grid (Aligned to the Right with Smaller Width) */}
               {statusFilter === "CustomDate" && (
                 <div className="flex justify-start sm:justify-end">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 px-3 text-xs font-bold text-slate-655 animate-fadeIn w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-slate-50 dark:bg-gray-800 border border-slate-150 rounded-xl p-2 px-3 text-xs font-bold text-slate-655 dark:text-gray-300 animate-fadeIn w-full sm:w-auto">
                     {/* Start Date filter */}
                     <div className="flex items-center justify-between sm:justify-start gap-1.5">
-                      <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">From:</span>
+                      <span className="text-[10px] text-slate-455 dark:text-gray-300 uppercase tracking-wider font-mono whitespace-nowrap">From:</span>
                       <input
                         type="date"
                         value={startDateFilter}
                         onChange={(e) => setStartDateFilter(e.target.value)}
-                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
+                        className="rounded-lg border border-slate-200 dark:border-gray-700 p-1.5 bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
                       />
                     </div>
 
                     {/* End Date filter */}
                     <div className="flex items-center justify-between sm:justify-start gap-1.5">
-                      <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">To:</span>
+                      <span className="text-[10px] text-slate-455 dark:text-gray-300 uppercase tracking-wider font-mono whitespace-nowrap">To:</span>
                       <input
                         type="date"
                         value={endDateFilter}
                         onChange={(e) => setEndDateFilter(e.target.value)}
-                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
+                        className="rounded-lg border border-slate-200 dark:border-gray-700 p-1.5 bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
                       />
                     </div>
                   </div>
@@ -3471,17 +3479,17 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
             </div>
 
             {loading && interviews.length === 0 ? (
-              <div className="text-center py-10 font-bold text-slate-400 font-mono text-xs">Loading schedules queue...</div>
+              <div className="text-center py-10 font-bold text-slate-400 dark:text-gray-300 font-mono text-xs">Loading schedules queue...</div>
             ) : interviews.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 border border-dashed rounded-lg text-slate-450 p-4">
+              <div className="text-center py-12 bg-slate-50 dark:bg-gray-800 border border-dashed rounded-lg text-slate-450 dark:text-gray-300 p-4">
                 <Video className="w-10 h-10 mx-auto text-[#714B67]/30 mb-2" />
-                <p className="text-xs font-bold text-slate-655">No interviews currently queued.</p>
-                <p className="text-[10px] text-slate-400 mt-1">Use the scheduler tool above to create assessment schedules.</p>
+                <p className="text-xs font-bold text-slate-655 dark:text-gray-300">No interviews currently queued.</p>
+                <p className="text-[10px] text-slate-400 dark:text-gray-300 mt-1">Use the scheduler tool above to create assessment schedules.</p>
               </div>
             ) : filteredInterviews.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 border border-dashed rounded-lg text-slate-455 p-4">
-                <Filter className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-xs font-bold text-slate-655">No interviews match the selected status or date filters.</p>
+              <div className="text-center py-12 bg-slate-50 dark:bg-gray-800 border border-dashed rounded-lg text-slate-455 dark:text-gray-300 p-4">
+                <Filter className="w-10 h-10 mx-auto text-slate-300 dark:text-gray-300 mb-2" />
+                <p className="text-xs font-bold text-slate-655 dark:text-gray-300">No interviews match the selected status or date filters.</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -3498,7 +3506,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+                    <tr className="border-b border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-300 font-black uppercase font-mono tracking-wider">
                       <th className="pb-3 pr-2">Candidate</th>
                       <th className="pb-3 px-2">Vacancy</th>
                       <th className="pb-3 px-2">Mode</th>
@@ -3508,7 +3516,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                       <th className="pb-3 pl-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                     {filteredInterviews.map((item) => {
                       if (!item) return null;
                       const cand = item.candidate || {};
@@ -3542,11 +3550,11 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                 setNewQuestionText("");
                               }
                             }}
-                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isSelected ? "bg-indigo-50/40" : ""}`}
+                            className={`hover:bg-slate-50/50 dark:hover:bg-gray-800 cursor-pointer transition-all ${isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/40" : ""}`}
                           >
                             <td className="py-3 pr-2">
-                              <div className="font-bold text-slate-800">{item.candidateName || cand.name || "Deleted Candidate"}</div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">{cand.mobile || "N/A"}</div>
+                              <div className="font-bold text-slate-800 dark:text-gray-100">{item.candidateName || cand.name || "Deleted Candidate"}</div>
+                              <div className="text-[10px] text-slate-400 dark:text-gray-300 mt-0.5">{cand.mobile || "N/A"}</div>
                             </td>
                             <td className="py-3 px-2">
                               <span className="text-[10.5px] text-[#714B67] font-bold">
@@ -3555,31 +3563,31 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                             </td>
                             <td className="py-3 px-2">
                               <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase font-mono ${(item.mode === "offline" || (!item.mode && !item.videoLink))
-                                ? "bg-rose-50 border-rose-250 text-rose-700 font-bold"
+                                ? "bg-rose-50 dark:bg-rose-950/40 border-rose-250 text-rose-700 dark:text-rose-400 font-bold"
                                 : "bg-sky-50 border-sky-250 text-sky-700 font-bold"
                                 }`}>
                                 {item.mode ? item.mode : (item.videoLink ? "online" : "offline")}
                               </span>
                             </td>
                             <td className="py-3 px-2">
-                              <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${item.round === 3 ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-slate-50 border-slate-200 text-slate-600"
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${item.round === 3 ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-gray-700 text-indigo-600 dark:text-indigo-400" : "bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300"
                                 }`}>
                                 Round {item.round}
                               </span>
                             </td>
-                            <td className="py-3 px-2 font-mono text-[10px] text-slate-500">
+                            <td className="py-3 px-2 font-mono text-[10px] text-slate-500 dark:text-gray-300">
                               {formatInterviewTime(item.scheduleTime)}
                             </td>
                             <td className="py-3 px-2">
                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.status === "Selected" || item.status === "Hired"
-                                  ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-250 text-emerald-600 dark:text-emerald-400 font-bold"
                                   : item.status === "Pending"
-                                    ? "bg-amber-50 border-amber-250 text-amber-600"
+                                    ? "bg-amber-50 dark:bg-amber-950/40 border-amber-250 text-amber-600 dark:text-amber-400"
                                     : item.status === "Hold"
-                                      ? "bg-indigo-50 border-indigo-250 text-indigo-650 font-bold"
+                                      ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-250 text-indigo-650 font-bold"
                                       : item.status === "High Risk"
-                                        ? "bg-red-50 border-red-250 text-red-700 font-bold animate-pulse"
-                                        : "bg-rose-50 border-rose-250 text-rose-700 font-bold"
+                                        ? "bg-red-50 dark:bg-red-950/40 border-red-250 text-red-700 dark:text-red-400 font-bold animate-pulse"
+                                        : "bg-rose-50 dark:bg-rose-950/40 border-rose-250 text-rose-700 dark:text-rose-400 font-bold"
                                 }`}>
                                 {item.status || "Pending"}
                               </span>
@@ -3600,15 +3608,15 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                             </td>
                           </tr>
                           {isSelected && (
-                            <tr className="bg-slate-50/70 border-b border-slate-250">
+                            <tr className="bg-slate-50/70 dark:bg-gray-800 border-b border-slate-250">
                               <td colSpan={7} className="px-6 py-5">
-                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn max-w-4xl mx-auto text-slate-800">
+                                <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn max-w-4xl mx-auto text-slate-800 dark:text-gray-100">
 
-                                  <div className="pb-3 border-b border-slate-100 flex justify-between items-start gap-4">
+                                  <div className="pb-3 border-b border-slate-100 dark:border-gray-700 flex justify-between items-start gap-4">
                                     <div>
                                       <span className="text-[9px] font-black tracking-widest text-[#714B67] uppercase font-mono">Conducting Assessment Portal</span>
-                                      <h2 className="text-base font-black text-slate-800 mt-1">{item.candidateName || item.candidate?.name || "Deleted Candidate"}</h2>
-                                      <p className="text-[10.5px] text-slate-500 mt-0.5">Round Applied: <strong className="text-slate-700">Round-{item.round}</strong></p>
+                                      <h2 className="text-base font-black text-slate-800 dark:text-gray-100 mt-1">{item.candidateName || item.candidate?.name || "Deleted Candidate"}</h2>
+                                      <p className="text-[10.5px] text-slate-500 dark:text-gray-300 mt-0.5">Round Applied: <strong className="text-slate-700 dark:text-gray-100">Round-{item.round}</strong></p>
                                     </div>
                                     {item.videoLink && (
                                       <a
@@ -3623,7 +3631,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                   </div>
 
                                   {isBeforeScheduleTime && (
-                                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-xs font-semibold flex items-center gap-2">
+                                    <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-gray-700 text-amber-800 dark:text-amber-400 px-4 py-3 rounded-lg text-xs font-semibold flex items-center gap-2">
                                       <span className="text-lg">⚠️</span>
                                       <div>
                                         <strong>Assessment Locked:</strong> This interview is scheduled for {formatInterviewTime(item.scheduleTime)}. You can only fill out and submit the assessment form once the scheduled interview time has crossed.
@@ -3631,13 +3639,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                     </div>
                                   )}
 
-                                  <form onSubmit={handleAssessmentSubmit} className="space-y-4 text-xs font-semibold text-slate-650">
+                                  <form onSubmit={handleAssessmentSubmit} className="space-y-4 text-xs font-semibold text-slate-650 dark:text-gray-300">
 
                                     {/* 1. Video Meeting URL Link */}
                                     <div className="flex flex-col gap-1.5">
                                       <label>Scheduled Video Call url:</label>
-                                      <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded font-mono text-[10.5px] text-slate-600">
-                                        <Video className="w-4 h-4 shrink-0 text-slate-400" />
+                                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded font-mono text-[10.5px] text-slate-600 dark:text-gray-300">
+                                        <Video className="w-4 h-4 shrink-0 text-slate-400 dark:text-gray-300" />
                                         <span className="truncate break-all select-all flex-1">{item.videoLink || "No Link Provided"}</span>
                                       </div>
                                     </div>
@@ -3663,29 +3671,29 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           type="button"
                                           onClick={() => handleTailorQuestions(item.id)}
                                           disabled={tailoringId === item.id}
-                                          className="text-[9.5px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 border border-indigo-200 px-2 py-1 rounded flex items-center gap-1 transition-all"
+                                          className="text-[9.5px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 border border-indigo-200 dark:border-gray-700 px-2 py-1 rounded flex items-center gap-1 transition-all"
                                         >
                                           {tailoringId === item.id ? "Tailoring..." : "✨ Tailor with AI"}
                                         </button>
                                       </div>
 
                                       <div className="space-y-3">
-                                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
+                                        <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
                                           {customQuestions.length > 0 ? (
                                             customQuestions.map((qObj, idx) => (
                                               <div key={idx} className="flex items-center justify-between gap-3 text-[10.5px] leading-relaxed border-b border-slate-150 pb-2 last:border-b-0">
                                                 <div className="flex items-start gap-1 flex-1">
                                                   <strong className="text-[#714B67] font-mono pr-1">{idx + 1}.</strong>
-                                                  <span className="break-words text-slate-700">{qObj.question}</span>
+                                                  <span className="break-words text-slate-700 dark:text-gray-100">{qObj.question}</span>
                                                 </div>
 
                                                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                                                   {[
-                                                    { name: "Average", val: "average", color: "bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-100", activeColor: "bg-amber-500 border-amber-500 text-white" },
-                                                    { name: "Low", val: "low", color: "bg-red-50 border-red-250 text-red-700 hover:bg-red-100", activeColor: "bg-red-500 border-red-500 text-white" },
+                                                    { name: "Average", val: "average", color: "bg-amber-50 dark:bg-amber-950/40 border-amber-250 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40", activeColor: "bg-amber-500 border-amber-500 text-white" },
+                                                    { name: "Low", val: "low", color: "bg-red-50 dark:bg-red-950/40 border-red-250 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40", activeColor: "bg-red-500 border-red-500 text-white" },
                                                     { name: "Good", val: "good", color: "bg-sky-50 border-sky-250 text-sky-700 hover:bg-sky-100", activeColor: "bg-sky-500 border-sky-500 text-white" },
-                                                    { name: "Medium", val: "medium", color: "bg-indigo-50 border-indigo-250 text-indigo-700 hover:bg-indigo-100", activeColor: "bg-indigo-500 border-indigo-500 text-white" },
-                                                    { name: "Excellent", val: "excellent", color: "bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-100", activeColor: "bg-emerald-500 border-emerald-500 text-white" }
+                                                    { name: "Medium", val: "medium", color: "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-250 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/40", activeColor: "bg-indigo-500 border-indigo-500 text-white" },
+                                                    { name: "Excellent", val: "excellent", color: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-250 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/40", activeColor: "bg-emerald-500 border-emerald-500 text-white" }
                                                   ].map((opt) => {
                                                     const isActive = qObj.rating === opt.val;
                                                     return (
@@ -3711,7 +3719,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                                     onClick={() => {
                                                       setCustomQuestions(prev => prev.filter((_, i) => i !== idx));
                                                     }}
-                                                    className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="text-slate-400 dark:text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Remove Question"
                                                   >
                                                     <Trash className="w-3.5 h-3.5" />
@@ -3720,7 +3728,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                               </div>
                                             ))
                                           ) : (
-                                            <span className="text-slate-400 italic block text-center py-2 font-medium">No custom questions added yet. You can add one below.</span>
+                                            <span className="text-slate-400 dark:text-gray-300 italic block text-center py-2 font-medium">No custom questions added yet. You can add one below.</span>
                                           )}
                                         </div>
 
@@ -3732,7 +3740,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                             value={newQuestionText}
                                             onChange={(e) => setNewQuestionText(e.target.value)}
                                             placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Write a custom assessment question..."}
-                                            className="flex-1 bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67] placeholder-slate-400 font-semibold disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            className="flex-1 bg-white dark:bg-gray-900 border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-[#714B67] placeholder-slate-400 font-semibold disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                             onKeyDown={(e) => {
                                               if (e.key === "Enter") {
                                                 e.preventDefault();
@@ -3761,8 +3769,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                     </div>
 
                                     {/* 3. Granular FORM-4 Score Entry */}
-                                    <div className="space-y-4 bg-slate-50 border border-slate-200 p-4 rounded-xl">
-                                      <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono border-b border-slate-200 pb-2 mb-2">Form-4: Assessment Metrics</h4>
+                                    <div className="space-y-4 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-4 rounded-xl">
+                                      <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono border-b border-slate-200 dark:border-gray-700 pb-2 mb-2">Form-4: Assessment Metrics</h4>
 
                                       {[
                                         { label: "Communication Score", val: communicationScore, setter: setCommunicationScore },
@@ -3783,12 +3791,12 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                             disabled={isBeforeScheduleTime}
                                             value={metric.val}
                                             onChange={(e) => metric.setter(parseInt(e.target.value))}
-                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-1.5 bg-slate-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[#714B67] disabled:opacity-50 disabled:cursor-not-allowed"
                                           />
                                         </div>
                                       ))}
                                       {/* Read-only Assessment Questions Score */}
-                                      <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200">
+                                      <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200 dark:border-gray-700">
                                         <div className="flex justify-between items-center text-[10.5px]">
                                           <label className="font-bold text-[#714B67]">Assessment Questions Score (Calculated):</label>
                                           <strong className="text-xs font-mono text-[#714B67] bg-[#714B67]/10 px-2 py-0.5 rounded">
@@ -3799,7 +3807,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                             })()}%
                                           </strong>
                                         </div>
-                                        <div className="w-full bg-slate-200 rounded-full h-2">
+                                        <div className="w-full bg-slate-200 dark:bg-gray-800 rounded-full h-2">
                                           <div
                                             className="bg-[#714B67] h-2 rounded-full transition-all duration-300"
                                             style={{
@@ -3839,7 +3847,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                         disabled={isBeforeScheduleTime}
                                         onChange={(e) => setRemarks(e.target.value)}
                                         placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Enter assessment remarks, or use ✨ AI Generate Feedback above..."}
-                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-24 text-xs disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] h-24 text-xs disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                         required={!isBeforeScheduleTime}
                                       />
                                     </div>
@@ -3852,7 +3860,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           value={roundStatus}
                                           disabled={isBeforeScheduleTime}
                                           onChange={(e) => setRoundStatus(e.target.value)}
-                                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                          className="rounded border border-slate-250 p-2 text-slate-800 dark:text-gray-100 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                         >
                                           {item.round < 3 && (
                                             <option value="Selected">Select / Advance Candidate (Next Round)</option>
@@ -3873,7 +3881,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           type="submit"
                                           disabled={isBeforeScheduleTime || submitting}
                                           className={`w-full p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 transition-all ${isBeforeScheduleTime
-                                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                                            ? "bg-slate-300 dark:bg-gray-800 text-slate-500 dark:text-gray-300 cursor-not-allowed"
                                             : "bg-[#714B67] hover:bg-[#5F3F56] text-white hover:scale-[1.01] active:scale-[0.99]"
                                             }`}
                                         >
@@ -3884,8 +3892,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
                                     {/* Direct Selection Disclaimer */}
                                     {roundStatus === "Hired" && item.round < 3 && (
-                                      <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2 animate-fadeIn">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
+                                      <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 dark:text-emerald-400 font-bold flex items-start gap-2 animate-fadeIn">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                                         <div>
                                           <strong>Direct Select & Hire:</strong> Choosing this option will immediately select this candidate and skip all remaining rounds, marking them fully selected for onboarding!
                                         </div>
@@ -3894,8 +3902,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
                                     {/* Mandatory Round 3 Disclaimer */}
                                     {item.round === 3 && roundStatus === "Selected" && (
-                                      <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
+                                      <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 dark:text-emerald-400 font-bold flex items-start gap-2">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                                         <div>
                                           <strong>Final Phase:</strong> Since this is Round-3 (HR + DSM + Management), marking "Select / Advance" here will automatically transition the candidate's ultimate status to "Selected" for standard NDA onboarding!
                                         </div>
@@ -3922,77 +3930,77 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
       {/* Follow Up Modal Popup */}
       {followUpInterview && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-[9999] bg-slate-900/20 dark:bg-gray-800 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-gray-700">
             {/* Header */}
             <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
               <span className="text-sm font-black tracking-wide uppercase">Follow Up Interview</span>
               <button
                 type="button"
                 onClick={() => setFollowUpInterview(null)}
-                className="text-white hover:text-slate-200 font-bold text-xl px-2"
+                className="text-white hover:text-slate-200 dark:hover:text-gray-300 font-bold text-xl px-2"
               >
                 ✕
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleFollowUpSubmit} className="p-6 space-y-4 text-xs font-semibold text-slate-650">
+            <form onSubmit={handleFollowUpSubmit} className="p-6 space-y-4 text-xs font-semibold text-slate-650 dark:text-gray-300">
               {/* Candidate Name (Autofilled & Read-only) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-500">Candidate Name</label>
+                <label className="text-slate-500 dark:text-gray-300">Candidate Name</label>
                 <input
                   type="text"
                   readOnly
                   value={followUpInterview.candidate?.name || "Deleted Candidate"}
-                  className="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-500 font-bold outline-none cursor-not-allowed"
+                  className="rounded border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 p-2.5 text-slate-500 dark:text-gray-300 font-bold outline-none cursor-not-allowed"
                 />
               </div>
 
               {/* Candidate Role (Autofilled & Read-only) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-500">Candidate Role</label>
+                <label className="text-slate-500 dark:text-gray-300">Candidate Role</label>
                 <input
                   type="text"
                   readOnly
                   value={followUpInterview.vacancyName || followUpInterview.candidate?.job?.title || "General Application"}
-                  className="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-500 font-bold outline-none cursor-not-allowed"
+                  className="rounded border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 p-2.5 text-slate-500 dark:text-gray-300 font-bold outline-none cursor-not-allowed"
                 />
               </div>
 
               {/* Date selection */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700">Follow-up Date</label>
+                <label className="text-slate-700 dark:text-gray-100">Follow-up Date</label>
                 <input
                   type="date"
                   value={followUpDate}
                   onChange={(e) => setFollowUpDate(e.target.value)}
-                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 dark:text-gray-100 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
                   required
                 />
               </div>
 
               {/* Time selection */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700">Follow-up Time</label>
+                <label className="text-slate-700 dark:text-gray-100">Follow-up Time</label>
                 <input
                   type="time"
                   value={followUpTime}
                   onChange={(e) => setFollowUpTime(e.target.value)}
-                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 dark:text-gray-100 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
                   required
                 />
               </div>
 
               {/* Remarks / Reason for follow-up */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700">Remarks / Follow-up Reason</label>
+                <label className="text-slate-700 dark:text-gray-100">Remarks / Follow-up Reason</label>
                 <textarea
                   rows={2}
                   value={followUpRemarks}
                   onChange={(e) => setFollowUpRemarks(e.target.value)}
                   placeholder="E.g., Discussing salary expectations, checking notice period details..."
-                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 dark:text-gray-100 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
                 />
               </div>
 
@@ -4001,7 +4009,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 <button
                   type="button"
                   onClick={() => setFollowUpInterview(null)}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-lg font-black transition-all border border-slate-200"
+                  className="flex-1 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 py-2.5 rounded-lg font-black transition-all border border-slate-200 dark:border-gray-700"
                 >
                   Cancel
                 </button>
@@ -4105,11 +4113,11 @@ export function HrLeads({
   }, [filteredLeads, jobs]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">HR Leads</h1>
-          <p className="text-xs text-slate-500 mt-1">Real-time candidate submissions from job software form links</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100">HR Leads</h1>
+          <p className="text-xs text-slate-500 dark:text-gray-300 mt-1">Real-time candidate submissions from job software form links</p>
         </div>
         <button
           className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
@@ -4119,21 +4127,21 @@ export function HrLeads({
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="w-full md:w-1/4">
-          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Search Candidates</label>
+          <label className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest block mb-1">Search Candidates</label>
           <input
             type="text"
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-900"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-900 dark:text-gray-100"
             placeholder="Search by Name, Email or Phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="w-full md:w-1/4">
-          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Filter By Job Posting</label>
+          <label className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest block mb-1">Filter By Job Posting</label>
           <select
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700 dark:text-gray-100"
             value={selectedJobFilter}
             onChange={(e) => setSelectedJobFilter(e.target.value)}
           >
@@ -4144,9 +4152,9 @@ export function HrLeads({
           </select>
         </div>
         <div className="w-full md:w-1/4">
-          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Filter By Status</label>
+          <label className="text-[10px] uppercase font-black text-slate-400 dark:text-gray-300 font-mono tracking-widest block mb-1">Filter By Status</label>
           <select
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700"
+            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700 dark:text-gray-100"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -4156,7 +4164,7 @@ export function HrLeads({
             <option value="Rejected">Rejected Leads</option>
           </select>
         </div>
-        <div className="text-right text-xs font-mono font-bold text-slate-450">
+        <div className="text-right text-xs font-mono font-bold text-slate-450 dark:text-gray-300">
           Showing {filteredLeads.length} Lead(s)
         </div>
       </div>
@@ -4167,10 +4175,10 @@ export function HrLeads({
           const companyName = group.job.company?.name || "Acolyte Group";
 
           return (
-            <div key={group.job.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
+            <div key={group.job.id} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
               {/* Job Row Header */}
               <div
-                className={`p-5 flex items-center justify-between cursor-pointer transition-colors ${isJobExpanded ? "bg-slate-50 border-b border-slate-150" : "hover:bg-slate-50/50"
+                className={`p-5 flex items-center justify-between cursor-pointer transition-colors ${isJobExpanded ? "bg-slate-50 dark:bg-gray-800 border-b border-slate-150" : "hover:bg-slate-50/50 dark:hover:bg-gray-800"
                   }`}
                 onClick={() => setExpandedJobId(isJobExpanded ? null : group.job.id)}
               >
@@ -4179,16 +4187,16 @@ export function HrLeads({
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-800 tracking-wide">{group.job.title}</h3>
-                    <span className="text-[10px] text-slate-450 block font-bold">{companyName}</span>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-gray-100 tracking-wide">{group.job.title}</h3>
+                    <span className="text-[10px] text-slate-450 dark:text-gray-300 block font-bold">{companyName}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <span className="px-3 py-1 bg-slate-100 text-slate-655 text-[10px] rounded-full font-black font-mono">
+                  <span className="px-3 py-1 bg-slate-100 dark:bg-gray-800 text-slate-655 dark:text-gray-300 text-[10px] rounded-full font-black font-mono">
                     {group.candidates.length} Candidate(s)
                   </span>
-                  <span className="text-slate-450 text-[11px] font-black uppercase tracking-wider font-mono">
+                  <span className="text-slate-450 dark:text-gray-300 text-[11px] font-black uppercase tracking-wider font-mono">
                     {isJobExpanded ? "Collapse ▲" : "Expand ▼"}
                   </span>
                 </div>
@@ -4196,10 +4204,10 @@ export function HrLeads({
 
               {/* Job Candidates Dropdown Table */}
               {isJobExpanded && (
-                <div className="p-6 overflow-x-auto bg-white border-t border-slate-100">
+                <div className="p-6 overflow-x-auto bg-white dark:bg-gray-900 border-t border-slate-100 dark:border-gray-700">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+                      <tr className="border-b border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-300 font-black uppercase font-mono tracking-wider">
                         <th className="pb-3 pr-2">Date & Time</th>
                         <th className="pb-3 px-2">Candidate Details</th>
                         <th className="pb-3 px-2">Experience</th>
@@ -4207,7 +4215,7 @@ export function HrLeads({
                         <th className="pb-3 pl-2 text-right">Details</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                    <tbody className="divide-y divide-slate-100 dark:divide-gray-700 font-semibold text-slate-700 dark:text-gray-100">
                       {group.candidates.map((cand, idx) => {
                         const appliedDate = new Date(cand.createdAt).toLocaleDateString("en-IN", {
                           day: "2-digit",
@@ -4224,7 +4232,7 @@ export function HrLeads({
                         return (
                           <React.Fragment key={cand.id || idx}>
                             <tr
-                              className={`hover:bg-slate-50/50 cursor-pointer ${isExpanded ? "bg-slate-50 border-b-0" : ""}`}
+                              className={`hover:bg-slate-50/50 dark:hover:bg-gray-800 cursor-pointer ${isExpanded ? "bg-slate-50 dark:bg-gray-800 border-b-0" : ""}`}
                               onClick={() => {
                                 if (isExpanded) {
                                   setSelectedLead(null);
@@ -4234,32 +4242,32 @@ export function HrLeads({
                               }}
                             >
                               <td className="py-4 pr-2">
-                                <span className="block text-slate-900 font-bold">{appliedDate}</span>
-                                <span className="text-[10px] text-slate-400 block font-mono">{appliedTime}</span>
+                                <span className="block text-slate-900 dark:text-gray-100 font-bold">{appliedDate}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-gray-300 block font-mono">{appliedTime}</span>
                               </td>
 
                               <td className="py-4 px-2">
                                 <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                                  <span className="text-slate-900 font-black text-sm">{cand.name}</span>
+                                  <span className="text-slate-900 dark:text-gray-100 font-black text-sm">{cand.name}</span>
                                   {cand.status && (
                                     <span className={`text-[8.5px] font-black uppercase font-mono px-2 py-0.5 rounded border ${cand.status === "Selected"
-                                      ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
+                                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-250 text-emerald-600 dark:text-emerald-400 font-bold"
                                       : cand.status === "Rejected"
-                                        ? "bg-rose-50 border-rose-250 text-rose-700"
+                                        ? "bg-rose-50 dark:bg-rose-950/40 border-rose-250 text-rose-700 dark:text-rose-400"
                                         : cand.status === "Hold"
-                                          ? "bg-amber-50 border-amber-250 text-amber-600"
+                                          ? "bg-amber-50 dark:bg-amber-950/40 border-amber-250 text-amber-600 dark:text-amber-400"
                                           : cand.status === "High Risk"
-                                            ? "bg-rose-100 border-rose-250 text-rose-700 font-bold"
-                                            : "bg-slate-50 border-slate-200 text-slate-500"
+                                            ? "bg-rose-100 dark:bg-rose-950/40 border-rose-250 text-rose-700 dark:text-rose-400 font-bold"
+                                            : "bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-300"
                                       }`}>
                                       {cand.status}
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[10px] text-slate-400 block font-mono">{cand.email} | {cand.mobile}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-gray-300 block font-mono">{cand.email} | {cand.mobile}</span>
                               </td>
 
-                              <td className="py-4 px-2 font-mono text-slate-900">
+                              <td className="py-4 px-2 font-mono text-slate-900 dark:text-gray-100">
                                 {cand.experience}
                               </td>
 
@@ -4267,7 +4275,7 @@ export function HrLeads({
                                 {cand.uploads?.resume ? (
                                   <button
                                     type="button"
-                                    className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-250/30"
+                                    className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded border border-emerald-250/30"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setPreviewFile({
@@ -4279,14 +4287,14 @@ export function HrLeads({
                                     <ExternalLink className="w-3 h-3" /> Resume
                                   </button>
                                 ) : (
-                                  <span className="text-slate-400 font-mono text-[10px]">No Resume</span>
+                                  <span className="text-slate-400 dark:text-gray-300 font-mono text-[10px]">No Resume</span>
                                 )}
                               </td>
 
                               <td className="py-4 pl-2 text-right">
                                 <button
                                   type="button"
-                                  className="bg-slate-100 hover:bg-slate-200 text-[#714B67] px-2.5 py-1.5 rounded text-[10px] font-black shadow-sm transition-all"
+                                  className="bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-[#714B67] px-2.5 py-1.5 rounded text-[10px] font-black shadow-sm transition-all"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (isExpanded) {
@@ -4301,81 +4309,81 @@ export function HrLeads({
                               </td>
                             </tr>
                             {isExpanded && (
-                              <tr className="bg-slate-50/70">
-                                <td colSpan={5} className="px-6 py-4 border-b border-slate-200">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-700 animate-fadeIn">
+                              <tr className="bg-slate-50/70 dark:bg-gray-800">
+                                <td colSpan={5} className="px-6 py-4 border-b border-slate-200 dark:border-gray-700">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-700 dark:text-gray-100 animate-fadeIn">
                                     {/* Box 1: Basic Profile */}
-                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
+                                    <div className="bg-white dark:bg-gray-900 border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
                                       <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 font-mono">Basic Profile</span>
                                       <div>
-                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Full Name</span>
-                                        <strong className="text-slate-800 font-bold text-sm">{cand.name}</strong>
+                                        <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Full Name</span>
+                                        <strong className="text-slate-800 dark:text-gray-100 font-bold text-sm">{cand.name}</strong>
                                       </div>
                                       <div>
-                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Mobile</span>
-                                        <strong className="text-slate-800 font-bold font-mono">{cand.mobile}</strong>
+                                        <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Mobile</span>
+                                        <strong className="text-slate-800 dark:text-gray-100 font-bold font-mono">{cand.mobile}</strong>
                                       </div>
                                       <div>
-                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Email</span>
-                                        <strong className="text-slate-800 font-bold font-mono">{cand.email}</strong>
+                                        <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Email</span>
+                                        <strong className="text-slate-800 dark:text-gray-100 font-bold font-mono">{cand.email}</strong>
                                       </div>
                                       <div>
-                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Address</span>
-                                        <strong className="text-slate-800 font-bold">{cand.address}</strong>
+                                        <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Address</span>
+                                        <strong className="text-slate-800 dark:text-gray-100 font-bold">{cand.address}</strong>
                                       </div>
                                     </div>
 
                                     {/* Box 2: Salary & Availability */}
-                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
+                                    <div className="bg-white dark:bg-gray-900 border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
                                       <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 font-mono">Salary & Availability</span>
                                       <div className="grid grid-cols-2 gap-2">
                                         <div>
-                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Qualification</span>
-                                          <strong className="text-slate-800 font-bold">{cand.qualification}</strong>
+                                          <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Qualification</span>
+                                          <strong className="text-slate-800 dark:text-gray-100 font-bold">{cand.qualification}</strong>
                                         </div>
                                         <div>
-                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Experience</span>
-                                          <strong className="text-slate-800 font-bold">{cand.experience}</strong>
+                                          <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Experience</span>
+                                          <strong className="text-slate-800 dark:text-gray-100 font-bold">{cand.experience}</strong>
                                         </div>
                                         <div>
-                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Current Salary</span>
-                                          <strong className="text-slate-800 font-bold font-mono">{cand.currentSalary}</strong>
+                                          <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Current Salary</span>
+                                          <strong className="text-slate-800 dark:text-gray-100 font-bold font-mono">{cand.currentSalary}</strong>
                                         </div>
                                         <div>
-                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Expected Salary</span>
-                                          <strong className="text-slate-800 font-bold font-mono">{cand.expectedSalary}</strong>
+                                          <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Expected Salary</span>
+                                          <strong className="text-slate-800 dark:text-gray-100 font-bold font-mono">{cand.expectedSalary}</strong>
                                         </div>
                                         <div className="col-span-2">
-                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Notice Period (Days)</span>
-                                          <strong className="text-slate-800 font-bold font-mono">{cand.noticePeriod}</strong>
+                                          <span className="text-slate-400 dark:text-gray-300 block text-[9px] uppercase font-mono">Notice Period (Days)</span>
+                                          <strong className="text-slate-800 dark:text-gray-100 font-bold font-mono">{cand.noticePeriod}</strong>
                                         </div>
                                       </div>
                                     </div>
 
                                     {/* Box 3: Self Declarations & Attachments */}
-                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-3">
+                                    <div className="bg-white dark:bg-gray-900 border border-slate-150 rounded-xl p-4 shadow-sm space-y-3">
                                       {cand.riskAnswers && (
                                         <div>
                                           <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 mb-2 font-mono">Self Declarations</span>
                                           <div className="space-y-1.5 text-[11px]">
                                             <div className="flex justify-between items-center py-0.5">
-                                              <span className="text-slate-500 font-medium">Side Business?</span>
-                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.sideBusiness === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                              <span className="text-slate-500 dark:text-gray-300 font-medium">Side Business?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.sideBusiness === "Yes" ? "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400" : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
                                                 }`}>{cand.riskAnswers.sideBusiness}</span>
                                             </div>
                                             <div className="flex justify-between items-center py-0.5">
-                                              <span className="text-slate-500 font-medium">Loan EMI Pressure?</span>
-                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.loanPressure === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                              <span className="text-slate-500 dark:text-gray-300 font-medium">Loan EMI Pressure?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.loanPressure === "Yes" ? "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400" : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
                                                 }`}>{cand.riskAnswers.loanPressure}</span>
                                             </div>
                                             <div className="flex justify-between items-center py-0.5">
-                                              <span className="text-slate-500 font-medium">Police/Court Matters?</span>
-                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.courtCase === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                              <span className="text-slate-500 dark:text-gray-300 font-medium">Police/Court Matters?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.courtCase === "Yes" ? "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400" : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
                                                 }`}>{cand.riskAnswers.courtCase}</span>
                                             </div>
                                             <div className="flex justify-between items-center py-0.5">
-                                              <span className="text-slate-500 font-medium">Comfortable with targets?</span>
-                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.targetWork === "Yes" ? "bg-[#714B67]/10 text-[#714B67]" : "bg-rose-100 text-rose-700"
+                                              <span className="text-slate-500 dark:text-gray-300 font-medium">Comfortable with targets?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.targetWork === "Yes" ? "bg-[#714B67]/10 text-[#714B67]" : "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400"
                                                 }`}>{cand.riskAnswers.targetWork}</span>
                                             </div>
                                           </div>
@@ -4393,7 +4401,7 @@ export function HrLeads({
                                                   url: getAttachmentUrl(cand.uploads.resume),
                                                   title: `Resume - ${cand.name}`
                                                 })}
-                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left w-full"
                                               >
                                                 <span>📄 Resume</span>
                                                 <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
@@ -4406,7 +4414,7 @@ export function HrLeads({
                                                   url: getAttachmentUrl(cand.uploads.photo),
                                                   title: `Passport Photo - ${cand.name}`
                                                 })}
-                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left w-full"
                                               >
                                                 <span>📷 Photo</span>
                                                 <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
@@ -4419,7 +4427,7 @@ export function HrLeads({
                                                   url: getAttachmentUrl(cand.uploads.aadhaar),
                                                   title: `Aadhaar Card - ${cand.name}`
                                                 })}
-                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left w-full"
                                               >
                                                 <span>🆔 Aadhaar</span>
                                                 <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
@@ -4432,7 +4440,7 @@ export function HrLeads({
                                                   url: getAttachmentUrl(cand.uploads.pan),
                                                   title: `PAN Card - ${cand.name}`
                                                 })}
-                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left w-full"
                                               >
                                                 <span>💳 PAN</span>
                                                 <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
@@ -4445,7 +4453,7 @@ export function HrLeads({
                                                   url: getAttachmentUrl(cand.uploads.bankStatement),
                                                   title: `Bank Statement - ${cand.name}`
                                                 })}
-                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full col-span-2"
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-gray-700 rounded text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left w-full col-span-2"
                                               >
                                                 <span>🏦 Bank Statement</span>
                                                 <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
@@ -4471,7 +4479,7 @@ export function HrLeads({
         })}
 
         {groupedLeads.length === 0 && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 font-bold">
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-8 text-center text-slate-400 dark:text-gray-300 font-bold">
             No active jobs or candidate leads found.
           </div>
         )}
@@ -4521,8 +4529,8 @@ export function FilePreviewModal({
       : `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/20 dark:bg-gray-800 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-gray-700">
         <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
           <span className="text-sm font-black tracking-wide uppercase">{title}</span>
           <div className="flex items-center gap-3">
@@ -4530,19 +4538,19 @@ export function FilePreviewModal({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1"
+              className="bg-white/10 dark:bg-gray-900 hover:bg-white/20 dark:hover:bg-gray-900 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1"
             >
               Open Original
             </a>
             <button
               onClick={onClose}
-              className="text-white hover:text-slate-200 font-bold text-xl px-2"
+              className="text-white hover:text-slate-200 dark:hover:text-gray-300 font-bold text-xl px-2"
             >
               ✕
             </button>
           </div>
         </div>
-        <div className="flex-1 bg-slate-100 p-4 flex items-center justify-center overflow-hidden">
+        <div className="flex-1 bg-slate-100 dark:bg-gray-800 p-4 flex items-center justify-center overflow-hidden">
           {isImage ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
               <img
@@ -4554,7 +4562,7 @@ export function FilePreviewModal({
           ) : (
             <iframe
               src={previewUrl}
-              className="w-full h-full border-0 rounded-lg bg-white shadow-md"
+              className="w-full h-full border-0 rounded-lg bg-white dark:bg-gray-900 shadow-md"
               title={title}
             />
           )}

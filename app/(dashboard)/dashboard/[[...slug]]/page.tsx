@@ -1284,7 +1284,10 @@ export default function UnifiedEnterpriseDashboard() {
           activeTabLabel={activeTab === "business-leads" ? "HR LEADS" : activeTab.replace("-", " ").toUpperCase()}
           activeTab={activeTab}
           setActiveTab={handleNavigateTab}
-          user={{ ...session?.user, role: userRole }}
+          user={{ ...session?.user, role: userRole, menuAccess: liveMenuAccess }}
+          stats={stats}
+          triggerToast={triggerToast}
+          toggleModal={toggleModal}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />

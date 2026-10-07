@@ -205,9 +205,9 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
 
   const getPriorityBadge = (priority: string) => {
     const p = (priority || "").toLowerCase();
-    if (p === "high") return "bg-rose-50 text-rose-700 border-rose-200 font-black";
-    if (p === "normal" || p === "medium") return "bg-amber-50 text-amber-700 border-amber-200 font-bold";
-    return "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold";
+    if (p === "high") return "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 font-black";
+    if (p === "normal" || p === "medium") return "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 font-bold";
+    return "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 font-bold";
   };
 
   const getCategoryIcon = (category: string) => {
@@ -221,10 +221,10 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
   };
 
   return (
-    <div className="space-y-4 animate-fadeIn text-slate-800">
+    <div className="space-y-4 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Top Banner Header */}
-      <div className="p-4 sm:p-5 rounded-3xl border border-[#714B67]/20 bg-gradient-to-r from-[#714B67]/15 via-[#9D688E]/8 to-white dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs relative overflow-hidden backdrop-blur-md">
+      <div className="p-4 sm:p-5 rounded-3xl border dark:border-gray-700 border-[#714B67]/20 bg-gradient-to-r from-[#714B67]/15 via-[#9D688E]/8 to-white dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs relative overflow-hidden backdrop-blur-md">
         <div className="space-y-1 z-10">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="p-2 rounded-2xl bg-gradient-to-br from-[#714B67] to-[#4A2B42] text-white shadow-sm">
@@ -233,12 +233,12 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
             <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
               Anonymous Grievance &amp; Problem Hub
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border dark:border-gray-700 border-emerald-200 shadow-2xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               100% Identity Protected
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">
             Interactive, company-wide confidential chat &amp; problem redressal feed.
           </p>
         </div>
@@ -254,9 +254,9 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
             onClick={loadGrievances}
             disabled={loading}
             title="Refresh Feed"
-            className="p-2 border border-slate-200 bg-white rounded-2xl hover:bg-slate-50 text-slate-600 transition-all shadow-xs cursor-pointer"
+            className="p-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-2xl hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition-all shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 text-[#714B67] ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 text-[#714B67] dark:text-purple-300 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
@@ -268,15 +268,15 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
         <div className="lg:col-span-4 xl:col-span-4 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
           
           {/* Search & Filter Header */}
-          <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-2.5 bg-slate-50/50">
+          <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-2.5 bg-slate-50/50 dark:bg-slate-950/50">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search issues, ticket ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl pl-8.5 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67] shadow-2xs placeholder:text-slate-400"
+                className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl pl-8.5 pr-3 py-1.5 text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-[#714B67] shadow-2xs placeholder:text-slate-400 dark:placeholder:text-gray-400 dark:[color-scheme:dark]"
               />
             </div>
 
@@ -294,11 +294,11 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                   className={`px-2.5 py-1 rounded-xl whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
                     statusFilter === tab.key
                       ? "bg-[#714B67] text-white shadow-2xs"
-                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+                      : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 border dark:border-gray-700 border-slate-200/80"
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1 rounded-md text-[9px] font-mono ${statusFilter === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>
+                  <span className={`px-1 rounded-md text-[9px] font-mono ${statusFilter === tab.key ? "bg-white/20 dark:bg-gray-900 text-white" : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300"}`}>
                     {tab.count}
                   </span>
                 </button>
@@ -307,16 +307,16 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
           </div>
 
           {/* Scrollable Threads List */}
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 divide-y divide-transparent">
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 divide-y dark:divide-gray-700 divide-transparent">
             {loading ? (
               <div className="text-center py-16 space-y-2">
-                <RefreshCw className="w-5 h-5 text-[#714B67] animate-spin mx-auto" />
-                <p className="text-xs text-slate-400 font-bold">Loading issues...</p>
+                <RefreshCw className="w-5 h-5 text-[#714B67] dark:text-purple-300 animate-spin mx-auto" />
+                <p className="text-xs text-slate-400 dark:text-gray-400 font-bold">Loading issues...</p>
               </div>
             ) : filteredGrievances.length === 0 ? (
               <div className="text-center py-16 px-4 space-y-2">
-                <p className="text-xs font-bold text-slate-700">No issues found</p>
-                <p className="text-[11px] text-slate-400">Try changing your filters or post a new problem.</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-100">No issues found</p>
+                <p className="text-[11px] text-slate-400 dark:text-gray-400">Try changing your filters or post a new problem.</p>
               </div>
             ) : (
               filteredGrievances.map((item) => {
@@ -333,19 +333,19 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                       setIsOfficialResponse(isHrOrAdmin);
                       setReplyStatus(item.status || "In-Progress");
                     }}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative space-y-2 ${
+                    className={`p-3.5 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer relative space-y-2 ${
                       isSelected
                         ? "bg-[#714B67]/8 border-[#714B67]/40 shadow-sm ring-1 ring-[#714B67]/20"
-                        : "bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
+                        : "bg-white dark:bg-gray-900 border-slate-200/80 hover:bg-slate-50 dark:hover:bg-gray-800 hover:border-slate-300 dark:hover:border-gray-700"
                     }`}
                   >
                     {/* Header line */}
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono font-black text-[#714B67] bg-[#714B67]/10 px-1.5 py-0.2 rounded border border-[#714B67]/20">
+                        <span className="text-[9px] font-mono font-black text-[#714B67] dark:text-purple-300 bg-[#714B67]/10 px-1.5 py-0.2 rounded border dark:border-gray-700 border-[#714B67]/20">
                           #GR-{item.id.slice(-4).toUpperCase()}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-gray-100 flex items-center gap-1">
                           <span>{getCategoryIcon(item.category)}</span>
                           <span className="truncate max-w-[120px]">{item.category || "General"}</span>
                         </span>
@@ -353,28 +353,28 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
 
                       <span className={`text-[9px] px-2 py-0.2 rounded-full font-bold border ${
                         isResolved
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
                           : isInProgress
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-slate-100 text-slate-600 border-slate-200"
+                            ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200"
+                            : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700"
                       }`}>
                         {item.status || "Open"}
                       </span>
                     </div>
 
                     {/* Excerpt */}
-                    <p className="text-xs text-slate-800 font-medium line-clamp-2 leading-snug">
+                    <p className="text-xs text-slate-800 dark:text-gray-100 font-medium line-clamp-2 leading-snug">
                       {item.description}
                     </p>
 
                     {/* Footer info */}
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-100">
-                      <span className="flex items-center gap-1 text-slate-500">
-                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-gray-400 font-mono pt-1 border-t border-slate-100 dark:border-gray-700">
+                      <span className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-300" />
                         {item.anonymous ? "Anonymous" : (item.raisedBy?.name || "Employee")}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-0.5 text-[#714B67] font-bold bg-[#714B67]/10 px-1.5 py-0.2 rounded">
+                        <span className="flex items-center gap-0.5 text-[#714B67] dark:text-purple-300 font-bold bg-[#714B67]/10 px-1.5 py-0.2 rounded">
                           <MessageSquare className="w-2.5 h-2.5" /> {msgCount}
                         </span>
                         <span>
@@ -400,34 +400,34 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
               <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-mono font-black text-[#714B67] bg-[#714B67]/10 px-2 py-0.5 rounded-lg border border-[#714B67]/20">
+                    <span className="text-[11px] font-mono font-black text-[#714B67] dark:text-purple-300 bg-[#714B67]/10 px-2 py-0.5 rounded-lg border dark:border-gray-700 border-[#714B67]/20">
                       #GR-{selectedGrievance.id.slice(-4).toUpperCase()}
                     </span>
-                    <span className="text-xs font-black text-slate-850 flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-850 dark:text-gray-100 flex items-center gap-1.5">
                       <span>{getCategoryIcon(selectedGrievance.category)}</span>
                       <span>{selectedGrievance.category || "General"}</span>
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md border ${getPriorityBadge(selectedGrievance.priority)}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md border dark:border-gray-700 ${getPriorityBadge(selectedGrievance.priority)}`}>
                       ⚡ {selectedGrievance.priority || "Normal"} Priority
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2">
+                  <div className="text-[10px] text-slate-400 dark:text-gray-400 font-mono flex items-center gap-2">
                     <span>Logged on {new Date(selectedGrievance.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                     <span>•</span>
-                    <span className="text-emerald-700 font-bold">100% Identity Protected</span>
+                    <span className="text-emerald-700 dark:text-emerald-300 font-bold">100% Identity Protected</span>
                   </div>
                 </div>
 
                 {/* Right Status Controls & Stepper */}
                 <div className="flex items-center gap-2">
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono font-bold bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
+                  <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono font-bold bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-1 rounded-xl shadow-2xs">
                     <button
                       type="button"
                       onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "Open")}
                       className={`px-2 py-0.5 rounded-md transition-all ${
                         selectedGrievance.status === "Open" || !selectedGrievance.status
                           ? "bg-slate-800 text-white font-black"
-                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                          : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800"
                       } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
                       title={isHrOrAdmin ? "Click to set status to Open" : undefined}
                     >
@@ -437,10 +437,10 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                     <button
                       type="button"
                       onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "In-Progress")}
-                      className={`px-2 py-0.5 rounded-md border transition-all ${
+                      className={`px-2 py-0.5 rounded-md border dark:border-gray-700 transition-all ${
                         selectedGrievance.status === "In-Progress"
                           ? "bg-amber-500 text-white border-amber-600 font-black"
-                          : "bg-transparent text-slate-400 border-transparent hover:bg-amber-50"
+                          : "bg-transparent text-slate-400 dark:text-gray-400 border-transparent hover:bg-amber-50 dark:hover:bg-amber-950/50"
                       } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
                       title={isHrOrAdmin ? "Click to set status to Investigating (In-Progress)" : undefined}
                     >
@@ -450,10 +450,10 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                     <button
                       type="button"
                       onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "Resolved")}
-                      className={`px-2 py-0.5 rounded-md border transition-all ${
+                      className={`px-2 py-0.5 rounded-md border dark:border-gray-700 transition-all ${
                         selectedGrievance.status === "Resolved"
                           ? "bg-emerald-600 text-white border-emerald-700 font-black"
-                          : "bg-transparent text-slate-400 border-transparent hover:bg-emerald-50"
+                          : "bg-transparent text-slate-400 dark:text-gray-400 border-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                       } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
                       title={isHrOrAdmin ? "Click to set status to Resolved" : undefined}
                     >
@@ -465,7 +465,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                     <button
                       onClick={() => handleQuickResolve(selectedGrievance.id, "Resolved")}
                       disabled={submitting}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Quick Resolve
                     </button>
@@ -474,7 +474,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
               </div>
 
               {/* Chat Stream Canvas (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-slate-50/40 via-white to-slate-50/30">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-slate-50/40 dark:from-gray-800 via-white dark:via-gray-900 to-slate-50/30 dark:to-gray-800">
                 {(() => {
                   const threadMessages: any[] = (selectedGrievance.messages && selectedGrievance.messages.length > 0)
                     ? selectedGrievance.messages
@@ -512,7 +512,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                                 🏢
                               </div>
                             ) : (
-                              <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center text-xs shrink-0 shadow-2xs mt-0.5">
+                              <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-slate-100 dark:from-gray-800 to-slate-200 dark:to-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 flex items-center justify-center text-xs shrink-0 shadow-2xs mt-0.5">
                                 🕵️
                               </div>
                             )}
@@ -520,29 +520,29 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                             {/* Message Box */}
                             <div className="space-y-1.5 max-w-[88%]">
                               <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                                <span className={`font-bold ${isOfficialMsg ? "text-[#714B67]" : "text-slate-800"}`}>
+                                <span className={`font-bold ${isOfficialMsg ? "text-[#714B67] dark:text-purple-300" : "text-slate-800 dark:text-gray-100"}`}>
                                   {msg.senderName || (isOfficialMsg ? "Official HR Redressal" : "Anonymous Colleague")}
                                 </span>
 
                                 {isOfficialMsg ? (
-                                  <span className="text-[9px] font-bold text-purple-700 bg-purple-100 px-2 py-0.2 rounded-full border border-purple-200 flex items-center gap-1">
-                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Official Redressal
+                                  <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/50 px-2 py-0.2 rounded-full border dark:border-gray-700 border-purple-200 flex items-center gap-1">
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-300" /> Official Redressal
                                   </span>
                                 ) : (
-                                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
+                                  <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.2 rounded-full border dark:border-gray-700 border-emerald-200">
                                     Verified Employee
                                   </span>
                                 )}
 
-                                <span className="text-[10px] text-slate-400 font-mono">
+                                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">
                                   {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Just now"}
                                 </span>
                               </div>
 
                               <div className={`p-3.5 rounded-2xl rounded-tl-xs text-xs font-medium leading-relaxed whitespace-pre-wrap ${
                                 isOfficialMsg
-                                  ? "bg-gradient-to-r from-purple-50 via-[#714B67]/5 to-transparent border border-[#714B67]/30 text-slate-900 shadow-xs"
-                                  : "bg-white border border-slate-200 text-slate-850 shadow-2xs"
+                                  ? "bg-gradient-to-r from-purple-50 dark:from-gray-800 via-[#714B67]/5 to-transparent border dark:border-gray-700 border-[#714B67]/30 text-slate-900 dark:text-gray-100 shadow-xs"
+                                  : "bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-850 dark:text-gray-100 shadow-2xs"
                               }`}>
                                 {msg.message}
                               </div>
@@ -558,10 +558,10 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                                       onClick={() => toggleReaction(msgId, emoji)}
                                       className={`px-2 py-0.5 rounded-lg text-[11px] border transition-all cursor-pointer flex items-center gap-1 ${
                                         isMine
-                                          ? "bg-[#714B67]/15 border-[#714B67]/50 text-[#714B67] font-black shadow-2xs scale-105 ring-1 ring-[#714B67]/20"
+                                          ? "bg-[#714B67]/15 border-[#714B67]/50 text-[#714B67] dark:text-purple-300 font-black shadow-2xs scale-105 ring-1 ring-[#714B67]/20"
                                           : count > 0
-                                            ? "bg-slate-100 border-slate-300 text-slate-700 font-bold"
-                                            : "bg-white/80 hover:bg-slate-100 border-slate-200 text-slate-500 opacity-60 hover:opacity-100"
+                                            ? "bg-slate-100 dark:bg-gray-800 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-100 font-bold"
+                                            : "bg-white/80 dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400 opacity-60 hover:opacity-100"
                                       }`}
                                     >
                                       <span>{emoji}</span>
@@ -580,10 +580,10 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
               </div>
 
               {/* Bottom Sticky Interactive Chat Composer */}
-              <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-white dark:bg-slate-900 space-y-2.5">
+              <div className="p-3.5 sm:p-4 border-t border-slate-100 dark:border-gray-700 bg-white dark:bg-slate-900 space-y-2.5">
                 {/* Quick Suggestion Chips */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px]">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-black tracking-wider">Quick:</span>
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-gray-400 uppercase font-black tracking-wider">Quick:</span>
                   {[
                     "⚡ Need an update on this",
                     "✅ Issue is resolved, thank you!",
@@ -593,7 +593,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                     <button
                       key={prompt}
                       onClick={() => setReplyText(prompt)}
-                      className="px-2.5 py-0.5 rounded-lg bg-slate-50 hover:bg-[#714B67]/10 border border-slate-200 hover:border-[#714B67]/30 text-slate-600 hover:text-[#714B67] font-medium whitespace-nowrap cursor-pointer transition-all text-[11px]"
+                      className="px-2.5 py-0.5 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-[#714B67]/10 border border-slate-200 dark:border-gray-700 hover:border-[#714B67]/30 text-slate-600 dark:text-gray-300 hover:text-[#714B67] dark:hover:text-purple-300 font-medium whitespace-nowrap cursor-pointer transition-all text-[11px]"
                     >
                       {prompt}
                     </button>
@@ -601,7 +601,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                 </div>
 
                 {/* Input row */}
-                <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-[#714B67]/20 focus-within:border-[#714B67] focus-within:bg-white transition-all shadow-2xs">
+                <div className="flex items-end gap-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-[#714B67]/20 focus-within:border-[#714B67] dark:focus-within:border-gray-700 focus-within:bg-white dark:focus-within:bg-gray-900 transition-all shadow-2xs">
                   <textarea
                     rows={2}
                     placeholder={isOfficialResponse ? "Type official resolution or leadership response..." : "Write your anonymous comment or follow-up note..."}
@@ -613,7 +613,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                         handleSendReply();
                       }
                     }}
-                    className="w-full bg-transparent p-1.5 text-xs font-medium text-slate-900 focus:outline-none placeholder:text-slate-400 resize-none leading-relaxed"
+                    className="w-full bg-transparent p-1.5 text-xs font-medium text-slate-900 dark:text-gray-100 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-400 resize-none leading-relaxed dark:bg-gray-800 dark:[color-scheme:dark]"
                   />
 
                   <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
@@ -631,19 +631,19 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                 {/* Optional HR / Leadership Settings Bar */}
                 {isHrOrAdmin && (
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-                    <label className="flex items-center gap-1.5 text-slate-700 font-bold cursor-pointer">
+                    <label className="flex items-center gap-1.5 text-slate-700 dark:text-gray-100 font-bold cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isOfficialResponse}
                         onChange={(e) => setIsOfficialResponse(e.target.checked)}
-                        className="rounded text-[#714B67] focus:ring-[#714B67] w-3.5 h-3.5"
+                        className="rounded text-[#714B67] dark:text-purple-300 focus:ring-[#714B67] w-3.5 h-3.5 dark:bg-gray-800 dark:[color-scheme:dark]"
                       />
                       <span>Post as Official HR Response</span>
                     </label>
 
                     {isOfficialResponse && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 font-mono">Update Status:</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-400 font-mono">Update Status:</span>
                         <select
                           value={selectedGrievance?.status || replyStatus || "Open"}
                           onChange={(e) => {
@@ -654,7 +654,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                             }
                           }}
                           disabled={submitting}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-[#714B67] cursor-pointer shadow-2xs hover:border-slate-400"
+                          className="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-[#714B67] cursor-pointer shadow-2xs hover:border-slate-400 dark:[color-scheme:dark]"
                         >
                           <option value="Open">Open</option>
                           <option value="In-Progress">In-Progress</option>
@@ -669,11 +669,11 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
-              <div className="w-14 h-14 rounded-3xl bg-[#714B67]/10 text-[#714B67] flex items-center justify-center border border-[#714B67]/20 shadow-xs">
+              <div className="w-14 h-14 rounded-3xl bg-[#714B67]/10 text-[#714B67] dark:text-purple-300 flex items-center justify-center border dark:border-gray-700 border-[#714B67]/20 shadow-xs">
                 <MessageSquare className="w-7 h-7" />
               </div>
-              <h3 className="text-sm font-black text-slate-800">Select a Problem Thread</h3>
-              <p className="text-xs text-slate-400 max-w-xs">
+              <h3 className="text-sm font-black text-slate-800 dark:text-gray-100">Select a Problem Thread</h3>
+              <p className="text-xs text-slate-400 dark:text-gray-400 max-w-xs">
                 Click any ticket from the left panel to open the interactive live discussion.
               </p>
             </div>
@@ -970,10 +970,10 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Top Banner & Action Header */}
-      <div className="p-4 sm:p-5 rounded-3xl border border-rose-200/70 bg-gradient-to-r from-rose-900/10 via-amber-900/5 to-white dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs relative overflow-hidden backdrop-blur-md">
+      <div className="p-4 sm:p-5 rounded-3xl border dark:border-gray-700 border-rose-200/70 bg-gradient-to-r from-rose-900/10 via-amber-900/5 to-white dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs relative overflow-hidden backdrop-blur-md">
         <div className="space-y-1 z-10">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="p-2 rounded-2xl bg-gradient-to-br from-rose-600 to-rose-900 text-white shadow-sm">
@@ -982,16 +982,16 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
               Enterprise Risk &amp; Alerts Management
             </h1>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider border shadow-2xs ${
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider border dark:border-gray-700 shadow-2xs ${
               criticalHighCount > 0
-                ? "bg-rose-50 text-rose-700 border-rose-200"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200"
+                : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200"
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${criticalHighCount > 0 ? "bg-rose-500 animate-ping" : "bg-emerald-500"}`}></span>
               {criticalHighCount > 0 ? `${criticalHighCount} Active High Threats` : "System Secure & High Integrity"}
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">
             Real-time compliance monitoring, vetting triggers, anomaly containment &amp; executive audits.
           </p>
         </div>
@@ -1000,9 +1000,9 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
           <button
             onClick={handleExportCSV}
             title="Download Risk Audit Report as CSV"
-            className="px-3.5 py-2 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
+            className="px-3.5 py-2 rounded-2xl bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
           >
-            <Download className="w-3.5 h-3.5 text-slate-600" />
+            <Download className="w-3.5 h-3.5 text-slate-600 dark:text-gray-300" />
             <span>Export Audit CSV</span>
           </button>
           <button
@@ -1015,9 +1015,9 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             onClick={loadAlerts}
             disabled={loading}
             title="Refresh Alert Stream"
-            className="p-2 border border-slate-200 bg-white rounded-2xl hover:bg-slate-50 text-slate-600 transition-all shadow-xs cursor-pointer"
+            className="p-2 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-2xl hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition-all shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 text-rose-600 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 text-rose-600 dark:text-rose-300 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
@@ -1031,23 +1031,23 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setStatusFilter("ALL");
             setSeverityFilter("ALL");
           }}
-          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+          className={`text-left border dark:border-gray-700 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
             statusFilter === "ALL" && severityFilter === "ALL"
-              ? "bg-slate-50 border-slate-700 ring-2 ring-slate-800/20 shadow-sm"
-              : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
+              ? "bg-slate-50 dark:bg-gray-800 border-slate-700 ring-2 ring-slate-800/20 shadow-sm"
+              : "bg-white dark:bg-gray-900 border-slate-200/90 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-slate-50/50 dark:hover:bg-slate-950/50"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">Total Risks Logged</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">Total Risks Logged</span>
             <span className={`p-1.5 rounded-xl ${
-              statusFilter === "ALL" && severityFilter === "ALL" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600"
+              statusFilter === "ALL" && severityFilter === "ALL" ? "bg-slate-800 text-white" : "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300"
             }`}>
               <Activity className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{totalCount}</span>
-            <span className="text-[10px] font-bold font-mono text-slate-400">incidents</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-gray-100">{totalCount}</span>
+            <span className="text-[10px] font-bold font-mono text-slate-400 dark:text-gray-400">incidents</span>
           </div>
         </button>
 
@@ -1058,22 +1058,22 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setSeverityFilter(severityFilter === "CRITICAL_HIGH" ? "ALL" : "CRITICAL_HIGH");
             setStatusFilter("ALL");
           }}
-          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+          className={`text-left border dark:border-gray-700 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
             severityFilter === "CRITICAL_HIGH"
-              ? "bg-rose-50/90 border-rose-500 ring-2 ring-rose-500/25 shadow-sm"
-              : "bg-gradient-to-br from-rose-500/10 via-rose-50/40 to-white border-rose-200 hover:border-rose-300"
+              ? "bg-rose-50/90 dark:bg-rose-950/50 border-rose-500 ring-2 ring-rose-500/25 shadow-sm"
+              : "bg-gradient-to-br from-rose-500/10 via-rose-50/40 dark:via-gray-800 to-white dark:to-gray-900 border-rose-200 hover:border-rose-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700">Critical / High Threats</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">Critical / High Threats</span>
             <span className={`p-1.5 rounded-xl ${
-              severityFilter === "CRITICAL_HIGH" ? "bg-rose-600 text-white shadow-xs" : "bg-rose-100 text-rose-700"
+              severityFilter === "CRITICAL_HIGH" ? "bg-rose-600 text-white shadow-xs" : "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
             }`}>
               <AlertCircle className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-rose-600">{criticalHighCount}</span>
+            <span className="text-2xl font-black text-rose-600 dark:text-rose-300">{criticalHighCount}</span>
             <span className="text-[10px] font-bold font-mono text-rose-500">require containment</span>
           </div>
         </button>
@@ -1085,22 +1085,22 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setStatusFilter(statusFilter === "OPEN" ? "ALL" : "OPEN");
             setSeverityFilter("ALL");
           }}
-          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+          className={`text-left border dark:border-gray-700 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
             statusFilter === "OPEN" && severityFilter === "ALL"
-              ? "bg-amber-50/90 border-amber-500 ring-2 ring-amber-500/25 shadow-sm"
-              : "bg-white border-slate-200/90 hover:border-amber-300 hover:bg-amber-50/30"
+              ? "bg-amber-50/90 dark:bg-amber-950/50 border-amber-500 ring-2 ring-amber-500/25 shadow-sm"
+              : "bg-white dark:bg-gray-900 border-slate-200/90 hover:border-amber-300 hover:bg-amber-50/30 dark:hover:bg-amber-950/50"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Open / Unassigned</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Open / Unassigned</span>
             <span className={`p-1.5 rounded-xl ${
-              statusFilter === "OPEN" && severityFilter === "ALL" ? "bg-amber-500 text-white shadow-xs" : "bg-amber-100 text-amber-700"
+              statusFilter === "OPEN" && severityFilter === "ALL" ? "bg-amber-500 text-white shadow-xs" : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
             }`}>
               <Clock className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-600">{openCount}</span>
+            <span className="text-2xl font-black text-amber-600 dark:text-amber-300">{openCount}</span>
             <span className="text-[10px] font-bold font-mono text-amber-600/80">pending review</span>
           </div>
         </button>
@@ -1112,22 +1112,22 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setStatusFilter(statusFilter === "INVESTIGATING" ? "ALL" : "INVESTIGATING");
             setSeverityFilter("ALL");
           }}
-          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+          className={`text-left border dark:border-gray-700 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
             statusFilter === "INVESTIGATING" && severityFilter === "ALL"
-              ? "bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/25 shadow-sm"
-              : "bg-white border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/30"
+              ? "bg-blue-50/90 dark:bg-blue-950/50 border-blue-500 ring-2 ring-blue-500/25 shadow-sm"
+              : "bg-white dark:bg-gray-900 border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/30 dark:hover:bg-blue-950/50"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-700">In Investigation</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">In Investigation</span>
             <span className={`p-1.5 rounded-xl ${
-              statusFilter === "INVESTIGATING" && severityFilter === "ALL" ? "bg-blue-600 text-white shadow-xs" : "bg-blue-100 text-blue-700"
+              statusFilter === "INVESTIGATING" && severityFilter === "ALL" ? "bg-blue-600 text-white shadow-xs" : "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
             }`}>
               <Search className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-600">{investigatingCount}</span>
+            <span className="text-2xl font-black text-blue-600 dark:text-blue-300">{investigatingCount}</span>
             <span className="text-[10px] font-bold font-mono text-blue-600/80">active vetting</span>
           </div>
         </button>
@@ -1139,26 +1139,26 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setStatusFilter(statusFilter === "RESOLVED" ? "ALL" : "RESOLVED");
             setSeverityFilter("ALL");
           }}
-          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between col-span-2 lg:col-span-1 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+          className={`text-left border dark:border-gray-700 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between col-span-2 lg:col-span-1 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
             statusFilter === "RESOLVED" && severityFilter === "ALL"
-              ? "bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/25 shadow-sm"
-              : "bg-gradient-to-br from-emerald-500/10 via-emerald-50/40 to-white border-emerald-200 hover:border-emerald-300"
+              ? "bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-500 ring-2 ring-emerald-500/25 shadow-sm"
+              : "bg-gradient-to-br from-emerald-500/10 via-emerald-50/40 dark:via-gray-800 to-white dark:to-gray-900 border-emerald-200 hover:border-emerald-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700">Mitigated Cases</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Mitigated Cases</span>
             <span className={`p-1.5 rounded-xl ${
-              statusFilter === "RESOLVED" && severityFilter === "ALL" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-100 text-emerald-700"
+              statusFilter === "RESOLVED" && severityFilter === "ALL" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
             }`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="mt-2 flex items-baseline justify-between">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-black text-emerald-700">{resolvedCount}</span>
-              <span className="text-[10px] font-bold font-mono text-emerald-600">resolved</span>
+              <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{resolvedCount}</span>
+              <span className="text-[10px] font-bold font-mono text-emerald-600 dark:text-emerald-300">resolved</span>
             </div>
-            <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-lg text-emerald-800 bg-emerald-100">
+            <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-lg text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50">
               {resolutionRate}%
             </span>
           </div>
@@ -1166,7 +1166,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
       </div>
 
       {/* 2. ADVANCED FILTER & TRIAGE BAR */}
-      <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-3">
+      <div className="p-3.5 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-2xs space-y-3">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           
           {/* Status Quick Tabs */}
@@ -1186,11 +1186,11 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   statusFilter === tab.key && severityFilter === "ALL"
                     ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80"
+                    : "bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 border dark:border-gray-700 border-slate-200/80"
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${statusFilter === tab.key && severityFilter === "ALL" ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"}`}>
+                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${statusFilter === tab.key && severityFilter === "ALL" ? "bg-white/20 dark:bg-gray-900 text-white" : "bg-slate-200/80 dark:bg-slate-950/50 text-slate-700 dark:text-gray-100"}`}>
                   {tab.count}
                 </span>
               </button>
@@ -1200,12 +1200,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
           {/* Severity & Category Dropdowns + Reset */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {/* Severity Filter */}
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Severity:</span>
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-2.5 py-1">
+              <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-gray-400 uppercase">Severity:</span>
               <select
                 value={severityFilter}
                 onChange={e => setSeverityFilter(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
               >
                 <option value="ALL">All Levels</option>
                 <option value="CRITICAL_HIGH">🚨 Critical &amp; High</option>
@@ -1217,12 +1217,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             </div>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 max-w-[200px]">
-              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase shrink-0">Category:</span>
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-2.5 py-1 max-w-[200px]">
+              <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-gray-400 uppercase shrink-0">Category:</span>
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none truncate cursor-pointer"
+                className="bg-transparent text-xs font-bold text-slate-800 dark:text-gray-100 focus:outline-none truncate cursor-pointer dark:bg-gray-800 dark:[color-scheme:dark]"
               >
                 <option value="ALL">All Categories</option>
                 {uniqueCategories.map((cat: any) => (
@@ -1240,7 +1240,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   setCategoryFilter("ALL");
                   setSearchQuery("");
                 }}
-                className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-300 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <X className="w-3 h-3" /> Reset Filters
               </button>
@@ -1256,38 +1256,38 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
         {/* Left Side: Alert Explorer List (4 cols) */}
         <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 flex flex-col shadow-xs overflow-hidden">
           
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-            <span className="text-xs font-black tracking-wider text-slate-500 uppercase font-mono flex items-center gap-1.5">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-gray-700">
+            <span className="text-xs font-black tracking-wider text-slate-500 dark:text-gray-400 uppercase font-mono flex items-center gap-1.5">
               <span>Threat Queue</span>
-              <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px]">
+              <span className="px-2 py-0.2 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-100 text-[10px]">
                 {filteredAlerts.length}
               </span>
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">Sorted by latest</span>
+            <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono">Sorted by latest</span>
           </div>
 
           <div className="relative mb-3">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search ID, entity, headline..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8.5 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl pl-8.5 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-400 dark:[color-scheme:dark]"
             />
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             {loading ? (
               <div className="text-center py-16 space-y-2">
-                <RefreshCw className="w-5 h-5 text-rose-600 animate-spin mx-auto" />
-                <p className="text-xs text-slate-400 font-bold">Loading active risks...</p>
+                <RefreshCw className="w-5 h-5 text-rose-600 dark:text-rose-300 animate-spin mx-auto" />
+                <p className="text-xs text-slate-400 dark:text-gray-400 font-bold">Loading active risks...</p>
               </div>
             ) : filteredAlerts.length === 0 ? (
               <div className="text-center py-16 px-4 space-y-2">
                 <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto opacity-70" />
-                <p className="text-xs font-bold text-slate-700">No matching risk alerts</p>
-                <p className="text-[11px] text-slate-400">All filters clear or no incidents matching criteria.</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-100">No matching risk alerts</p>
+                <p className="text-[11px] text-slate-400 dark:text-gray-400">All filters clear or no incidents matching criteria.</p>
               </div>
             ) : (
               filteredAlerts.map((alert) => {
@@ -1300,59 +1300,59 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   <div
                     key={alert.id}
                     onClick={() => handleSelectAlert(alert)}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 relative ${
+                    className={`w-full text-left p-3.5 rounded-2xl border dark:border-gray-700 transition-all cursor-pointer flex flex-col gap-2 relative ${
                       isSelected
-                        ? "bg-rose-50/70 border-rose-300 shadow-sm ring-1 ring-rose-300/40"
-                        : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60"
+                        ? "bg-rose-50/70 dark:bg-rose-950/50 border-rose-300 shadow-sm ring-1 ring-rose-300/40"
+                        : "bg-white dark:bg-gray-900 border-slate-200/80 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-slate-50/60 dark:hover:bg-slate-950/50"
                     }`}
                   >
                     {/* Top Row: Ticket ID + Category */}
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono font-black text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded border border-rose-200">
+                        <span className="text-[9px] font-mono font-black text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/50 px-1.5 py-0.2 rounded border dark:border-gray-700 border-rose-200">
                           RA-{alert.id.slice(-4).toUpperCase()}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-800 truncate max-w-[130px]">
+                        <span className="text-[11px] font-bold text-slate-800 dark:text-gray-100 truncate max-w-[130px]">
                           {alert.source}
                         </span>
                       </div>
                       {(isCritical || isHigh) && (
-                        <AlertCircle className={`w-3.5 h-3.5 ${isCritical ? "text-rose-600 animate-pulse" : "text-amber-600"}`} />
+                        <AlertCircle className={`w-3.5 h-3.5 ${isCritical ? "text-rose-600 dark:text-rose-300 animate-pulse" : "text-amber-600 dark:text-amber-300"}`} />
                       )}
                     </div>
 
                     {/* Headline / Target */}
                     <div className="space-y-0.5">
-                      <div className="text-xs font-black text-slate-900 line-clamp-1">
+                      <div className="text-xs font-black text-slate-900 dark:text-gray-100 line-clamp-1">
                         {parsed.title || alert.source}
                       </div>
                       {parsed.targetEntity && (
-                        <div className="text-[10px] text-slate-500 font-medium line-clamp-1 flex items-center gap-1">
-                          <span className="font-bold text-slate-700">Target:</span> {parsed.targetEntity}
+                        <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium line-clamp-1 flex items-center gap-1">
+                          <span className="font-bold text-slate-700 dark:text-gray-100">Target:</span> {parsed.targetEntity}
                         </div>
                       )}
                     </div>
 
                     {/* Bottom Status & Severity Pills */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] font-mono">
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-gray-700 text-[10px] font-mono">
                       <span className={`font-bold px-2 py-0.2 rounded-md ${
                         alert.level === "Critical" ? "bg-rose-600 text-white" :
-                        alert.level === "High" ? "bg-rose-100 text-rose-700" :
-                        alert.level === "Medium" ? "bg-amber-100 text-amber-700" :
-                        "bg-emerald-100 text-emerald-700"
+                        alert.level === "High" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300" :
+                        alert.level === "Medium" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300" :
+                        "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                       }`}>
                         {alert.level} Risk
                       </span>
 
                       <div className="flex items-center gap-2">
                         <span className={`font-bold px-2 py-0.2 rounded-md border ${
-                          alert.status === "Resolved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                          alert.status === "Investigating" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                          "bg-slate-100 text-slate-600 border-slate-200"
+                          alert.status === "Resolved" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200" :
+                          alert.status === "Investigating" ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200" :
+                          "bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700"
                         }`}>
                           {alert.status || "Open"}
                         </span>
-                        <span className="text-slate-400 text-[9px]">
+                        <span className="text-slate-400 dark:text-gray-400 text-[9px]">
                           {new Date(alert.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                         </span>
                       </div>
@@ -1368,18 +1368,18 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
         <div className="lg:col-span-8 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
           {isCreating ? (
             <div className="p-6 flex flex-col h-full overflow-hidden">
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
+              <div className="flex justify-between items-start gap-4 pb-4 border-b dark:border-gray-700 border-slate-150 shrink-0">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                      <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-gray-100 flex items-center gap-2">
+                      <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-300 animate-pulse" />
                       Trigger Enterprise Risk Alert
                     </h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200 font-mono">
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border dark:border-gray-700 border-rose-200 font-mono">
                       Mandatory Risk Log
                     </span>
                   </div>
-                  <p className="text-slate-500 text-xs mt-1 font-medium">Log an anomaly, fraud, or compliance breach for instant investigation by HR &amp; Leadership.</p>
+                  <p className="text-slate-500 dark:text-gray-400 text-xs mt-1 font-medium">Log an anomaly, fraud, or compliance breach for instant investigation by HR &amp; Leadership.</p>
                 </div>
                 {alerts.length > 0 && (
                   <button
@@ -1388,7 +1388,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       setIsCreating(false);
                       if (alerts[0]) setSelectedAlert(alerts[0]);
                     }}
-                    className="text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-xl hover:bg-slate-100 text-xs font-bold transition-all border border-slate-200 cursor-pointer"
+                    className="text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-100 px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 text-xs font-bold transition-all border border-slate-200 dark:border-gray-700 cursor-pointer"
                   >
                     ✕ Cancel
                   </button>
@@ -1401,12 +1401,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   {/* Row 1: Category & Severity */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
-                        Risk Category <span className="text-rose-600 font-black">*</span>
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider mb-1.5">
+                        Risk Category <span className="text-rose-600 dark:text-rose-300 font-black">*</span>
                       </label>
                       <select
                         required
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all dark:[color-scheme:dark]"
                         value={createForm.source}
                         onChange={e => setCreateForm({ ...createForm, source: e.target.value })}
                       >
@@ -1425,21 +1425,21 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                     <div>
                       <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">
-                          Severity Level <span className="text-rose-600 font-black">*</span>
+                        <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider">
+                          Severity Level <span className="text-rose-600 dark:text-rose-300 font-black">*</span>
                         </label>
-                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
+                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border dark:border-gray-700 ${
                           createForm.level === "Critical" ? "bg-rose-600 text-white border-rose-700 animate-pulse" :
-                          createForm.level === "High" ? "bg-rose-100 text-rose-700 border-rose-300" :
-                          createForm.level === "Medium" ? "bg-amber-100 text-amber-700 border-amber-300" :
-                          "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          createForm.level === "High" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300" :
+                          createForm.level === "Medium" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300" :
+                          "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300"
                         }`}>
                           {createForm.level} Risk
                         </span>
                       </div>
                       <select
                         required
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all dark:[color-scheme:dark]"
                         value={createForm.level}
                         onChange={e => setCreateForm({ ...createForm, level: e.target.value })}
                       >
@@ -1454,28 +1454,28 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   {/* Row 2: Risk Title & Target Entity */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
-                        Risk Title / Headline <span className="text-rose-600 font-black">*</span>
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider mb-1.5">
+                        Risk Title / Headline <span className="text-rose-600 dark:text-rose-300 font-black">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. Discrepancy in experience certificate & bank statement"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all dark:[color-scheme:dark]"
                         value={createForm.title}
                         onChange={e => setCreateForm({ ...createForm, title: e.target.value })}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
-                        Target Entity / Employee / Dept <span className="text-rose-600 font-black">*</span>
+                      <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider mb-1.5">
+                        Target Entity / Employee / Dept <span className="text-rose-600 dark:text-rose-300 font-black">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. Employee ID / Candidate Name / Sales Dept / Vendor Name"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-bold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all dark:[color-scheme:dark]"
                         value={createForm.targetEntity}
                         onChange={e => setCreateForm({ ...createForm, targetEntity: e.target.value })}
                       />
@@ -1484,12 +1484,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                   {/* Row 3: Description & Evidence */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
-                      Detailed Risk Description &amp; Evidence <span className="text-rose-600 font-black">*</span>
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider mb-1.5">
+                      Detailed Risk Description &amp; Evidence <span className="text-rose-600 dark:text-rose-300 font-black">*</span>
                     </label>
                     <textarea
                       required
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 h-28 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all leading-relaxed"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-3 text-xs font-medium text-slate-800 dark:text-gray-100 h-28 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all leading-relaxed dark:[color-scheme:dark]"
                       placeholder="Detail the anomaly, incident timeline, system logs, discrepancies or evidence links..."
                       value={createForm.description}
                       onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
@@ -1498,13 +1498,13 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                   {/* Row 4: Suggested Mitigation Action */}
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
-                      Immediate Containment / Suggested Action <span className="text-slate-400 font-normal">(Optional)</span>
+                    <label className="block text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono tracking-wider mb-1.5">
+                      Immediate Containment / Suggested Action <span className="text-slate-400 dark:text-gray-400 font-normal">(Optional)</span>
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. Hold salary release, initiate background re-verification, freeze system access"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-xs font-semibold text-slate-850 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white dark:focus:bg-gray-900 transition-all dark:[color-scheme:dark]"
                       value={createForm.mitigationAction}
                       onChange={e => setCreateForm({ ...createForm, mitigationAction: e.target.value })}
                     />
@@ -1531,41 +1531,41 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 <div className="flex flex-col h-full overflow-hidden">
                   
                   {/* Alert Header Bar */}
-                  <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                  <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-gray-700 bg-slate-50/70 dark:bg-slate-950/50 flex flex-wrap items-center justify-between gap-3 shrink-0">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[11px] font-mono font-black text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-lg border border-rose-200">
+                        <span className="text-[11px] font-mono font-black text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/50 px-2 py-0.5 rounded-lg border dark:border-gray-700 border-rose-200">
                           #RA-{selectedAlert.id.slice(-4).toUpperCase()}
                         </span>
-                        <span className="text-xs font-black text-slate-900">
+                        <span className="text-xs font-black text-slate-900 dark:text-gray-100">
                           {selectedAlert.source}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border dark:border-gray-700 ${
                           selectedAlert.level === "Critical" ? "bg-rose-600 text-white border-rose-700" :
-                          selectedAlert.level === "High" ? "bg-rose-100 text-rose-700 border-rose-300" :
-                          selectedAlert.level === "Medium" ? "bg-amber-100 text-amber-700 border-amber-300" :
-                          "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          selectedAlert.level === "High" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300" :
+                          selectedAlert.level === "Medium" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300" :
+                          "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300"
                         }`}>
                           ⚡ {selectedAlert.level} Risk
                         </span>
                       </div>
 
-                      <div className="text-[10px] text-slate-400 font-mono flex flex-wrap items-center gap-3">
-                        <span>Triggered By: <strong className="text-slate-700">{selectedAlert.triggeredBy?.name || "System Automation"}</strong></span>
+                      <div className="text-[10px] text-slate-400 dark:text-gray-400 font-mono flex flex-wrap items-center gap-3">
+                        <span>Triggered By: <strong className="text-slate-700 dark:text-gray-100">{selectedAlert.triggeredBy?.name || "System Automation"}</strong></span>
                         <span>•</span>
                         <span>Logged on {new Date(selectedAlert.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
                     </div>
 
                     {/* Interactive Stepper */}
-                    <div className="flex items-center gap-1 text-[10px] font-mono font-bold bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
+                    <div className="flex items-center gap-1 text-[10px] font-mono font-bold bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-1 rounded-xl shadow-2xs">
                       <button
                         type="button"
                         onClick={() => handleDirectStatusChange(selectedAlert.id, "Open")}
                         className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                           selectedAlert.status === "Open" || !selectedAlert.status
                             ? "bg-slate-900 text-white font-black"
-                            : "bg-transparent text-slate-500 hover:bg-slate-100"
+                            : "bg-transparent text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800"
                         }`}
                       >
                         ✓ Open
@@ -1574,10 +1574,10 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       <button
                         type="button"
                         onClick={() => handleDirectStatusChange(selectedAlert.id, "Investigating")}
-                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all cursor-pointer ${
                           selectedAlert.status === "Investigating"
                             ? "bg-amber-500 text-white border-amber-600 font-black"
-                            : "bg-transparent text-slate-500 border-transparent hover:bg-amber-50"
+                            : "bg-transparent text-slate-500 dark:text-gray-400 border-transparent hover:bg-amber-50 dark:hover:bg-amber-950/50"
                         }`}
                       >
                         Investigating
@@ -1586,10 +1586,10 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       <button
                         type="button"
                         onClick={() => handleDirectStatusChange(selectedAlert.id, "Resolved")}
-                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-lg border dark:border-gray-700 transition-all cursor-pointer ${
                           selectedAlert.status === "Resolved"
                             ? "bg-emerald-600 text-white border-emerald-700 font-black"
-                            : "bg-transparent text-slate-500 border-transparent hover:bg-emerald-50"
+                            : "bg-transparent text-slate-500 dark:text-gray-400 border-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                         }`}
                       >
                         Resolved
@@ -1602,11 +1602,11 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                     
                     {/* Headline Card */}
                     {parsed.title && (
-                      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50/60 to-amber-50/40 border border-rose-200/80">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600 block mb-1">
+                      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50/60 dark:from-gray-800 to-amber-50/40 dark:to-gray-800 border dark:border-gray-700 border-rose-200/80">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-300 block mb-1">
                           Risk Headline
                         </span>
-                        <h3 className="text-sm font-black text-slate-900 leading-snug">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-gray-100 leading-snug">
                           {parsed.title}
                         </h3>
                       </div>
@@ -1614,16 +1614,16 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                     {/* Target Entity Card */}
                     {parsed.targetEntity && (
-                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 flex items-center justify-between">
                         <div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-gray-400 block mb-0.5">
                             Target Entity / Department / Subject
                           </span>
-                          <span className="text-xs font-black text-slate-800">
+                          <span className="text-xs font-black text-slate-800 dark:text-gray-100">
                             🎯 {parsed.targetEntity}
                           </span>
                         </div>
-                        <span className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-[10px] font-mono font-bold text-slate-600">
+                        <span className="px-2.5 py-1 rounded-xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-[10px] font-mono font-bold text-slate-600 dark:text-gray-300">
                           {selectedAlert.source}
                         </span>
                       </div>
@@ -1631,10 +1631,10 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                     {/* Flagged Details & Evidence */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-500">
+                      <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
                         Flagged Anomaly Details &amp; Evidence
                       </span>
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs font-medium text-slate-800 leading-relaxed whitespace-pre-wrap shadow-2xs">
+                      <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-xs font-medium text-slate-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap shadow-2xs">
                         {parsed.body || selectedAlert.description}
                       </div>
                     </div>
@@ -1642,26 +1642,26 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                     {/* Suggested Mitigation Action */}
                     {parsed.mitigation && (
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                           <ShieldCheck className="w-3.5 h-3.5" /> Suggested Containment / Mitigation Action
                         </span>
-                        <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-xs font-semibold text-emerald-950 leading-relaxed">
+                        <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 text-xs font-semibold text-emerald-950 leading-relaxed">
                           {parsed.mitigation}
                         </div>
                       </div>
                     )}
 
                     {/* Investigation Resolution Box */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 shadow-2xs space-y-3 mt-4">
-                      <h4 className="text-[10px] font-black tracking-widest text-slate-500 uppercase font-mono border-b border-slate-200 pb-2 flex items-center justify-between">
+                    <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl p-4.5 shadow-2xs space-y-3 mt-4">
+                      <h4 className="text-[10px] font-black tracking-widest text-slate-500 dark:text-gray-400 uppercase font-mono border-b border-slate-200 dark:border-gray-700 pb-2 flex items-center justify-between">
                         <span>Investigation &amp; Vetting Action</span>
-                        <span className="text-slate-400 font-normal">Audit Logged</span>
+                        <span className="text-slate-400 dark:text-gray-400 font-normal">Audit Logged</span>
                       </h4>
 
                       <form onSubmit={handleResolveAlert} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div className="flex-1">
                           <select
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-2xs"
+                            className="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-2xs dark:[color-scheme:dark]"
                             value={resolutionStatus}
                             onChange={e => setResolutionStatus(e.target.value)}
                           >
@@ -1687,12 +1687,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
               );
             })()
           ) : (
-            <div className="text-center py-32 bg-white rounded-3xl flex flex-col justify-center items-center h-full p-6 space-y-3">
-              <div className="w-14 h-14 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
+            <div className="text-center py-32 bg-white dark:bg-gray-900 rounded-3xl flex flex-col justify-center items-center h-full p-6 space-y-3">
+              <div className="w-14 h-14 rounded-3xl bg-rose-50 dark:bg-rose-950/50 border dark:border-gray-700 border-rose-200 text-rose-600 dark:text-rose-300 flex items-center justify-center shadow-xs">
                 <ShieldAlert className="w-7 h-7" />
               </div>
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Risk Alert Selected</h4>
-              <p className="text-xs text-slate-400 max-w-xs leading-normal">
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">No Risk Alert Selected</h4>
+              <p className="text-xs text-slate-400 dark:text-gray-400 max-w-xs leading-normal">
                 Select an alert from the queue to investigate details, or click "Trigger Alert" to log a new risk.
               </p>
             </div>
@@ -2130,15 +2130,15 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
   );
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 animate-fadeIn text-slate-800 dark:text-gray-100">
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-200 dark:border-gray-700">
         <div>
-          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+          <h1 className="text-xl font-black text-slate-800 dark:text-gray-100 flex items-center gap-2">
             Exit & Separation Clearance
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Multi-Stage Exit Approval Workflow (Manager → Owner → HR) with Automated Email Alerts</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Multi-Stage Exit Approval Workflow (Manager → Owner → HR) with Automated Email Alerts</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -2150,7 +2150,7 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0 shadow-sm"
+            className="p-2 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-300 transition duration-150 shrink-0 shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -2160,25 +2160,25 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left Side: Exit Requests Directory */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Exit Requests Directory</h3>
+        <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono mb-3">Exit Requests Directory</h3>
 
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-gray-400 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search by employee name..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] dark:focus:border-gray-700 text-slate-800 dark:text-gray-100 dark:[color-scheme:dark]"
             />
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading exit requests...</div>
+              <div className="text-center py-10 font-bold text-slate-400 dark:text-gray-400 text-[10px] animate-pulse">Loading exit requests...</div>
             ) : filteredRecords.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No exit clearance requests found</div>
+              <div className="text-center py-10 text-slate-400 dark:text-gray-400 font-bold text-[10px]">No exit clearance requests found</div>
             ) : (
               filteredRecords.map((rec, i) => {
                 const isSelected = selectedRecord && selectedRecord.id === rec.id;
@@ -2189,25 +2189,25 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                     key={i}
                     onClick={() => handleSelectRecord(rec)}
                     className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 ${isSelected
-                      ? "bg-indigo-50/50 border-indigo-600 shadow-sm"
-                      : "bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50/50"
+                      ? "bg-indigo-50/50 dark:bg-indigo-950/50 border-indigo-600 shadow-sm"
+                      : "bg-white dark:bg-gray-900 border-slate-100 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-slate-50/50 dark:hover:bg-slate-950/50"
                       }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-2">
+                      <div className="font-bold text-slate-800 dark:text-gray-100 text-xs truncate flex items-center gap-2">
                         {rec.name}
                       </div>
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${stage === "Approved" ? "bg-emerald-100 text-emerald-800" :
-                        stage === "Rejected" ? "bg-rose-100 text-rose-800" :
-                          stage === "Pending Manager" ? "bg-amber-100 text-amber-800" :
-                            stage === "Pending Owner" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${stage === "Approved" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300" :
+                        stage === "Rejected" ? "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300" :
+                          stage === "Pending Manager" ? "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300" :
+                            stage === "Pending Owner" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300" : "bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300"
                         }`}>
                         {stage}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 dark:text-gray-400 font-mono">
                       <span className="truncate">{rec.submittedByUser?.email || "Staff"}</span>
-                      <span className="font-bold text-slate-600">{rec.exitType || "Exit Requested"}</span>
+                      <span className="font-bold text-slate-600 dark:text-gray-300">{rec.exitType || "Exit Requested"}</span>
                     </div>
                   </button>
                 );
@@ -2219,18 +2219,18 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
         {/* Right Side: Exit Clearance Workspace & Multi-Stage Approvals */}
         <div className="lg:col-span-8">
           {selectedRecord ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm flex flex-col h-[750px] overflow-y-auto">
 
               {/* Header Info */}
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
+              <div className="flex justify-between items-start gap-4 pb-4 border-b dark:border-gray-700 border-slate-150 shrink-0">
                 <div>
-                  <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
+                  <h2 className="text-lg font-black text-slate-850 dark:text-gray-100 flex items-center gap-2">
                     Exit Clearance — {selectedRecord.name}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-4 font-mono">
-                    <span>Form ID: <strong className="text-slate-700">{selectedRecord.id}</strong></span>
-                    <span>Submitter: <strong className="text-slate-700">{selectedRecord.submittedByUser?.email || "Employee"}</strong></span>
-                    <span>Dept Manager: <strong className="text-slate-700">{selectedRecord.managerName || "Department Manager"}</strong></span>
+                  <div className="text-slate-500 dark:text-gray-400 text-[10px] mt-1.5 flex flex-wrap gap-4 font-mono">
+                    <span>Form ID: <strong className="text-slate-700 dark:text-gray-100">{selectedRecord.id}</strong></span>
+                    <span>Submitter: <strong className="text-slate-700 dark:text-gray-100">{selectedRecord.submittedByUser?.email || "Employee"}</strong></span>
+                    <span>Dept Manager: <strong className="text-slate-700 dark:text-gray-100">{selectedRecord.managerName || "Department Manager"}</strong></span>
                   </div>
                 </div>
 
@@ -2238,14 +2238,14 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                   {isOwnerOrHR && (
                     <button
                       onClick={handleOpenFullEditModal}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+                      className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border dark:border-gray-700 border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
                     >
                       <Edit className="w-3.5 h-3.5" /> Edit Exit Form
                     </button>
                   )}
-                  <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
-                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Approval Stage</span>
-                    <span className={`text-xs font-bold ${selectedRecord.approvalStage === 'Approved' ? 'text-emerald-600' :
+                  <div className={`px-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-center min-w-32`}>
+                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 dark:text-gray-400 block mb-0.5">Approval Stage</span>
+                    <span className={`text-xs font-bold ${selectedRecord.approvalStage === 'Approved' ? 'text-emerald-600 dark:text-emerald-300' :
                       selectedRecord.approvalStage === 'Rejected' ? 'text-rose-600' : 'text-amber-600'
                       }`}>
                       {selectedRecord.approvalStage || "Pending Manager"}
@@ -2255,34 +2255,34 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
               </div>
 
               {/* 3-Stage Progress Timeline */}
-              <div className="my-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] mb-3 font-mono">Multi-Stage Approval Pipeline</h4>
+              <div className="my-6 bg-slate-50 dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] dark:text-purple-300 mb-3 font-mono">Multi-Stage Approval Pipeline</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center text-xs font-bold">
 
                   {/* Stage 1 */}
-                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${selectedRecord.managerApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+                  <div className={`p-3 rounded-lg border dark:border-gray-700 flex flex-col items-center justify-center ${selectedRecord.managerApprovalStatus === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-900 dark:text-emerald-300' :
                     selectedRecord.managerApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-amber-300 text-amber-900'
                     }`}>
-                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 1: Dept Manager</span>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Stage 1: Dept Manager</span>
                     <span className="mt-1 font-extrabold">{selectedRecord.managerApprovalStatus === 'Approved' ? `Approved (${selectedRecord.exitType || 'Direct Exit'})` : selectedRecord.managerApprovalStatus === 'Rejected' ? 'Rejected' : 'Pending Review'}</span>
                     {selectedRecord.exitType === 'Notice Period' && (
-                      <span className="text-[10px] text-slate-600 font-normal mt-0.5">Notice: {selectedRecord.noticePeriodDays || 30} days (LWD: {selectedRecord.lastWorkingDay || 'N/A'})</span>
+                      <span className="text-[10px] text-slate-600 dark:text-gray-300 font-normal mt-0.5">Notice: {selectedRecord.noticePeriodDays || 30} days (LWD: {selectedRecord.lastWorkingDay || 'N/A'})</span>
                     )}
                   </div>
 
                   {/* Stage 2 */}
-                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${selectedRecord.ownerApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
-                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 text-slate-600'
+                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${selectedRecord.ownerApprovalStatus === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-900 dark:text-emerald-300' :
+                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 dark:border-gray-700 text-slate-600'
                     }`}>
-                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 2: Owner / Management</span>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Stage 2: Owner / Management</span>
                     <span className="mt-1 font-extrabold">{selectedRecord.ownerApprovalStatus === 'Approved' ? 'Executive Approved' : selectedRecord.ownerApprovalStatus === 'Rejected' ? 'Executive Rejected' : 'Pending Stage 1'}</span>
                   </div>
 
                   {/* Stage 3 */}
-                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${selectedRecord.hrApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
-                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 text-slate-600'
+                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${selectedRecord.hrApprovalStatus === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-900 dark:text-emerald-300' :
+                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 dark:border-gray-700 text-slate-600'
                     }`}>
-                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 3: HR Final Clearance</span>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Stage 3: HR Final Clearance</span>
                     <span className="mt-1 font-extrabold">{selectedRecord.hrApprovalStatus === 'Approved' ? 'Fully Cleared' : selectedRecord.hrApprovalStatus === 'Rejected' ? 'Clearance Rejected' : 'Pending Stage 2'}</span>
                   </div>
 
@@ -2290,54 +2290,54 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
               </div>
 
               {/* Submitted Exit Application Details Card */}
-              <div className="mb-6 bg-slate-50 border border-purple-200/80 rounded-xl p-4 space-y-3 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-purple-100 pb-2">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] font-mono flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-purple-700" /> Submitted Exit Application Details
+              <div className="mb-6 bg-slate-50 dark:bg-gray-800 border dark:border-gray-700 border-purple-200/80 rounded-xl p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b dark:border-gray-700 border-purple-100 pb-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] dark:text-purple-300 font-mono flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" /> Submitted Exit Application Details
                   </h4>
-                  <span className="text-[9px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono">
+                  <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 px-2 py-0.5 rounded font-mono">
                     {selectedRecord.category || "Employee"}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold text-slate-800">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Employee Name</span>
-                    <span className="font-bold text-slate-900 text-xs block truncate">{selectedRecord.name}</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold text-slate-800 dark:text-gray-100">
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Employee Name</span>
+                    <span className="font-bold text-slate-900 dark:text-gray-100 text-xs block truncate">{selectedRecord.name}</span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Department / Role</span>
-                    <span className="font-bold text-slate-900 text-xs block truncate">{selectedRecord.department || selectedRecord.submittedByUser?.role || "Staff"}</span>
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Department / Role</span>
+                    <span className="font-bold text-slate-900 dark:text-gray-100 text-xs block truncate">{selectedRecord.department || selectedRecord.submittedByUser?.role || "Staff"}</span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Resignation Date</span>
-                    <span className="font-bold text-indigo-700 text-xs block">📅 {selectedRecord.resignationDate || "N/A"}</span>
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Resignation Date</span>
+                    <span className="font-bold text-indigo-700 dark:text-indigo-300 text-xs block">📅 {selectedRecord.resignationDate || "N/A"}</span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Proposed LWD</span>
-                    <span className="font-bold text-purple-700 text-xs block">🗓️ {selectedRecord.lastWorkingDay || "N/A"}</span>
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Proposed LWD</span>
+                    <span className="font-bold text-purple-700 dark:text-purple-300 text-xs block">🗓️ {selectedRecord.lastWorkingDay || "N/A"}</span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Handover / KT Person</span>
-                    <span className="font-bold text-slate-900 text-xs block truncate">👤 {selectedRecord.handoverTo || "Not Specified"}</span>
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Handover / KT Person</span>
+                    <span className="font-bold text-slate-900 dark:text-gray-100 text-xs block truncate">👤 {selectedRecord.handoverTo || "Not Specified"}</span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Personal Contact / Email</span>
-                    <span className="font-bold text-slate-900 text-xs block truncate">
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Personal Contact / Email</span>
+                    <span className="font-bold text-slate-900 dark:text-gray-100 text-xs block truncate">
                       📞 {selectedRecord.personalMobile || selectedRecord.submittedByUser?.mobile || selectedRecord.submittedByUser?.phone || "N/A"} | ✉️ {selectedRecord.personalEmail || selectedRecord.submittedByUser?.email || "N/A"}
                     </span>
                   </div>
 
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Salary Settlement Status</span>
-                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-extrabold ${selectedRecord.salaryStatus === "Paid / Released" ? "bg-emerald-100 text-emerald-800" :
-                      selectedRecord.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-100 text-blue-800" :
-                        "bg-amber-100 text-amber-800"
+                  <div className="bg-white dark:bg-gray-900 p-2.5 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Salary Settlement Status</span>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-extrabold ${selectedRecord.salaryStatus === "Paid / Released" ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300" :
+                      selectedRecord.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300" :
+                        "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300"
                       }`}>
                       {selectedRecord.salaryStatus || "Pending"}
                     </span>
@@ -2345,17 +2345,17 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                 </div>
 
                 {selectedRecord.pendingDuesRemarks && (
-                  <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200 space-y-1 shadow-2xs text-amber-900">
-                    <span className="text-[9px] font-black uppercase text-amber-700 block font-mono">⚠️ Pending Dues / Hold Items Details</span>
+                  <div className="bg-amber-50/70 dark:bg-amber-950/50 p-3 rounded-lg border dark:border-gray-700 border-amber-200 space-y-1 shadow-2xs text-amber-900 dark:text-amber-300">
+                    <span className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 block font-mono">⚠️ Pending Dues / Hold Items Details</span>
                     <p className="text-xs font-bold leading-normal">{selectedRecord.pendingDuesRemarks}</p>
                   </div>
                 )}
 
-                <div className="bg-white p-3 rounded-lg border border-slate-200/80 space-y-1 shadow-2xs">
-                  <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Exit Reason & Remarks</span>
-                  <p className="text-xs font-bold text-slate-800 leading-normal">{selectedRecord.exitReason || "N/A"}</p>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border dark:border-gray-700 border-slate-200/80 space-y-1 shadow-2xs">
+                  <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Exit Reason & Remarks</span>
+                  <p className="text-xs font-bold text-slate-800 dark:text-gray-100 leading-normal">{selectedRecord.exitReason || "N/A"}</p>
                   {selectedRecord.exitFeedback && (
-                    <p className="text-[11px] font-medium text-slate-600 border-t border-slate-100 pt-1 mt-1">
+                    <p className="text-[11px] font-medium text-slate-600 dark:text-gray-300 border-t border-slate-100 dark:border-gray-700 pt-1 mt-1">
                       <strong>Feedback:</strong> {selectedRecord.exitFeedback}
                     </p>
                   )}
@@ -2363,66 +2363,66 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
               </div>
 
               {/* COMPLETE APPROVAL AUDIT & REMARKS LOG CARD */}
-              <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 shadow-2xs">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] font-mono flex items-center gap-1.5 border-b border-slate-200 pb-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Complete Approval Audit & Remarks Log
+              <div className="mb-6 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 space-y-3 shadow-2xs">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] dark:text-purple-300 font-mono flex items-center gap-1.5 border-b border-slate-200 dark:border-gray-700 pb-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" /> Complete Approval Audit & Remarks Log
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                   {/* Stage 1: Department Reporting Manager Audit */}
-                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.managerApprovalStatus === 'Approved' ? 'border-emerald-200 bg-emerald-50/20' :
-                    selectedRecord.managerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.managerApprovalStatus === 'Approved' ? 'border-emerald-200 bg-emerald-50/20 dark:bg-emerald-950/50' :
+                    selectedRecord.managerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200 dark:border-gray-700'
                     }`}>
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 1: Dept Manager</span>
-                    <div className="font-bold text-slate-900 mt-1">{selectedRecord.managerName || "Department Manager"}</div>
-                    <div className={`text-[10px] font-bold mt-0.5 ${selectedRecord.managerApprovalStatus === 'Approved' ? 'text-emerald-700' :
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Stage 1: Dept Manager</span>
+                    <div className="font-bold text-slate-900 dark:text-gray-100 mt-1">{selectedRecord.managerName || "Department Manager"}</div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${selectedRecord.managerApprovalStatus === 'Approved' ? 'text-emerald-700 dark:text-emerald-300' :
                       selectedRecord.managerApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-amber-700'
                       }`}>
                       Status: {selectedRecord.managerApprovalStatus || "Pending"} {selectedRecord.exitType ? `(${selectedRecord.exitType})` : ""}
                     </div>
                     {selectedRecord.exitType === "Notice Period" && (
-                      <div className="text-[9.5px] text-slate-600 mt-1 font-mono bg-slate-50 p-1.5 rounded border border-slate-100">
+                      <div className="text-[9.5px] text-slate-600 dark:text-gray-300 mt-1 font-mono bg-slate-50 dark:bg-gray-800 p-1.5 rounded border border-slate-100 dark:border-gray-700">
                         Notice: {selectedRecord.noticePeriodDays || 30} Days <br /> LWD: {selectedRecord.lastWorkingDay || "N/A"}
                       </div>
                     )}
                     {selectedRecord.managerRemarks ? (
-                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                      <div className="text-[10.5px] text-slate-700 dark:text-gray-100 bg-slate-50 dark:bg-gray-800 p-2 rounded mt-2 border dark:border-gray-700 border-slate-200/60 leading-tight">
                         <strong>Remarks:</strong> "{selectedRecord.managerRemarks}"
                       </div>
                     ) : null}
                   </div>
 
                   {/* Stage 2: Owner / Executive Management Audit */}
-                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.ownerApprovalStatus === 'Approved' ? 'border-blue-200 bg-blue-50/20' :
-                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.ownerApprovalStatus === 'Approved' ? 'border-blue-200 bg-blue-50/20 dark:bg-blue-950/50' :
+                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200 dark:border-gray-700'
                     }`}>
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 2: Owner / Management</span>
-                    <div className="font-bold text-slate-900 mt-1">Executive Board</div>
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Stage 2: Owner / Management</span>
+                    <div className="font-bold text-slate-900 dark:text-gray-100 mt-1">Executive Board</div>
                     <div className={`text-[10px] font-bold mt-0.5 ${selectedRecord.ownerApprovalStatus === 'Approved' ? 'text-blue-700' :
-                      selectedRecord.ownerApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-slate-500'
+                      selectedRecord.ownerApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-slate-500 dark:text-gray-400'
                       }`}>
                       Status: {selectedRecord.ownerApprovalStatus || "Pending"}
                     </div>
                     {selectedRecord.ownerRemarks ? (
-                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                      <div className="text-[10.5px] text-slate-700 dark:text-gray-100 bg-slate-50 dark:bg-gray-800 p-2 rounded mt-2 border dark:border-gray-700 border-slate-200/60 leading-tight">
                         <strong>Remarks:</strong> "{selectedRecord.ownerRemarks}"
                       </div>
                     ) : null}
                   </div>
 
                   {/* Stage 3: HR Final Clearance Audit */}
-                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.hrApprovalStatus === 'Approved' ? 'border-purple-200 bg-purple-50/20' :
-                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  <div className={`p-3 rounded-lg border bg-white ${selectedRecord.hrApprovalStatus === 'Approved' ? 'border-purple-200 bg-purple-50/20 dark:bg-purple-950/50' :
+                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200 dark:border-gray-700'
                     }`}>
-                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 3: HR Final Clearance</span>
-                    <div className="font-bold text-slate-900 mt-1">HR Department</div>
-                    <div className={`text-[10px] font-bold mt-0.5 ${selectedRecord.hrApprovalStatus === 'Approved' ? 'text-purple-700' :
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-gray-400 block font-mono">Stage 3: HR Final Clearance</span>
+                    <div className="font-bold text-slate-900 dark:text-gray-100 mt-1">HR Department</div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${selectedRecord.hrApprovalStatus === 'Approved' ? 'text-purple-700 dark:text-purple-300' :
                       selectedRecord.hrApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-slate-500'
                       }`}>
                       Status: {selectedRecord.hrApprovalStatus || "Pending"}
                     </div>
                     {selectedRecord.hrApprovalStatus === 'Approved' && (
-                      <div className="text-[9.5px] text-slate-600 mt-1 space-y-0.5 font-semibold">
+                      <div className="text-[9.5px] text-slate-600 dark:text-gray-300 mt-1 space-y-0.5 font-semibold">
                         <div>✓ Assets Returned: {selectedRecord.assetReturn ? "Yes" : "N/A"}</div>
                         <div>✓ Access Revoked: {selectedRecord.accessRevoke ? "Yes" : "N/A"}</div>
                         <div>✓ KT Handover: {selectedRecord.handover ? "Yes" : "N/A"}</div>
@@ -2430,7 +2430,7 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                       </div>
                     )}
                     {selectedRecord.hrRemarks ? (
-                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                      <div className="text-[10.5px] text-slate-700 dark:text-gray-100 bg-slate-50 dark:bg-gray-800 p-2 rounded mt-2 border dark:border-gray-700 border-slate-200/60 leading-tight">
                         <strong>Remarks:</strong> "{selectedRecord.hrRemarks}"
                       </div>
                     ) : null}
@@ -2440,12 +2440,12 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* READ-ONLY SUMMARY CARD WHEN REQUEST IS FULLY APPROVED */}
               {selectedRecord.approvalStage === "Approved" && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6 text-center space-y-2">
-                  <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto" />
-                  <h4 className="text-sm font-black uppercase tracking-wider text-emerald-900">
+                <div className="bg-emerald-50 dark:bg-emerald-950/50 border dark:border-gray-700 border-emerald-200 rounded-xl p-5 mb-6 text-center space-y-2">
+                  <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-300 mx-auto" />
+                  <h4 className="text-sm font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
                     Exit & Separation Clearance Fully Approved & Completed
                   </h4>
-                  <p className="text-xs text-emerald-800 max-w-lg mx-auto">
+                  <p className="text-xs text-emerald-800 dark:text-emerald-300 max-w-lg mx-auto">
                     This exit request has been fully processed and approved across all 3 stages (Department Reporting Manager → Owner → HR Final Clearance). All records and decision remarks are locked in Read-Only archive.
                   </p>
                 </div>
@@ -2453,12 +2453,12 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* EMPLOYEE STATUS VIEW FOR SUBMITTER */}
               {isSubmitter ? (
-                <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-5 mb-6">
+                <div className="bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-5 h-5 text-indigo-700" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 font-mono">Your Exit Request Status</h4>
+                    <AlertCircle className="w-5 h-5 text-indigo-700 dark:text-indigo-300" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300 font-mono">Your Exit Request Status</h4>
                   </div>
-                  <div className="text-xs text-indigo-900 space-y-1">
+                  <div className="text-xs text-indigo-900 dark:text-indigo-300 space-y-1">
                     {selectedRecord.approvalStage === "Pending Manager" && (
                       <p>⏳ Your request has been submitted and is currently <strong>Pending Review by your Department Reporting Manager</strong> ({selectedRecord.managerName || "Manager"}). An automated email notification has been sent.</p>
                     )}
@@ -2472,7 +2472,7 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                       <p>🎉 Your Exit & Separation Clearance is <strong>FULLY APPROVED & COMPLETED</strong> by HR Department.</p>
                     )}
                     {selectedRecord.approvalStage === "Rejected" && (
-                      <p className="text-rose-700">❌ Your exit request was rejected. Remarks: {selectedRecord.rejectionReason || selectedRecord.managerRemarks || selectedRecord.ownerRemarks || selectedRecord.hrRemarks || "Request rejected."}</p>
+                      <p className="text-rose-700 dark:text-rose-300">❌ Your exit request was rejected. Remarks: {selectedRecord.rejectionReason || selectedRecord.managerRemarks || selectedRecord.ownerRemarks || selectedRecord.hrRemarks || "Request rejected."}</p>
                     )}
                   </div>
                 </div>
@@ -2480,52 +2480,52 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* STAGE 1: DEPARTMENT REPORTING MANAGER DECISION PANEL */}
               {(isManagerOrAbove && selectedRecord.approvalStage === "Pending Manager") && (
-                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 mb-6">
+                <div className="bg-amber-50/50 dark:bg-amber-950/50 border dark:border-gray-700 border-amber-200 rounded-xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <UserCheck className="w-5 h-5 text-amber-700" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 font-mono">Stage 1 — Department Reporting Manager Decision</h4>
+                    <UserCheck className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 font-mono">Stage 1 — Department Reporting Manager Decision</h4>
                   </div>
-                  <p className="text-xs text-amber-800 mb-4">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mb-4">
                     As the Department Reporting Manager, please review this exit request and choose whether to grant an <strong>Immediate Direct Exit</strong> or put the employee on a <strong>Notice Period</strong>.
                   </p>
 
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${managerDecision.exitType === "Direct Exit" ? "bg-white border-indigo-600 shadow-sm" : "bg-white/50 border-slate-200"
+                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${managerDecision.exitType === "Direct Exit" ? "bg-white dark:bg-gray-900 border-indigo-600 shadow-sm" : "bg-white/50 dark:bg-gray-900 border-slate-200 dark:border-gray-700"
                         }`}>
                         <input
                           type="radio"
                           name="exitType"
                           checked={managerDecision.exitType === "Direct Exit"}
                           onChange={() => setManagerDecision({ ...managerDecision, exitType: "Direct Exit" })}
-                          className="accent-indigo-600"
+                          className="accent-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                         />
                         <div>
-                          <div className="text-xs font-bold text-slate-800">Direct Exit (Immediate)</div>
-                          <div className="text-[10px] text-slate-500">Employee leaves immediately without serving notice period.</div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-gray-100">Direct Exit (Immediate)</div>
+                          <div className="text-[10px] text-slate-500 dark:text-gray-400">Employee leaves immediately without serving notice period.</div>
                         </div>
                       </label>
 
-                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${managerDecision.exitType === "Notice Period" ? "bg-white border-indigo-600 shadow-sm" : "bg-white/50 border-slate-200"
+                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${managerDecision.exitType === "Notice Period" ? "bg-white dark:bg-gray-900 border-indigo-600 shadow-sm" : "bg-white/50 dark:bg-gray-900 border-slate-200 dark:border-gray-700"
                         }`}>
                         <input
                           type="radio"
                           name="exitType"
                           checked={managerDecision.exitType === "Notice Period"}
                           onChange={() => setManagerDecision({ ...managerDecision, exitType: "Notice Period" })}
-                          className="accent-indigo-600"
+                          className="accent-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                         />
                         <div>
-                          <div className="text-xs font-bold text-slate-800">Notice Period</div>
-                          <div className="text-[10px] text-slate-500">Employee serves mandatory notice period days.</div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-gray-100">Notice Period</div>
+                          <div className="text-[10px] text-slate-500 dark:text-gray-400">Employee serves mandatory notice period days.</div>
                         </div>
                       </label>
                     </div>
 
                     {managerDecision.exitType === "Notice Period" && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700">
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Notice Period Days *</label>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Notice Period Days *</label>
                           <input
                             type="text"
                             inputMode="numeric"
@@ -2534,29 +2534,29 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                               const val = e.target.value.replace(/\D/g, "");
                               setManagerDecision({ ...managerDecision, noticePeriodDays: val ? Number(val) : 0 });
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none focus:border-indigo-500"
+                            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none focus:border-indigo-500 dark:[color-scheme:dark]"
                             placeholder="Enter notice period days (e.g. 30)"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Last Working Day (LWD) *</label>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Last Working Day (LWD) *</label>
                           <input
                             type="date"
                             value={managerDecision.lastWorkingDay}
                             onChange={e => setManagerDecision({ ...managerDecision, lastWorkingDay: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-800 mt-1"
+                            className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-2 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 dark:[color-scheme:dark]"
                           />
                         </div>
                       </div>
                     )}
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Manager Remarks / Feedback</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Manager Remarks / Feedback</label>
                       <textarea
                         rows={2}
                         value={managerDecision.remarks}
                         onChange={e => setManagerDecision({ ...managerDecision, remarks: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-amber-600"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-2.5 text-xs font-medium text-slate-800 dark:text-gray-100 mt-1 focus:outline-none focus:border-amber-600 dark:[color-scheme:dark]"
                         placeholder="Add manager remarks regarding the exit..."
                       />
                     </div>
@@ -2583,23 +2583,23 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* STAGE 2: OWNER / EXECUTIVE BOARD DECISION PANEL */}
               {(isManagerOrAbove && selectedRecord.approvalStage === "Pending Owner") && (
-                <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-5 mb-6">
+                <div className="bg-blue-50/50 dark:bg-blue-950/50 border dark:border-gray-700 border-blue-200 rounded-xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="w-5 h-5 text-blue-700" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 font-mono">Stage 2 — Owner / Executive Management Approval</h4>
+                    <ShieldCheck className="w-5 h-5 text-blue-700 dark:text-blue-300" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 font-mono">Stage 2 — Owner / Executive Management Approval</h4>
                   </div>
-                  <p className="text-xs text-blue-800 mb-4">
+                  <p className="text-xs text-blue-800 dark:text-blue-300 mb-4">
                     Department Manager has approved this request for <strong>{selectedRecord.exitType || 'Direct Exit'}</strong>. Executive Board approval is required before forwarding to HR.
                   </p>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Executive Remarks</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">Executive Remarks</label>
                       <textarea
                         rows={2}
                         value={ownerDecision.remarks}
                         onChange={e => setOwnerDecision({ ...ownerDecision, remarks: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-blue-600"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-2.5 text-xs font-medium text-slate-800 dark:text-gray-100 mt-1 focus:outline-none focus:border-blue-600 dark:[color-scheme:dark]"
                         placeholder="Add executive management notes..."
                       />
                     </div>
@@ -2626,70 +2626,70 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* STAGE 3: HR DEPARTMENT FINAL CLEARANCE PANEL (ONLY WHEN PENDING HR) */}
               {(isManagerOrAbove && selectedRecord.approvalStage === "Pending HR") && (
-                <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-5 mb-6">
+                <div className="bg-purple-50/50 dark:bg-purple-950/50 border dark:border-gray-700 border-purple-200 rounded-xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <Building2 className="w-5 h-5 text-purple-700" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-purple-900 font-mono">Stage 3 — HR Department Final Clearance & Handovers</h4>
+                    <Building2 className="w-5 h-5 text-purple-700 dark:text-purple-300" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 font-mono">Stage 3 — HR Department Final Clearance & Handovers</h4>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-4 rounded-xl border border-slate-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white dark:bg-gray-900 p-4 rounded-xl border border-slate-200 dark:border-gray-700">
                       {[
                         { key: "assetReturn", label: "Company Assets Returned" },
                         { key: "accessRevoke", label: "System & Email Access Revoked" },
                         { key: "handover", label: "Work & Client Handovers Complete" },
                         { key: "finalSettlement", label: "Final Financial Settlement (F&F)" },
                       ].map(({ key, label }) => (
-                        <label key={key} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-150 cursor-pointer hover:bg-purple-50/30">
+                        <label key={key} className="flex items-center gap-3 p-2.5 rounded-lg border dark:border-gray-700 border-slate-150 cursor-pointer hover:bg-purple-50/30 dark:hover:bg-purple-950/50">
                           <input
                             type="checkbox"
-                            className="accent-purple-600 w-4 h-4"
+                            className="accent-purple-600 w-4 h-4 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                             checked={(hrDecision as any)[key]}
                             onChange={e => setHrDecision({ ...hrDecision, [key]: e.target.checked })}
                           />
-                          <span className="text-xs font-bold text-slate-700">{label}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-gray-100">{label}</span>
                         </label>
                       ))}
                     </div>
 
                     {/* Salary Settlement Status Options */}
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 font-mono block">
+                    <div className="bg-white dark:bg-gray-900 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-gray-300 font-mono block">
                         Salary Settlement Status *
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold">
-                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Pending" ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Pending" ? "bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-900 dark:text-amber-300" : "bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100"
                           }`}>
                           <input
                             type="radio"
                             name="hrSalaryStatus"
                             checked={hrDecision.salaryStatus === "Pending"}
                             onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Pending" })}
-                            className="accent-amber-600"
+                            className="accent-amber-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                           />
                           <span>🔴 Pending (Due)</span>
                         </label>
 
-                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Paid / Released" ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Paid / Released" ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-900 dark:text-emerald-300" : "bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100"
                           }`}>
                           <input
                             type="radio"
                             name="hrSalaryStatus"
                             checked={hrDecision.salaryStatus === "Paid / Released"}
                             onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Paid / Released" })}
-                            className="accent-emerald-600"
+                            className="accent-emerald-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                           />
                           <span>🟢 Paid / Released</span>
                         </label>
 
-                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-50 border-blue-300 text-blue-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${hrDecision.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-50 dark:bg-blue-950/50 border-blue-300 text-blue-900 dark:text-blue-300" : "bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100"
                           }`}>
                           <input
                             type="radio"
                             name="hrSalaryStatus"
                             checked={hrDecision.salaryStatus === "Included in Full & Final (F&F)"}
                             onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Included in Full & Final (F&F)" })}
-                            className="accent-blue-600"
+                            className="accent-blue-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                           />
                           <span>🔵 Included in F&F</span>
                         </label>
@@ -2697,25 +2697,25 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">
                         Pending Dues / Hold Items Details (If Any)
                       </label>
                       <textarea
                         rows={2}
                         value={hrDecision.pendingDuesRemarks}
                         onChange={e => setHrDecision({ ...hrDecision, pendingDuesRemarks: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-2.5 text-xs font-medium text-slate-800 dark:text-gray-100 mt-1 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                         placeholder="Detail any pending salary, hold amount, or dues that can be updated later..."
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">HR Final Clearance Remarks</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 font-mono">HR Final Clearance Remarks</label>
                       <textarea
                         rows={2}
                         value={hrDecision.remarks}
                         onChange={e => setHrDecision({ ...hrDecision, remarks: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-purple-600"
+                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded p-2.5 text-xs font-medium text-slate-800 dark:text-gray-100 mt-1 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                         placeholder="Document final settlement details or HR clearance notes..."
                       />
                     </div>
@@ -2743,20 +2743,20 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
               {/* Separation Details */}
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-2 border-b border-slate-100 pb-2">Exit Request Reason & Feedback</h4>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800">
+                  <h4 className="text-[10px] font-black tracking-widest text-[#714B67] dark:text-purple-300 uppercase font-mono mb-2 border-b border-slate-100 dark:border-gray-700 pb-2">Exit Request Reason & Feedback</h4>
+                  <div className="bg-slate-50 dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 text-xs font-semibold text-slate-800 dark:text-gray-100">
                     <p><strong>Reason:</strong> {selectedRecord.exitReason || "N/A"}</p>
-                    {selectedRecord.exitFeedback && <p className="mt-2 text-slate-600"><strong>Feedback:</strong> {selectedRecord.exitFeedback}</p>}
+                    {selectedRecord.exitFeedback && <p className="mt-2 text-slate-600 dark:text-gray-300"><strong>Feedback:</strong> {selectedRecord.exitFeedback}</p>}
                   </div>
                 </div>
               </div>
 
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[750px]">
+            <div className="text-center py-32 bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center h-[750px]">
               <FileText className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Exit Request Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-wide">No Exit Request Selected</h4>
+              <p className="text-xs text-slate-400 dark:text-gray-400 mt-2 max-w-xs leading-normal">
                 Select an exit request from the directory to process manager decisions, executive approvals, and HR clearance.
               </p>
             </div>
@@ -2768,15 +2768,15 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
       {/* FORM-13 Exit Form Modal */}
       {showForm13 && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-t-2xl">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-gray-700">
+            <div className="p-5 border-b border-slate-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-t-2xl">
               <div>
                 <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
                   <FileText className="w-5 h-5 text-indigo-300" /> FORM-13 Exit Request
                 </h2>
                 <p className="text-xs text-indigo-200 font-medium mt-0.5">Formal employee separation & clearance workflow submission</p>
               </div>
-              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white">
+              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white/10 dark:bg-gray-900 hover:bg-white/20 dark:hover:bg-gray-900 flex items-center justify-center transition-all text-white">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
@@ -2786,13 +2786,13 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                 {/* Basic Details & Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">1. Employee Name *</label>
-                    <input required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.name} onChange={e => setForm13({ ...form13, name: e.target.value })} placeholder="Full Name" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">1. Employee Name *</label>
+                    <input required className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.name} onChange={e => setForm13({ ...form13, name: e.target.value })} placeholder="Full Name" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">2. Employment Category *</label>
-                    <select required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.category} onChange={e => setForm13({ ...form13, category: e.target.value as any })}>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">2. Employment Category *</label>
+                    <select required className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.category} onChange={e => setForm13({ ...form13, category: e.target.value as any })}>
                       <option value="Employee">Full-time Employee</option>
                       <option value="Associate">Business Associate</option>
                       <option value="Vendor">Vendor / Contractor</option>
@@ -2800,46 +2800,46 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">3. Resignation Date *</label>
-                    <input type="date" required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.resignationDate} onChange={e => setForm13({ ...form13, resignationDate: e.target.value })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">3. Resignation Date *</label>
+                    <input type="date" required className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.resignationDate} onChange={e => setForm13({ ...form13, resignationDate: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">4. Proposed Last Working Day (LWD)</label>
-                    <input type="date" className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.lastWorkingDay} onChange={e => setForm13({ ...form13, lastWorkingDay: e.target.value })} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">4. Proposed Last Working Day (LWD)</label>
+                    <input type="date" className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.lastWorkingDay} onChange={e => setForm13({ ...form13, lastWorkingDay: e.target.value })} />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">5. Department</label>
-                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.department} onChange={e => setForm13({ ...form13, department: e.target.value })} placeholder="e.g. Operations / Technology / HR" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">5. Department</label>
+                    <input className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.department} onChange={e => setForm13({ ...form13, department: e.target.value })} placeholder="e.g. Operations / Technology / HR" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">6. Handover / KT Replacement Person</label>
-                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.handoverTo} onChange={e => setForm13({ ...form13, handoverTo: e.target.value })} placeholder="Name of team member receiving KT" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">6. Handover / KT Replacement Person</label>
+                    <input className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.handoverTo} onChange={e => setForm13({ ...form13, handoverTo: e.target.value })} placeholder="Name of team member receiving KT" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">7. Personal Contact Mobile (Post-Exit)</label>
-                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={(form13 as any).personalMobile || ""} onChange={e => setForm13({ ...form13, personalMobile: e.target.value } as any)} placeholder="+91 98765 43210" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">7. Personal Contact Mobile (Post-Exit)</label>
+                    <input className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={(form13 as any).personalMobile || ""} onChange={e => setForm13({ ...form13, personalMobile: e.target.value } as any)} placeholder="+91 98765 43210" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">8. Personal Email (For F&F & Experience Letter)</label>
-                    <input type="email" className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={(form13 as any).personalEmail || ""} onChange={e => setForm13({ ...form13, personalEmail: e.target.value } as any)} placeholder="personal@gmail.com" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">8. Personal Email (For F&F & Experience Letter)</label>
+                    <input type="email" className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={(form13 as any).personalEmail || ""} onChange={e => setForm13({ ...form13, personalEmail: e.target.value } as any)} placeholder="personal@gmail.com" />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">9. Exit Reason *</label>
-                    <textarea required rows={2} className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none resize-none transition-all" value={form13.exitReason} onChange={e => setForm13({ ...form13, exitReason: e.target.value })} placeholder="Reason for exit (Resignation, Career Switch, Contract End, Personal Reasons, etc.)" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">9. Exit Reason *</label>
+                    <textarea required rows={2} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none resize-none transition-all dark:[color-scheme:dark]" value={form13.exitReason} onChange={e => setForm13({ ...form13, exitReason: e.target.value })} placeholder="Reason for exit (Resignation, Career Switch, Contract End, Personal Reasons, etc.)" />
                   </div>
                 </div>
 
                 {/* IT & Compliance Clearance Checklist Section */}
-                <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-4 space-y-3">
-                  <h4 className="text-[10px] font-black tracking-widest text-indigo-900 uppercase pb-2 border-b border-indigo-200/60 flex items-center justify-between">
+                <div className="bg-indigo-50/50 dark:bg-indigo-950/50 border dark:border-gray-700 border-indigo-200 rounded-xl p-4 space-y-3">
+                  <h4 className="text-[10px] font-black tracking-widest text-indigo-900 dark:text-indigo-300 uppercase pb-2 border-b dark:border-gray-700 border-indigo-200/60 flex items-center justify-between">
                     <span>IT & Compliance Clearance Checklist</span>
-                    <span className="text-[9px] font-bold text-indigo-600">Verification Items</span>
+                    <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-300">Verification Items</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {[
@@ -2850,11 +2850,11 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                       { key: "ndaReminder", label: "5. Signed NDA & Non-Compete Sent" },
                       { key: "postExitWatch", label: "6. Active Post-Exit Tracking" },
                     ].map(({ key, label }) => (
-                      <label key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${(form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-slate-200 text-slate-700 hover:bg-indigo-50/40"
+                      <label key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${(form13 as any)[key] ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-800 dark:text-emerald-300" : "bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-100 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/50"
                         }`}>
                         <input
                           type="checkbox"
-                          className="accent-indigo-600 w-4 h-4 rounded"
+                          className="accent-indigo-600 w-4 h-4 rounded dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                           checked={(form13 as any)[key]}
                           onChange={e => setForm13({ ...form13, [key]: e.target.checked })}
                         />
@@ -2866,8 +2866,8 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Final Settlement Status (F&F)</label>
-                    <select className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.finalSettlementStatus} onChange={e => setForm13({ ...form13, finalSettlementStatus: e.target.value })}>
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">Final Settlement Status (F&F)</label>
+                    <select className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none transition-all dark:[color-scheme:dark]" value={form13.finalSettlementStatus} onChange={e => setForm13({ ...form13, finalSettlementStatus: e.target.value })}>
                       <option value="Pending Audit">Pending Audit</option>
                       <option value="On Hold">On Hold (Issues Found)</option>
                       <option value="Completed & Paid">Completed & Paid</option>
@@ -2875,13 +2875,13 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Exit Feedback (Optional)</label>
-                    <textarea rows={2} className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none resize-none transition-all" value={form13.exitFeedback} onChange={e => setForm13({ ...form13, exitFeedback: e.target.value })} placeholder="Feedback from the exiting person (optional)..." />
+                    <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 tracking-wider">Exit Feedback (Optional)</label>
+                    <textarea rows={2} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-900 rounded-lg p-2.5 text-xs font-bold text-slate-800 dark:text-gray-100 mt-1 focus:outline-none resize-none transition-all dark:[color-scheme:dark]" value={form13.exitFeedback} onChange={e => setForm13({ ...form13, exitFeedback: e.target.value })} placeholder="Feedback from the exiting person (optional)..." />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowForm13(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
+                <div className="pt-4 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowForm13(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all">Cancel</button>
                   <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                     <CheckCircle className="w-4 h-4" /> Submit FORM-13 Exit Request
                   </button>
@@ -2895,19 +2895,19 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
       {/* FULL EXIT CLEARANCE EDIT MODAL FOR OWNER / HR */}
       {showFullEditModal && selectedRecord && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-slate-200 animate-fade-in">
-            <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-900 text-white rounded-t-3xl">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-slate-200 dark:border-gray-700 animate-fade-in">
+            <div className="p-5 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-slate-900 text-white rounded-t-3xl">
               <div>
                 <h3 className="text-base font-extrabold tracking-tight flex items-center gap-2">
                   <Edit className="w-5 h-5 text-indigo-400" /> Edit Exit Clearance Details
                 </h3>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-gray-400 font-semibold mt-0.5">
                   Form ID: {selectedRecord.id} | Employee: {selectedRecord.name}
                 </p>
               </div>
               <button
                 onClick={() => setShowFullEditModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+                className="w-8 h-8 rounded-full bg-white/10 dark:bg-gray-900 hover:bg-white/20 dark:hover:bg-gray-900 flex items-center justify-center text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2918,60 +2918,60 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
               {/* Basic Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Employee Name</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1 font-mono">Employee Name</label>
                   <input
                     type="text"
                     value={fullEditForm.name}
                     onChange={e => setFullEditForm({ ...fullEditForm, name: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Handover / KT Person</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1 font-mono">Handover / KT Person</label>
                   <input
                     type="text"
                     value={fullEditForm.handoverTo}
                     onChange={e => setFullEditForm({ ...fullEditForm, handoverTo: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Resignation Date</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1 font-mono">Resignation Date</label>
                   <input
                     type="date"
                     value={fullEditForm.resignationDate}
                     onChange={e => setFullEditForm({ ...fullEditForm, resignationDate: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Last Working Day (LWD)</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1 font-mono">Last Working Day (LWD)</label>
                   <input
                     type="date"
                     value={fullEditForm.lastWorkingDay}
                     onChange={e => setFullEditForm({ ...fullEditForm, lastWorkingDay: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               {/* Salary Settlement Status & Pending Dues */}
-              <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-200 space-y-3">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-purple-900 font-mono">
+              <div className="bg-purple-50/60 dark:bg-purple-950/50 p-4 rounded-2xl border dark:border-gray-700 border-purple-200 space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-purple-900 dark:text-purple-300 font-mono">
                   💰 Salary & Financial Settlement Options
                 </h4>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">
                     Salary Settlement Status *
                   </label>
                   <select
                     value={fullEditForm.salaryStatus}
                     onChange={e => setFullEditForm({ ...fullEditForm, salaryStatus: e.target.value })}
-                    className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-extrabold text-slate-800 focus:outline-none focus:border-purple-600"
+                    className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-300 rounded-xl p-2.5 font-extrabold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                   >
                     <option value="Pending">🔴 Pending (Salary / Dues Pending)</option>
                     <option value="Paid / Released">🟢 Paid / Released (Salary Paid)</option>
@@ -2980,7 +2980,7 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">
                     Pending Dues / Hold Items Details (Fill when completed or updated later)
                   </label>
                   <textarea
@@ -2988,50 +2988,50 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                     placeholder="Describe any pending salary, hold amount, or dues that were completed or resolved..."
                     value={fullEditForm.pendingDuesRemarks}
                     onChange={e => setFullEditForm({ ...fullEditForm, pendingDuesRemarks: e.target.value })}
-                    className="w-full bg-white border border-purple-200 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                    className="w-full bg-white dark:bg-gray-900 border dark:border-gray-700 border-purple-200 rounded-xl p-2.5 font-bold text-slate-800 dark:text-gray-100 focus:outline-none focus:border-purple-600 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
               {/* Clearance Checkboxes */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 font-mono">
+              <div className="bg-slate-50 dark:bg-gray-800 p-4 rounded-2xl border border-slate-200 dark:border-gray-700 space-y-2">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-gray-300 font-mono">
                   Clearance Items Checklist
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
                     <input
                       type="checkbox"
                       checked={fullEditForm.assetReturn}
                       onChange={e => setFullEditForm({ ...fullEditForm, assetReturn: e.target.checked })}
-                      className="accent-indigo-600 w-4 h-4"
+                      className="accent-indigo-600 w-4 h-4 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                     <span>Company Assets Returned</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
                     <input
                       type="checkbox"
                       checked={fullEditForm.accessRevoke}
                       onChange={e => setFullEditForm({ ...fullEditForm, accessRevoke: e.target.checked })}
-                      className="accent-indigo-600 w-4 h-4"
+                      className="accent-indigo-600 w-4 h-4 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                     <span>System Access Revoked</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
                     <input
                       type="checkbox"
                       checked={fullEditForm.handover}
                       onChange={e => setFullEditForm({ ...fullEditForm, handover: e.target.checked })}
-                      className="accent-indigo-600 w-4 h-4"
+                      className="accent-indigo-600 w-4 h-4 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                     <span>Work Handover Complete</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 p-2 rounded-lg border border-slate-200 dark:border-gray-700">
                     <input
                       type="checkbox"
                       checked={fullEditForm.finalSettlement}
                       onChange={e => setFullEditForm({ ...fullEditForm, finalSettlement: e.target.checked })}
-                      className="accent-indigo-600 w-4 h-4"
+                      className="accent-indigo-600 w-4 h-4 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                     />
                     <span>Final F&F Settlement Done</span>
                   </label>
@@ -3040,23 +3040,23 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
               {/* Reason & Remarks */}
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Exit Reason</label>
+                <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Exit Reason</label>
                 <textarea
                   rows={2}
                   value={fullEditForm.exitReason}
                   onChange={e => setFullEditForm({ ...fullEditForm, exitReason: e.target.value })}
-                  className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
               </div>
 
               {/* Approval Stage & Remarks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Overall Approval Stage</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">Overall Approval Stage</label>
                   <select
                     value={fullEditForm.approvalStage}
                     onChange={e => setFullEditForm({ ...fullEditForm, approvalStage: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-extrabold text-slate-800 focus:outline-none"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-extrabold text-slate-800 dark:text-gray-100 focus:outline-none dark:bg-gray-800 dark:[color-scheme:dark]"
                   >
                     <option value="Pending Manager">Pending Manager (Stage 1)</option>
                     <option value="Pending Owner">Pending Owner (Stage 2)</option>
@@ -3067,21 +3067,21 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">HR Remarks</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 dark:text-gray-300 mb-1">HR Remarks</label>
                   <input
                     type="text"
                     value={fullEditForm.hrRemarks}
                     onChange={e => setFullEditForm({ ...fullEditForm, hrRemarks: e.target.value })}
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                    className="w-full border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600 dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-200 flex justify-end gap-2">
+              <div className="pt-4 border-t border-slate-200 dark:border-gray-700 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowFullEditModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-100 text-xs font-bold rounded-xl"
                 >
                   Cancel
                 </button>

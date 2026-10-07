@@ -41,12 +41,12 @@ function displayValue(value: unknown) {
 function actionStyle(action: string) {
   const upper = action.toUpperCase();
   if (upper.includes("DELETE") || upper.includes("REMOVE"))
-    return "bg-red-50 text-red-700 border-red-200";
+    return "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200";
   if (upper.includes("CREATE") || upper.includes("ADD"))
-    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200";
   if (upper.includes("UPDATE") || upper.includes("EDIT"))
-    return "bg-blue-50 text-blue-700 border-blue-200";
-  return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200";
+  return "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200";
 }
 
 export default function AuditTrail() {
@@ -102,14 +102,14 @@ export default function AuditTrail() {
   };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 text-slate-800 dark:text-gray-100">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-[#9A7B2F]" />
-            <h1 className="text-2xl font-bold text-slate-900">System Audit Trail</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100">System Audit Trail</h1>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
             User actions, affected records, and before/after changes.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function AuditTrail() {
           type="button"
           onClick={loadLogs}
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -126,15 +126,15 @@ export default function AuditTrail() {
 
       <form
         onSubmit={submitSearch}
-        className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1fr_160px_160px_auto]"
+        className="grid gap-2 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 md:grid-cols-[1fr_160px_160px_auto]"
       >
         <label className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-gray-400" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search user action, module, record ID..."
-            className="h-9 w-full rounded-md border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-[#C9A84C]"
+            className="h-9 w-full rounded-md border border-slate-300 dark:border-gray-700 pl-9 pr-3 text-sm outline-none focus:border-[#C9A84C] dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
           />
         </label>
         <input
@@ -145,7 +145,7 @@ export default function AuditTrail() {
             setFrom(event.target.value);
           }}
           aria-label="From date"
-          className="h-9 rounded-md border border-slate-300 px-2 text-sm"
+          className="h-9 rounded-md border border-slate-300 dark:border-gray-700 px-2 text-sm dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
         />
         <input
           type="date"
@@ -155,7 +155,7 @@ export default function AuditTrail() {
             setTo(event.target.value);
           }}
           aria-label="To date"
-          className="h-9 rounded-md border border-slate-300 px-2 text-sm"
+          className="h-9 rounded-md border border-slate-300 dark:border-gray-700 px-2 text-sm dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
         />
         <button
           type="submit"
@@ -166,12 +166,12 @@ export default function AuditTrail() {
       </form>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-md border dark:border-gray-700 border-red-200 bg-red-50 dark:bg-red-950/50 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <table className="min-w-[1050px] text-left text-xs">
           <thead>
             <tr>
@@ -188,12 +188,12 @@ export default function AuditTrail() {
             {loading ? (
               <tr>
                 <td colSpan={7} className="h-28 text-center">
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-500" />
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-500 dark:text-gray-400" />
                 </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="h-28 text-center text-slate-500">
+                <td colSpan={7} className="h-28 text-center text-slate-500 dark:text-gray-400">
                   No matching audit entries found.
                 </td>
               </tr>
@@ -205,16 +205,16 @@ export default function AuditTrail() {
                       {new Date(log.timestamp).toLocaleString("en-IN")}
                     </td>
                     <td>
-                      <div className="font-semibold text-slate-800">
+                      <div className="font-semibold text-slate-800 dark:text-gray-100">
                         {log.user?.name || "System"}
                       </div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-[10px] text-slate-500 dark:text-gray-400">
                         {log.user?.role || "System"}
                       </div>
                     </td>
                     <td>
                       <span
-                        className={`inline-flex rounded border px-2 py-0.5 font-semibold ${actionStyle(
+                        className={`inline-flex rounded border dark:border-gray-700 px-2 py-0.5 font-semibold ${actionStyle(
                           log.action
                         )}`}
                       >
@@ -223,7 +223,7 @@ export default function AuditTrail() {
                     </td>
                     <td>
                       <div className="font-semibold">{log.entity || "—"}</div>
-                      <div className="max-w-40 truncate text-[10px] text-slate-500">
+                      <div className="max-w-40 truncate text-[10px] text-slate-500 dark:text-gray-400">
                         {log.entityId || "—"}
                       </div>
                     </td>
@@ -236,7 +236,7 @@ export default function AuditTrail() {
                           onClick={() =>
                             setExpanded((current) => (current === log.id ? null : log.id))
                           }
-                          className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 font-semibold hover:bg-slate-50"
+                          className="inline-flex items-center gap-1 rounded border border-slate-300 dark:border-gray-700 px-2 py-1 font-semibold hover:bg-slate-50 dark:hover:bg-gray-800"
                         >
                           {log.changes.length}
                           {expanded === log.id ? (
@@ -252,8 +252,8 @@ export default function AuditTrail() {
                   </tr>
                   {expanded === log.id && log.changes?.length > 0 && (
                     <tr key={`${log.id}-changes`}>
-                      <td colSpan={7} className="bg-slate-50">
-                        <div className="flex items-center gap-2 pb-2 font-semibold text-slate-700">
+                      <td colSpan={7} className="bg-slate-50 dark:bg-gray-800">
+                        <div className="flex items-center gap-2 pb-2 font-semibold text-slate-700 dark:text-gray-100">
                           <History className="h-4 w-4" />
                           Field-level changes
                         </div>
@@ -261,18 +261,18 @@ export default function AuditTrail() {
                           <thead>
                             <tr>
                               <th>Field</th>
-                              <th className="text-red-700">Before</th>
-                              <th className="text-emerald-700">After</th>
+                              <th className="text-red-700 dark:text-red-300">Before</th>
+                              <th className="text-emerald-700 dark:text-emerald-300">After</th>
                             </tr>
                           </thead>
                           <tbody>
                             {log.changes.map((change) => (
                               <tr key={change.field}>
                                 <td className="font-semibold">{change.field}</td>
-                                <td className="max-w-md whitespace-pre-wrap break-all bg-red-50/50">
+                                <td className="max-w-md whitespace-pre-wrap break-all bg-red-50/50 dark:bg-red-950/50">
                                   {displayValue(change.before)}
                                 </td>
-                                <td className="max-w-md whitespace-pre-wrap break-all bg-emerald-50/50">
+                                <td className="max-w-md whitespace-pre-wrap break-all bg-emerald-50/50 dark:bg-emerald-950/50">
                                   {displayValue(change.after)}
                                 </td>
                               </tr>
@@ -289,14 +289,14 @@ export default function AuditTrail() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-gray-300">
         <span>{total.toLocaleString("en-IN")} audit entries</span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={page <= 1 || loading}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="rounded border border-slate-300 bg-white p-2 disabled:opacity-40"
+            className="rounded border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 disabled:opacity-40"
             aria-label="Previous audit page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -308,7 +308,7 @@ export default function AuditTrail() {
             type="button"
             disabled={page >= totalPages || loading}
             onClick={() => setPage((current) => current + 1)}
-            className="rounded border border-slate-300 bg-white p-2 disabled:opacity-40"
+            className="rounded border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 disabled:opacity-40"
             aria-label="Next audit page"
           >
             <ChevronRight className="h-4 w-4" />
